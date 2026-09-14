@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Codle — Learn to Code</title>
+<style>
+:root {
+  --lg-radius: 22px;
+  --lg-radius-sm: 14px;
+  --lg-radius-pill: 999px;
+  --lg-spring: cubic-bezier(.32,.72,0,1);
+  --lg-border-dim: rgba(255,255,255,.16);
+  --lg-tint: rgba(255,255,255,.08);
+  --accent: #7dd8ff;
+  --accent-2: #c9a8ff;
+  --accent-3: #ff8a65;
+  --green: #6ee7a0;
+  --gold: #ffd666;
+  --pink: #ff7eb3;
+  --coral: #ff6b6b;
+  --ink: #eef1f6;
+  --ink-dim: rgba(238,241,246,.62);
+  --bg: #08090c;
+  --lg-blur: 14px;
+  --ms-size: 78px;
+  --ms-size-current: 94px;
+  --ms-size-locked: 66px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;min-height:100vh;font-family:-apple-system,"SF Pro Text","Inter","Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+
+/* ===== BACKGROUND ===== */
+.bg{position:fixed;inset:0;z-index:-2;background:var(--bg);overflow:hidden}
+.bg::before{content:"";position:absolute;inset:-10%;background:radial-gradient(38% 32% at 18% 22%,rgba(125,216,255,.30),transparent 60%),radial-gradient(42% 36% at 82% 18%,rgba(201,168,255,.24),transparent 60%),radial-gradient(46% 40% at 70% 82%,rgba(255,161,138,.18),transparent 60%),radial-gradient(40% 34% at 12% 78%,rgba(140,255,214,.14),transparent 60%);filter:blur(60px) saturate(120%);animation:drift 42s ease-in-out infinite alternate}
+.bg::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 50% 0%,transparent 40%,var(--bg) 92%)}
+@keyframes drift{0%{transform:translate3d(0,0,0) scale(1)}100%{transform:translate3d(-2%,2%,0) scale(1.06)}}
+@media(prefers-reduced-motion:reduce){.bg::before{animation:none}}
+
+/* ===== LIQUID GLASS ===== */
+.liquid-glass{position:relative;isolation:isolate;background:var(--lg-tint);-webkit-backdrop-filter:blur(var(--lg-blur)) saturate(180%) brightness(1.08) contrast(1.02);backdrop-filter:blur(var(--lg-blur)) saturate(180%) brightness(1.08) contrast(1.02);border-radius:var(--lg-radius);border:1px solid var(--lg-border-dim);box-shadow:inset 0 1px 1px rgba(255,255,255,.5),inset 0 -1px 12px rgba(255,255,255,.05),0 10px 30px rgba(0,0,0,.35)}
+.liquid-glass::before{content:"";position:absolute;inset:0;border-radius:inherit;z-index:0;pointer-events:none;background:radial-gradient(160px 160px at var(--mx,50%) var(--my,20%),rgba(255,255,255,.35),transparent 60%);opacity:0;transition:opacity .4s var(--lg-spring)}
+.liquid-glass::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.22),transparent 42%)}
+.liquid-glass>*{position:relative;z-index:1}
+.liquid-glass--interactive{cursor:pointer;transition:transform .5s var(--lg-spring),box-shadow .5s var(--lg-spring),border-color .5s var(--lg-spring);-webkit-tap-highlight-color:transparent}
+.liquid-glass--interactive:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.32);box-shadow:inset 0 1px 1px rgba(255,255,255,.55),inset 0 -1px 12px rgba(255,255,255,.06),0 16px 38px rgba(0,0,0,.4)}
+.liquid-glass--interactive:hover::before{opacity:1}
+.liquid-glass--interactive:active{transform:translateY(0) scale(.975);transition-duration:.18s}
+#lg-ripple-host{position:fixed;inset:0;pointer-events:none;z-index:9999}
+.lg-ripple-clip{position:fixed;overflow:hidden;pointer-events:none}
+.lg-ripple-dot{position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.6),rgba(255,255,255,0) 68%);will-change:transform,opacity;transform:translateZ(0) scale(0)}
+
+/* ===== DESKTOP NAVBAR ===== */
+.navbar-top{position:sticky;top:16px;z-index:40;margin:16px auto 0;max-width:1280px;display:flex;align-items:center;justify-content:space-between;padding:10px 20px 10px 22px;border-radius:var(--lg-radius-pill)}
+.navbar-top .brand{display:flex;align-items:center;gap:10px}
+.navbar-top .brand img{height:30px;width:auto;display:block;filter:drop-shadow(0 2px 8px rgba(125,216,255,.15))}
+.navbar-tabs{position:relative;display:inline-flex;padding:4px;gap:2px;z-index:1}
+.navbar-tab-indicator{position:absolute;z-index:0;top:4px;left:4px;height:calc(100% - 8px);transition:transform .55s var(--lg-spring),width .55s var(--lg-spring);will-change:transform,width;pointer-events:none}
+.navbar-tab-indicator-fill{width:100%;height:100%;border-radius:var(--lg-radius-pill);background:linear-gradient(180deg,#fff,#dce6f2);box-shadow:0 6px 16px rgba(0,0,0,.28),inset 0 1px 1px #fff;transform-origin:center}
+@keyframes tab-squash{0%{transform:scaleX(1)}40%{transform:scaleX(1.08)}100%{transform:scaleX(1)}}
+.navbar-tab-indicator-fill.squash{animation:tab-squash .55s var(--lg-spring)}
+.navbar-tab{position:relative;z-index:2;display:flex;align-items:center;gap:7px;padding:9px 20px;font-size:14px;font-weight:500;color:var(--ink-dim);border-radius:var(--lg-radius-pill);border:none;background:transparent;cursor:pointer;font-family:inherit;transition:color .4s var(--lg-spring);white-space:nowrap}
+.navbar-tab[aria-selected="true"]{color:#08090c;font-weight:600}
+.navbar-tab svg{width:17px;height:17px;flex:none}
+.nav-profile{width:36px;height:36px;border-radius:50%;background:linear-gradient(140deg,var(--accent),var(--accent-2));border:2px solid rgba(255,255,255,.25);cursor:pointer;transition:border-color .3s;flex:none}
+.nav-profile:hover{border-color:rgba(255,255,255,.5)}
+
+/* ===== MOBILE BOTTOM NAVBAR ===== */
+.navbar-bottom{display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;padding:6px 8px calc(env(safe-area-inset-bottom,0px) + 6px);border-radius:20px 20px 0 0;border-bottom:none;box-shadow:inset 0 1px 1px rgba(255,255,255,.5),0 -4px 30px rgba(0,0,0,.5)}
+.mobile-tab-indicator{position:absolute;z-index:0;top:6px;left:0;height:calc(100% - 12px - env(safe-area-inset-bottom,0px));transition:transform .55s var(--lg-spring),width .55s var(--lg-spring);will-change:transform,width;pointer-events:none}
+.mobile-tab-indicator-fill{width:100%;height:100%;border-radius:14px;background:linear-gradient(180deg,rgba(125,216,255,.18),rgba(201,168,255,.10));box-shadow:0 0 20px rgba(125,216,255,.08)}
+.mobile-tab-indicator-fill.squash{animation:tab-squash .55s var(--lg-spring)}
+.navbar-bottom .nav-items{position:relative;display:flex;justify-content:space-around;align-items:center}
+.bottom-nav-item{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 16px;font-size:10px;font-weight:500;color:var(--ink-dim);background:none;border:none;cursor:pointer;font-family:inherit;transition:color .4s var(--lg-spring);border-radius:12px}
+.bottom-nav-item[aria-selected="true"]{color:var(--accent);font-weight:600}
+.bottom-nav-item svg{width:24px;height:24px}
+
+/* ===== MAIN LAYOUT ===== */
+.app-layout{max-width:1280px;margin:0 auto;padding:32px 36px 60px;display:grid;grid-template-columns:260px 1fr 260px;gap:32px;align-items:start}
+.sidebar-left,.sidebar-right{position:sticky;top:90px}
+
+/* ===== SIDEBAR CARDS ===== */
+.stat-card{padding:22px;margin-bottom:18px}
+.stat-card .stat-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.stat-card .stat-header svg{width:20px;height:20px}
+.stat-card .stat-header span{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-dim)}
+.stat-card .stat-value{font-size:28px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px}
+.stat-card .stat-label{font-size:13px;color:var(--ink-dim)}
+.stat-card .stat-bar-track{width:100%;height:6px;border-radius:999px;background:rgba(255,255,255,.1);margin-top:12px;overflow:hidden}
+.stat-card .stat-bar-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .6s var(--lg-spring)}
+.leaderboard-item{display:flex;align-items:center;gap:10px;padding:8px 0}
+.leaderboard-item+.leaderboard-item{border-top:1px solid rgba(255,255,255,.06)}
+.leaderboard-item .rank{font-size:13px;font-weight:700;color:var(--ink-dim);width:20px;text-align:center}
+.leaderboard-item .lb-avatar{width:28px;height:28px;border-radius:50%;flex:none}
+.leaderboard-item .lb-name{font-size:13px;font-weight:500;flex:1}
+.leaderboard-item .lb-xp{font-size:12px;color:var(--ink-dim)}
+
+/* ===== LEARNING PATH ===== */
+.path-container{position:relative;padding:20px 0 80px}
+#path-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;overflow:visible}
+#path-svg .trail-bg{fill:none;stroke:rgba(255,255,255,.07);stroke-width:4;stroke-linecap:round}
+#path-svg .trail-completed{fill:none;stroke-width:4;stroke-linecap:round}
+.path-nodes{display:flex;flex-direction:column;align-items:center;gap:48px;position:relative;z-index:1}
+.path-node{display:flex;justify-content:center;width:100%}
+.path-node[data-pos="left"]{justify-content:flex-start;padding-left:20%}
+.path-node[data-pos="right"]{justify-content:flex-end;padding-right:20%}
+.path-node[data-pos="center"]{justify-content:center}
+
+/* Section header */
+.path-section-header{padding:14px 32px;margin:0 auto;border-radius:var(--lg-radius-pill);text-align:center;width:fit-content}
+.path-section-header h3{margin:0;font-size:16px;font-weight:600}
+.path-section-header p{margin:6px 0 0;font-size:12px;color:var(--ink-dim)}
+
+/* Chapter color tints */
+.chapter-cyan .path-section-header{border-color:rgba(125,216,255,.3);background:rgba(125,216,255,.08)}
+.chapter-purple .path-section-header{border-color:rgba(201,168,255,.3);background:rgba(201,168,255,.08)}
+
+/* Chapter background glows */
+.chapter-glow{position:absolute;left:0;right:0;height:600px;pointer-events:none;z-index:-1;opacity:.5}
+.chapter-glow.cyan{background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(125,216,255,.08),transparent 70%)}
+.chapter-glow.purple{background:radial-gradient(ellipse 60% 40% at 50% 50%,rgba(201,168,255,.08),transparent 70%)}
+
+/* Milestone node */
+.milestone{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;width:fit-content;cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:0;transform:scale(.5);transition:opacity .5s var(--lg-spring),transform .5s var(--lg-spring)}
+.milestone.revealed{opacity:1;transform:scale(1)}
+
+.milestone-circle{width:var(--ms-size);height:var(--ms-size);border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;transition:transform .5s var(--lg-spring),box-shadow .5s var(--lg-spring);border:2.5px solid rgba(255,255,255,.2);background:var(--lg-tint);-webkit-backdrop-filter:blur(var(--lg-blur)) saturate(180%) brightness(1.08);backdrop-filter:blur(var(--lg-blur)) saturate(180%) brightness(1.08);box-shadow:inset 0 1px 1px rgba(255,255,255,.5),inset 0 -1px 12px rgba(255,255,255,.05),0 8px 24px rgba(0,0,0,.35)}
+.milestone-circle::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.22),transparent 42%);pointer-events:none}
+.milestone-circle .ms-icon{width:30px;height:30px;position:relative;z-index:1;color:var(--ink)}
+.milestone-check{position:absolute;bottom:-3px;right:-3px;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3);z-index:3}
+.milestone-check svg{width:13px;height:13px;color:#fff}
+.milestone:hover .milestone-circle{transform:translateY(-4px) scale(1.08);box-shadow:inset 0 1px 1px rgba(255,255,255,.55),0 16px 38px rgba(0,0,0,.45)}
+
+/* Completed — chapter-colored */
+.chapter-cyan .milestone.completed .milestone-circle{border-color:rgba(125,216,255,.3);background:linear-gradient(180deg,rgba(125,216,255,.15),rgba(125,216,255,.04))}
+.chapter-cyan .milestone.completed .milestone-check{background:linear-gradient(180deg,#7dd8ff,#5cc8f0)}
+.chapter-cyan .milestone.completed .milestone-circle .ms-icon{color:rgba(125,216,255,.7)}
+
+.chapter-purple .milestone.completed .milestone-circle{border-color:rgba(201,168,255,.3);background:linear-gradient(180deg,rgba(201,168,255,.15),rgba(201,168,255,.04))}
+.chapter-purple .milestone.completed .milestone-check{background:linear-gradient(180deg,#c9a8ff,#a87ef0)}
+.chapter-purple .milestone.completed .milestone-circle .ms-icon{color:rgba(201,168,255,.7)}
+
+.milestone.completed .milestone-label{color:var(--ink-dim)}
+
+/* Current */
+.milestone.current .milestone-circle{width:var(--ms-size-current);height:var(--ms-size-current);background:linear-gradient(180deg,rgba(125,216,255,.25),rgba(201,168,255,.12));border-color:rgba(125,216,255,.5);border-width:3px;box-shadow:inset 0 1px 1px rgba(255,255,255,.6),0 0 0 6px rgba(125,216,255,.1),0 0 30px rgba(125,216,255,.12),0 12px 30px rgba(0,0,0,.4);animation:pulse-glow 3s ease-in-out infinite}
+.milestone.current .milestone-circle .ms-icon{width:34px;height:34px;color:var(--accent)}
+@keyframes pulse-glow{0%,100%{box-shadow:inset 0 1px 1px rgba(255,255,255,.6),0 0 0 6px rgba(125,216,255,.1),0 0 30px rgba(125,216,255,.12),0 12px 30px rgba(0,0,0,.4)}50%{box-shadow:inset 0 1px 1px rgba(255,255,255,.6),0 0 0 10px rgba(125,216,255,.06),0 0 40px rgba(125,216,255,.15),0 12px 30px rgba(0,0,0,.4)}}
+
+/* Locked */
+.milestone.locked{cursor:not-allowed}
+.milestone.locked .milestone-circle{width:var(--ms-size-locked);height:var(--ms-size-locked);opacity:.4;filter:saturate(.25) brightness(.85)}
+.milestone.locked .milestone-circle .ms-icon{width:24px;height:24px}
+.milestone.locked .milestone-label{color:rgba(238,241,246,.3)}
+.milestone.locked:hover .milestone-circle{transform:none;box-shadow:inset 0 1px 1px rgba(255,255,255,.5),0 8px 24px rgba(0,0,0,.35)}
+
+/* Label + start btn */
+.milestone-label{margin-top:8px;font-size:13px;font-weight:600;color:var(--ink);text-align:center;white-space:nowrap}
+.milestone-start-btn{margin-top:8px;padding:8px 22px;font-size:13px;font-weight:700;color:#08090c;background:linear-gradient(180deg,var(--accent),#5cc8f0);border:none;border-radius:var(--lg-radius-pill);cursor:pointer;text-transform:uppercase;letter-spacing:.03em;box-shadow:0 4px 14px rgba(125,216,255,.3);transition:transform .3s var(--lg-spring),box-shadow .3s var(--lg-spring)}
+.milestone-start-btn:hover{transform:scale(1.06);box-shadow:0 6px 20px rgba(125,216,255,.4)}
+
+/* Progress ring */
+.progress-ring{position:absolute;inset:-8px;border-radius:50%;z-index:-1}
+.progress-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.progress-ring circle{fill:none;stroke-width:3.5;stroke-linecap:round}
+.progress-ring .track{stroke:rgba(255,255,255,.06)}
+.progress-ring .fill{stroke:var(--accent);stroke-dasharray:283;stroke-dashoffset:85;transition:stroke-dashoffset 1s var(--lg-spring)}
+
+/* Tooltip */
+.milestone-tooltip{position:absolute;top:-54px;left:50%;transform:translateX(-50%) translateY(6px);padding:10px 16px;border-radius:var(--lg-radius-sm);font-size:12px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s var(--lg-spring);z-index:10}
+.milestone-tooltip .tip-title{font-weight:600;font-size:13px}
+.milestone-tooltip .tip-sub{color:var(--gold);font-size:11px;margin-top:2px}
+.milestone:hover .milestone-tooltip{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Section header also starts hidden for animation */
+.path-section-header{opacity:0;transform:scale(.85);transition:opacity .5s var(--lg-spring),transform .5s var(--lg-spring)}
+.path-section-header.revealed{opacity:1;transform:scale(1)}
+/* Keep locked chapter dimmer */
+.chapter-locked .path-section-header.revealed{opacity:.5}
+
+/* ===== MOBILE ===== */
+@media(max-width:768px){
+  .navbar-top{display:none}.navbar-bottom{display:block}
+  .app-layout{grid-template-columns:1fr;padding:16px 16px 100px;gap:0}
+  .sidebar-left,.sidebar-right{position:static;display:none}
+  .milestone-tooltip{display:none}
+  .mobile-header{display:flex;align-items:center;justify-content:space-between;padding:12px 4px 20px}
+  .mobile-header img{height:24px;width:auto;filter:drop-shadow(0 2px 8px rgba(125,216,255,.15))}
+  .mobile-stats{display:flex;gap:14px;align-items:center}
+  .mobile-stat{display:flex;align-items:center;gap:5px;font-size:13px;font-weight:600}
+  .mobile-stat svg{width:18px;height:18px}
+  .path-nodes{gap:36px}
+  .path-node[data-pos="left"]{padding-left:10%}
+  .path-node[data-pos="right"]{padding-right:10%}
+  :root{--ms-size:68px;--ms-size-current:82px;--ms-size-locked:58px}
+  .milestone-circle .ms-icon{width:26px;height:26px}
+  .milestone.current .milestone-circle .ms-icon{width:30px;height:30px}
+}
+@media(min-width:769px){.mobile-header{display:none}}
+
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:999px}
+</style>
+</head>
+<body>
+
+<div class="bg" aria-hidden="true"></div>
+
+<!-- DESKTOP NAVBAR -->
+<nav class="navbar-top liquid-glass" aria-label="Main navigation">
+  <div class="brand"><img src="logo.png" alt="Codle"></div>
+  <div class="navbar-tabs" id="navbar-tabs" role="tablist">
+    <div class="navbar-tab-indicator" id="navbar-tab-indicator"><div class="navbar-tab-indicator-fill" id="navbar-tab-indicator-fill"></div></div>
+    <button class="navbar-tab" role="tab" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Learn
+    </button>
+    <button class="navbar-tab" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>Practice
+    </button>
+    <button class="navbar-tab" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Leaderboard
+    </button>
+    <button class="navbar-tab" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile
+    </button>
+  </div>
+  <div class="nav-profile" role="button" aria-label="User profile" tabindex="0"></div>
+</nav>
+
+<!-- MAIN LAYOUT -->
+<div class="app-layout">
+
+  <div class="mobile-header">
+    <img src="logo.png" alt="Codle">
+    <div class="mobile-stats">
+      <div class="mobile-stat"><svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent-3)"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg><span>7</span></div>
+      <div class="mobile-stat"><svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--gold)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><span>2,450</span></div>
+      <div class="nav-profile" role="button" tabindex="0" style="width:30px;height:30px;"></div>
+    </div>
+  </div>
+
+  <!-- LEFT SIDEBAR -->
+  <aside class="sidebar-left">
+    <div class="stat-card liquid-glass">
+      <div class="stat-header"><svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent-3)"><path d="M13.5.67s.74 2.65.74 4.8c0 2.06-1.35 3.73-3.41 3.73-2.07 0-3.63-1.67-3.63-3.73l.03-.36C5.21 7.51 4 10.62 4 14c0 4.42 3.58 8 8 8s8-3.58 8-8C20 8.61 17.41 3.8 13.5.67zM11.71 19c-1.78 0-3.22-1.4-3.22-3.14 0-1.62 1.05-2.76 2.81-3.12 1.77-.36 3.6-1.21 4.62-2.58.39 1.29.59 2.65.59 4.04 0 2.65-2.15 4.8-4.8 4.8z"/></svg><span>Streak</span></div>
+      <div class="stat-value">7 days</div><div class="stat-label">Keep it going!</div>
+    </div>
+    <div class="stat-card liquid-glass">
+      <div class="stat-header"><svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--gold)"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><span>Today's XP</span></div>
+      <div class="stat-value">120 / 200</div><div class="stat-label">Daily goal</div>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:60%"></div></div>
+    </div>
+    <div class="stat-card liquid-glass">
+      <div class="stat-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span>Course</span></div>
+      <div class="stat-value" style="font-size:18px">Python</div><div class="stat-label">Unit 2 — Functions</div>
+    </div>
+  </aside>
+
+  <!-- CENTER PATH -->
+  <main class="path-container" id="path-container">
+    <svg id="path-svg" aria-hidden="true"></svg>
+
+    <div class="path-nodes" id="path-nodes">
+
+      <!-- ========== UNIT 1 — CYAN ========== -->
+      <div class="chapter-group chapter-cyan" data-chapter-color="rgba(125,216,255,0.35)">
+
+        <div class="chapter-glow cyan" id="glow-1"></div>
+
+        <div class="path-nodes" style="gap:48px;display:flex;flex-direction:column;align-items:center">
+
+          <div class="path-node" data-pos="center" data-is-waypoint>
+            <div class="path-section-header liquid-glass">
+              <h3>Unit 1 · Variables &amp; Types</h3>
+              <p>6 / 8 lessons complete</p>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="left" data-is-waypoint>
+            <div class="milestone completed">
+              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Hello World</div><div class="tip-sub">+50 XP</div></div>
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+                <div class="milestone-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="milestone-label">Hello World</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="right" data-is-waypoint>
+            <div class="milestone completed">
+              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Variables</div><div class="tip-sub">+50 XP</div></div>
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                <div class="milestone-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="milestone-label">Variables</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="left" data-is-waypoint>
+            <div class="milestone completed">
+              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Data Types</div><div class="tip-sub">+75 XP</div></div>
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                <div class="milestone-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="milestone-label">Data Types</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="right" data-is-waypoint>
+            <div class="milestone completed">
+              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Strings</div><div class="tip-sub">+75 XP</div></div>
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H3"/><path d="M21 12H8"/><path d="M21 18H8"/><path d="M3 12v6"/></svg>
+                <div class="milestone-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="milestone-label">Strings</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="center" data-is-waypoint>
+            <div class="milestone completed">
+              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Numbers</div><div class="tip-sub">+50 XP</div></div>
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+                <div class="milestone-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="milestone-label">Numbers</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="left" data-is-waypoint>
+            <div class="milestone completed">
+              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Type Casting</div><div class="tip-sub">+50 XP</div></div>
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg>
+                <div class="milestone-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+              </div>
+              <div class="milestone-label">Type Casting</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="right" data-is-waypoint>
+            <div class="milestone current">
+              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Boolean Logic</div><div class="tip-sub">70% complete</div></div>
+              <div class="milestone-circle">
+                <div class="progress-ring"><svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="45"/><circle class="fill" cx="50" cy="50" r="45"/></svg></div>
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
+              <div class="milestone-label">Boolean Logic</div>
+              <button class="milestone-start-btn">Continue</button>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="center" data-is-waypoint>
+            <div class="milestone locked">
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+              </div>
+              <div class="milestone-label">Review Quiz</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ========== UNIT 2 — PURPLE ========== -->
+      <div class="chapter-group chapter-purple chapter-locked" data-chapter-color="rgba(201,168,255,0.35)">
+
+        <div class="chapter-glow purple" id="glow-2"></div>
+
+        <div class="path-nodes" style="gap:48px;display:flex;flex-direction:column;align-items:center">
+
+          <div class="path-node" data-pos="center" data-is-waypoint>
+            <div class="path-section-header liquid-glass">
+              <h3>Unit 2 · Functions</h3>
+              <p>0 / 6 lessons complete</p>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="left" data-is-waypoint>
+            <div class="milestone locked">
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
+              <div class="milestone-label">Defining Functions</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="right" data-is-waypoint>
+            <div class="milestone locked">
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </div>
+              <div class="milestone-label">Parameters</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="left" data-is-waypoint>
+            <div class="milestone locked">
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg>
+              </div>
+              <div class="milestone-label">Return Values</div>
+            </div>
+          </div>
+
+          <div class="path-node" data-pos="right" data-is-waypoint>
+            <div class="milestone locked">
+              <div class="milestone-circle">
+                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              </div>
+              <div class="milestone-label">Scope</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- RIGHT SIDEBAR -->
+  <aside class="sidebar-right">
+    <div class="stat-card liquid-glass">
+      <div class="stat-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--gold)"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Leaderboard</span></div>
+      <div class="leaderboard-item"><span class="rank">1</span><div class="lb-avatar" style="background:linear-gradient(140deg,#ffd666,#ff8a65);border-radius:50%"></div><span class="lb-name">Alex K.</span><span class="lb-xp">3,210 XP</span></div>
+      <div class="leaderboard-item"><span class="rank">2</span><div class="lb-avatar" style="background:linear-gradient(140deg,var(--accent),var(--accent-2));border-radius:50%"></div><span class="lb-name">You</span><span class="lb-xp" style="color:var(--accent)">2,450 XP</span></div>
+      <div class="leaderboard-item"><span class="rank">3</span><div class="lb-avatar" style="background:linear-gradient(140deg,var(--green),#4ec8a0);border-radius:50%"></div><span class="lb-name">Sara M.</span><span class="lb-xp">2,100 XP</span></div>
+      <div class="leaderboard-item"><span class="rank">4</span><div class="lb-avatar" style="background:linear-gradient(140deg,#ff8a65,#ff6b6b);border-radius:50%"></div><span class="lb-name">James L.</span><span class="lb-xp">1,890 XP</span></div>
+    </div>
+    <div class="stat-card liquid-glass">
+      <div class="stat-header"><svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent-2)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg><span>Next Badge</span></div>
+      <div class="stat-value" style="font-size:16px">Pythonista I</div><div class="stat-label">Complete Unit 1</div>
+      <div class="stat-bar-track"><div class="stat-bar-fill" style="width:75%;background:linear-gradient(90deg,var(--accent-2),var(--accent-3))"></div></div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- MOBILE BOTTOM NAVBAR -->
+<nav class="navbar-bottom liquid-glass" aria-label="Mobile navigation">
+  <div class="nav-items" id="mobile-tabs">
+    <div class="mobile-tab-indicator" id="mobile-tab-indicator"><div class="mobile-tab-indicator-fill" id="mobile-tab-indicator-fill"></div></div>
+    <button class="bottom-nav-item" role="tab" aria-selected="true"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span>Learn</span></button>
+    <button class="bottom-nav-item" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Practice</span></button>
+    <button class="bottom-nav-item" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span>Ranks</span></button>
+    <button class="bottom-nav-item" role="tab" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span>Profile</span></button>
+  </div>
+</nav>
+
+<div id="lg-ripple-host"></div>
+
+<script>
+(function(){
+  "use strict";
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ===============================================================
+     1. DRAW TRAIL + ANIMATE
+     Path goes through the CENTER of every waypoint (milestones AND
+     chapter headers). The colored "completed" line draws itself over
+     the gray background line, and milestones pop in as it reaches them.
+  ================================================================*/
+  function getWaypointCenter(node, containerRect) {
+    // For section headers, use the header element itself
+    var target = node.querySelector('.milestone-circle') || node.querySelector('.path-section-header');
+    if (!target) return null;
+    var r = target.getBoundingClientRect();
+    return {
+      x: r.left + r.width / 2 - containerRect.left,
+      y: r.top + r.height / 2 - containerRect.top
+    };
+  }
+
+  function buildSmoothPath(pts) {
+    if (pts.length < 2) return '';
+    var d = 'M ' + pts[0].x + ' ' + pts[0].y;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var p0 = pts[i], p1 = pts[i + 1];
+      var midY = (p0.y + p1.y) / 2;
+      d += ' C ' + p0.x + ' ' + midY + ', ' + p1.x + ' ' + midY + ', ' + p1.x + ' ' + p1.y;
+    }
+    return d;
+  }
+
+  function drawAndAnimate() {
+    var container = document.getElementById('path-container');
+    var svg = document.getElementById('path-svg');
+    var allWaypoints = document.querySelectorAll('[data-is-waypoint]');
+    if (allWaypoints.length < 2) return;
+
+    var containerRect = container.getBoundingClientRect();
+    svg.setAttribute('width', containerRect.width);
+    svg.setAttribute('height', containerRect.height);
+    svg.setAttribute('viewBox', '0 0 ' + containerRect.width + ' ' + containerRect.height);
+
+    // Gather all center points
+    var points = [];
+    var waypointEls = [];  // the revealable element for each waypoint
+    var firstLockedIdx = -1;
+
+    allWaypoints.forEach(function(node, i) {
+      var pt = getWaypointCenter(node, containerRect);
+      if (!pt) return;
+      points.push(pt);
+      // The element to reveal: milestone or section header
+      var revealTarget = node.querySelector('.milestone') || node.querySelector('.path-section-header');
+      waypointEls.push(revealTarget);
+
+      if (firstLockedIdx === -1) {
+        var ms = node.querySelector('.milestone');
+        if (ms && (ms.classList.contains('current') || ms.classList.contains('locked'))) {
+          firstLockedIdx = points.length - 1;
+        }
+      }
+    });
+
+    if (points.length < 2) return;
+
+    // Clear SVG
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    var ns = 'http://www.w3.org/2000/svg';
+
+    // --- Background trail (full, gray) ---
+    var fullD = buildSmoothPath(points);
+    var bgPath = document.createElementNS(ns, 'path');
+    bgPath.setAttribute('class', 'trail-bg');
+    bgPath.setAttribute('d', fullD);
+    svg.appendChild(bgPath);
+
+    // Get total length for animation
+    var bgLen = bgPath.getTotalLength();
+
+    // Animate gray trail drawing
+    if (!reduceMotion && !container.dataset.animated) {
+      bgPath.style.strokeDasharray = bgLen;
+      bgPath.style.strokeDashoffset = bgLen;
+      bgPath.style.transition = 'none';
+      // Force reflow
+      void bgPath.getBoundingClientRect();
+      bgPath.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(.25,.46,.45,.94)';
+      bgPath.style.strokeDashoffset = '0';
+    }
+
+    // --- Completed trail (colored, up to current) ---
+    // Include one extra to reach the current milestone
+    var completedEnd = firstLockedIdx >= 0 ? firstLockedIdx + 1 : points.length;
+    if (completedEnd > points.length) completedEnd = points.length;
+
+    if (completedEnd >= 2) {
+      var compPts = points.slice(0, completedEnd);
+      var compD = buildSmoothPath(compPts);
+
+      // Determine chapter color for the completed trail
+      var compPath = document.createElementNS(ns, 'path');
+      compPath.setAttribute('class', 'trail-completed');
+      compPath.setAttribute('d', compD);
+
+      // Use the chapter color from the first chapter group
+      var firstChapter = document.querySelector('.chapter-group');
+      var chapterColor = firstChapter ? firstChapter.dataset.chapterColor : 'rgba(110,231,160,.35)';
+      compPath.setAttribute('stroke', chapterColor);
+      svg.appendChild(compPath);
+
+      var compLen = compPath.getTotalLength();
+
+      if (!reduceMotion && !container.dataset.animated) {
+        compPath.style.strokeDasharray = compLen;
+        compPath.style.strokeDashoffset = compLen;
+        compPath.style.transition = 'none';
+        void compPath.getBoundingClientRect();
+        // Start after gray trail has drawn a bit
+        setTimeout(function() {
+          compPath.style.transition = 'stroke-dashoffset 2s cubic-bezier(.25,.46,.45,.94)';
+          compPath.style.strokeDashoffset = '0';
+        }, 400);
+      }
+    }
+
+    // --- Reveal milestones/headers as the line reaches them ---
+    if (!reduceMotion && !container.dataset.animated) {
+      // Calculate cumulative distances along the path for timing
+      var totalDist = 0;
+      var cumDist = [0];
+      for (var i = 1; i < points.length; i++) {
+        var dx = points[i].x - points[i-1].x;
+        var dy = points[i].y - points[i-1].y;
+        totalDist += Math.sqrt(dx*dx + dy*dy);
+        cumDist.push(totalDist);
+      }
+
+      var totalAnimDuration = 2400; // ms total for the reveal sequence
+      waypointEls.forEach(function(el, idx) {
+        if (!el) return;
+        var fraction = totalDist > 0 ? cumDist[idx] / totalDist : 0;
+        var delay = 300 + fraction * totalAnimDuration;
+        setTimeout(function() {
+          el.classList.add('revealed');
+        }, delay);
+      });
+
+      container.dataset.animated = '1';
+    } else {
+      // Reduced motion or already animated — reveal all immediately
+      waypointEls.forEach(function(el) {
+        if (el) el.classList.add('revealed');
+      });
+    }
+  }
+
+  // Position chapter glows based on their section
+  function positionGlows() {
+    document.querySelectorAll('.chapter-group').forEach(function(group) {
+      var glow = group.querySelector('.chapter-glow');
+      if (!glow) return;
+      glow.style.top = '0';
+      glow.style.height = group.offsetHeight + 'px';
+    });
+  }
+
+  window.addEventListener('load', function() {
+    drawAndAnimate();
+    positionGlows();
+  });
+
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      // On resize, just redraw (don't re-animate)
+      var container = document.getElementById('path-container');
+      container.dataset.animated = '1';
+      drawAndAnimate();
+      positionGlows();
+    }, 150);
+  });
+
+  /* ===============================================================
+     2. Desktop navbar sliding indicator
+  ================================================================*/
+  var navTabs = document.getElementById('navbar-tabs');
+  if (navTabs) {
+    var ind = document.getElementById('navbar-tab-indicator');
+    var indFill = document.getElementById('navbar-tab-indicator-fill');
+    var btns = Array.prototype.slice.call(navTabs.querySelectorAll('.navbar-tab'));
+    function moveNav(b) {
+      var tr = navTabs.getBoundingClientRect(), br = b.getBoundingClientRect();
+      ind.style.width = br.width + 'px';
+      ind.style.transform = 'translateX(' + (br.left - tr.left - 4) + 'px)';
+      if (!reduceMotion) { indFill.classList.remove('squash'); void indFill.offsetWidth; indFill.classList.add('squash'); }
+    }
+    btns.forEach(function(b) { b.addEventListener('click', function() { btns.forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false')}); moveNav(b); }); });
+    window.addEventListener('load', function() { moveNav(btns[0]); });
+    window.addEventListener('resize', function() { var c = navTabs.querySelector('[aria-selected="true"]'); if (c) moveNav(c); });
+  }
+
+  /* ===============================================================
+     3. Mobile navbar sliding indicator
+  ================================================================*/
+  var mt = document.getElementById('mobile-tabs');
+  if (mt) {
+    var mi = document.getElementById('mobile-tab-indicator'), mf = document.getElementById('mobile-tab-indicator-fill');
+    var mbs = Array.prototype.slice.call(mt.querySelectorAll('.bottom-nav-item'));
+    function moveMob(b) {
+      var tr = mt.getBoundingClientRect(), br = b.getBoundingClientRect();
+      mi.style.width = br.width + 'px'; mi.style.transform = 'translateX(' + (br.left - tr.left) + 'px)';
+      if (!reduceMotion) { mf.classList.remove('squash'); void mf.offsetWidth; mf.classList.add('squash'); }
+    }
+    mbs.forEach(function(b) { b.addEventListener('click', function() { mbs.forEach(function(x){x.setAttribute('aria-selected',x===b?'true':'false')}); moveMob(b); }); });
+    window.addEventListener('load', function() { moveMob(mbs[0]); });
+    window.addEventListener('resize', function() { var c = mt.querySelector('[aria-selected="true"]'); if (c) moveMob(c); });
+  }
+
+  /* ===============================================================
+     4. Glare + ripple + bounce
+  ================================================================*/
+  document.querySelectorAll('.liquid-glass--interactive,.milestone:not(.locked)').forEach(function(el) {
+    el.addEventListener('pointermove', function(e) {
+      var t = el.querySelector('.milestone-circle') || el, r = t.getBoundingClientRect();
+      t.style.setProperty('--mx', ((e.clientX-r.left)/r.width*100)+'%');
+      t.style.setProperty('--my', ((e.clientY-r.top)/r.height*100)+'%');
+    });
+  });
+
+  var rh = document.getElementById('lg-ripple-host');
+  function ripple(el,cx,cy) {
+    var r=el.getBoundingClientRect(); if(r.width<1)return;
+    var cl=document.createElement('div'); cl.className='lg-ripple-clip';
+    cl.style.cssText='left:'+r.left+'px;top:'+r.top+'px;width:'+r.width+'px;height:'+r.height+'px;border-radius:'+getComputedStyle(el).borderRadius;
+    var s=Math.max(r.width,r.height)*1.7, d=document.createElement('div'); d.className='lg-ripple-dot';
+    d.style.cssText='width:'+s+'px;height:'+s+'px;left:'+(cx-r.left-s/2)+'px;top:'+(cy-r.top-s/2)+'px';
+    cl.appendChild(d); rh.appendChild(cl);
+    d.animate([{transform:'translateZ(0) scale(0)',opacity:.8},{transform:'translateZ(0) scale(1)',opacity:0}],{duration:480,easing:'cubic-bezier(.22,1,.36,1)'}).onfinish=function(){cl.remove()};
+  }
+  if (!reduceMotion) {
+    document.querySelectorAll('.liquid-glass--interactive,.milestone:not(.locked) .milestone-circle,.milestone-start-btn,.bottom-nav-item,.navbar-tab').forEach(function(el) {
+      el.addEventListener('pointerdown', function(e) { if(!el.hasAttribute('disabled')) ripple(el,e.clientX,e.clientY); });
+    });
+  }
+
+  document.querySelectorAll('.milestone:not(.locked)').forEach(function(ms) {
+    ms.addEventListener('click', function() {
+      var c=ms.querySelector('.milestone-circle'); if(!c||reduceMotion) return;
+      c.style.transition='transform .15s ease-out'; c.style.transform='scale(.88)';
+      setTimeout(function(){c.style.transition='transform .5s cubic-bezier(.32,.72,0,1)';c.style.transform='scale(1.06)';setTimeout(function(){c.style.transform=''},200)},140);
+    });
+  });
+
+})();
+</script>
+</body>
+</html>
