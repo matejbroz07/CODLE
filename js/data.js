@@ -1,8 +1,8 @@
 window.CodleData = {
   user: {
-    streakActive: true, 
+    streakActive: false, 
     streakCount: 67,     
-    gems: 2450,         
+    gems: 6767676767,         
     rank: "Silver III", 
     nextBadge: {
       name: "Pythonista I",

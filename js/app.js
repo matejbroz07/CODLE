@@ -184,6 +184,17 @@
       var scrollStopped = false;
       var lerpFactor = 0.045; // lower = smoother/slower (0.03–0.08 sweet spot)
 
+      // Cancel auto-scroll when user interacts
+      function cancelAutoScroll() {
+        scrollStopped = true;
+        window.removeEventListener("wheel", cancelAutoScroll);
+        window.removeEventListener("touchstart", cancelAutoScroll);
+        window.removeEventListener("pointerdown", cancelAutoScroll);
+      }
+      window.addEventListener("wheel", cancelAutoScroll, { passive: true });
+      window.addEventListener("touchstart", cancelAutoScroll, { passive: true });
+      window.addEventListener("pointerdown", cancelAutoScroll);
+
       // Smooth scroll loop using requestAnimationFrame + lerp
       function smoothScrollTick() {
         if (scrollStopped) return;
@@ -555,4 +566,23 @@
       }, 140);
     });
   });
+
+  /* ===============================================================
+     8. STICKY MOBILE HEADER — frosted glass on scroll
+  ================================================================*/
+  (function () {
+    var mobileHeader = document.querySelector(".mobile-header");
+    if (!mobileHeader) return;
+    var scrolled = false;
+    window.addEventListener("scroll", function () {
+      var y = window.scrollY || window.pageYOffset;
+      if (y > 10 && !scrolled) {
+        mobileHeader.classList.add("scrolled");
+        scrolled = true;
+      } else if (y <= 10 && scrolled) {
+        mobileHeader.classList.remove("scrolled");
+        scrolled = false;
+      }
+    }, { passive: true });
+  })();
 })();
