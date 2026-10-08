@@ -65,11 +65,11 @@
       Profile
     </button>
   </div>
-  <div class="nav-profile" role="button" aria-label="User profile" tabindex="0" id="user-avatar"></div>
+
 </nav>
 
 <!-- ===== MAIN LAYOUT ===== -->
-<div class="app-layout">
+<div class="app-layout page-view active" id="view-learn">
 
   <!-- Mobile Header -->
   <div class="mobile-header">
@@ -112,7 +112,7 @@
 
   <!-- ===== LEFT SIDEBAR ===== -->
   <aside class="sidebar-left" id="sidebar-left">
-    <div class="streak-card liquid-glass" id="card-streak">
+    <div class="streak-card" id="card-streak">
       <div class="streak-main">
         <div class="streak-fire" id="ui-fire-desktop">
           <svg viewBox="0 0 100 100" class="fire-animated" aria-label="Fire streak icon">
@@ -144,7 +144,7 @@
       </div>
       <div class="streak-label">Streak</div>
     </div>
-    <div class="stat-card liquid-glass" id="card-xp">
+    <div class="stat-card" id="card-xp">
       <div class="xp-layout" style="display: flex; align-items: center; justify-content: space-between;">
         <div class="xp-info">
           <div class="stat-header">
@@ -171,13 +171,19 @@
         </div>
       </div>
     </div>
-    <div class="stat-card liquid-glass" id="card-course">
+    <div class="stat-card" id="card-course">
       <div class="stat-header">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
         <span>Course</span>
       </div>
-      <div class="stat-value" style="font-size:18px">Python</div>
-      <div class="stat-label">Unit 2 — Functions</div>
+      <div class="course-select-wrapper">
+        <select id="course-selector" class="course-dropdown">
+          <option value="python" selected>Python</option>
+          <option value="javascript">JavaScript</option>
+        </select>
+        <svg class="course-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </div>
+      <div class="stat-label" id="ui-course-label">Unit 2 — Functions</div>
     </div>
   </aside>
 
@@ -185,6 +191,9 @@
   <main class="path-container" id="path-container">
     <svg id="path-svg" aria-hidden="true"></svg>
     <div class="path-nodes" id="path-nodes">
+
+      <!-- ================= PYTHON COURSE ================= -->
+      <div id="course-view-python" class="course-view active">
 
       <!-- ========== UNIT 1 — CYAN (Fully Completed) ========== -->
       <div class="chapter-group chapter-cyan" data-chapter-color="#7dd8ff">
@@ -423,22 +432,129 @@
         </div>
       </div>
 
+      </div> <!-- /course-view-python -->
+
+      <!-- ================= JAVASCRIPT COURSE ================= -->
+      <div id="course-view-javascript" class="course-view" style="display:none;">
+        
+        <!-- ========== UNIT 1 — CYAN (JS Basics) ========== -->
+        <div class="chapter-group chapter-cyan" data-chapter-color="#7dd8ff">
+          <div class="chapter-glow cyan"></div>
+          <div class="path-nodes" style="gap:64px;">
+
+            <div class="path-node" data-pos="center" data-is-waypoint>
+              <div class="path-section-header liquid-glass">
+                <h3>Unit 1 · JS Basics</h3>
+                <p>2 / 3 lessons complete</p>
+              </div>
+            </div>
+
+            <div class="path-node" data-pos="left" data-is-waypoint>
+              <div class="milestone">
+                <div class="milestone-tooltip liquid-glass"><div class="tip-title">Console Log</div><div class="tip-sub">+50 XP</div></div>
+                <div class="milestone-circle"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
+                <div class="milestone-label">Console Log</div>
+              </div>
+            </div>
+
+            <div class="path-node" data-pos="right" data-is-waypoint>
+              <div class="milestone">
+                <div class="milestone-tooltip liquid-glass"><div class="tip-title">Variables (let/const)</div><div class="tip-sub">+50 XP</div></div>
+                <div class="milestone-circle"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+                <div class="milestone-label">Variables</div>
+              </div>
+            </div>
+
+            <div class="path-node" data-pos="center" data-is-waypoint>
+              <div class="milestone">
+                <div class="milestone-tooltip liquid-glass"><div class="tip-title">Data Types</div><div class="tip-sub">20% complete</div></div>
+                <div class="milestone-circle">
+                  <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                </div>
+                <div class="milestone-label">Data Types</div>
+              </div>
+            </div>
+            
+          </div>
+        </div>
+
+        <!-- ========== UNIT 2 — PURPLE (Locked) ========== -->
+        <div class="chapter-group chapter-purple" data-chapter-color="#c9a8ff">
+          <div class="chapter-glow purple"></div>
+          <div class="path-nodes" style="gap:64px;">
+
+            <div class="path-node" data-pos="center" data-is-waypoint>
+              <div class="path-section-header liquid-glass">
+                <h3>Unit 2 · Functions & Scope</h3>
+                <p>0 / 2 lessons complete</p>
+              </div>
+            </div>
+
+            <div class="path-node" data-pos="left-far" data-is-waypoint>
+              <div class="milestone">
+                <div class="milestone-circle"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
+                <div class="milestone-label">Arrow Functions</div>
+              </div>
+            </div>
+
+            <div class="path-node" data-pos="center" data-is-waypoint>
+              <div class="milestone">
+                <div class="milestone-circle"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
+                <div class="milestone-label">Closures</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div> <!-- /course-view-javascript -->
+
     </div>
   </main>
 
   <!-- ===== RIGHT SIDEBAR ===== -->
   <aside class="sidebar-right" id="sidebar-right">
-    <div class="stat-card liquid-glass" id="card-leaderboard">
+    <!-- User Profile Card -->
+    <div class="profile-card" id="card-user-profile">
+      <div class="profile-card-inner">
+        <div class="profile-avatar-wrapper">
+          <div class="profile-avatar" id="sidebar-avatar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" class="profile-avatar-icon">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+              <circle cx="12" cy="7" r="4"/>
+            </svg>
+          </div>
+          <div class="profile-status-dot"></div>
+        </div>
+        <div class="profile-username" id="profile-username">CodeMaster</div>
+        <div class="profile-level-badge">
+          <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          Level 12
+        </div>
+        <div class="profile-meta">
+          <div class="profile-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span>Joined Sep 2025</span>
+          </div>
+          <div class="profile-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            <span>Top 5%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-card" id="card-leaderboard">
       <div class="stat-header">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--gold)"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--gold)"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
         <span>Leaderboard</span>
       </div>
-      <div class="leaderboard-item"><span class="rank">1</span><div class="lb-avatar" style="background:linear-gradient(140deg,#ffd666,#ff8a65);border-radius:50%"></div><span class="lb-name">Alex K.</span><span class="lb-xp">3,210 XP</span></div>
-      <div class="leaderboard-item"><span class="rank">2</span><div class="lb-avatar" style="background:linear-gradient(140deg,var(--accent),var(--accent-2));border-radius:50%"></div><span class="lb-name">You</span><span class="lb-xp" id="ui-gems-desktop" style="color:var(--accent)">2,450 XP</span></div>
+      <div class="leaderboard-item"><span class="rank gold-rank">1</span><div class="lb-avatar" style="background:linear-gradient(140deg,#ffd666,#ff8a65);border-radius:50%"></div><span class="lb-name">Alex K.</span><span class="lb-xp">3,210 XP</span></div>
+      <div class="leaderboard-item you-row"><span class="rank">2</span><div class="lb-avatar" style="background:linear-gradient(140deg,var(--accent),var(--accent-2));border-radius:50%"></div><span class="lb-name">You</span><span class="lb-xp" id="ui-gems-desktop" style="color:var(--accent)">2,450 XP</span></div>
       <div class="leaderboard-item"><span class="rank">3</span><div class="lb-avatar" style="background:linear-gradient(140deg,var(--green),#4ec8a0);border-radius:50%"></div><span class="lb-name">Sara M.</span><span class="lb-xp">2,100 XP</span></div>
       <div class="leaderboard-item"><span class="rank">4</span><div class="lb-avatar" style="background:linear-gradient(140deg,#ff8a65,#ff6b6b);border-radius:50%"></div><span class="lb-name">James L.</span><span class="lb-xp">1,890 XP</span></div>
     </div>
-    <div class="stat-card liquid-glass" id="card-badge">
+    <div class="stat-card" id="card-badge">
       <div class="stat-header">
         <svg viewBox="0 0 24 24" fill="currentColor" style="color:var(--accent-2)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         <span>Next Badge</span>
@@ -449,6 +565,48 @@
     </div>
   </aside>
 
+</div>
+
+<!-- ===== PRACTICE VIEW ===== -->
+<div class="page-view" id="view-practice">
+  <div class="empty-view">
+    <div class="empty-view-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+        <line x1="8" y1="21" x2="16" y2="21"/>
+        <line x1="12" y1="17" x2="12" y2="21"/>
+      </svg>
+    </div>
+    <h2 class="empty-view-title">Practice</h2>
+    <p class="empty-view-sub">Coming soon</p>
+  </div>
+</div>
+
+<!-- ===== LEADERBOARD VIEW ===== -->
+<div class="page-view" id="view-leaderboard">
+  <div class="empty-view">
+    <div class="empty-view-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+      </svg>
+    </div>
+    <h2 class="empty-view-title">Leaderboard</h2>
+    <p class="empty-view-sub">Coming soon</p>
+  </div>
+</div>
+
+<!-- ===== PROFILE VIEW ===== -->
+<div class="page-view" id="view-profile">
+  <div class="empty-view">
+    <div class="empty-view-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+    <h2 class="empty-view-title">Profile</h2>
+    <p class="empty-view-sub">Coming soon</p>
+  </div>
 </div>
 
 <!-- ===== MOBILE BOTTOM NAVBAR ===== -->

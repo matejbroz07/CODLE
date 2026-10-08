@@ -56,7 +56,8 @@
   function drawAndAnimate() {
     var container = document.getElementById("path-container");
     var svg = document.getElementById("path-svg");
-    var allWaypoints = document.querySelectorAll("[data-is-waypoint]");
+    var activeView = document.querySelector(".course-view.active") || document;
+    var allWaypoints = activeView.querySelectorAll("[data-is-waypoint]");
     if (allWaypoints.length < 2) return;
 
     var containerRect = container.getBoundingClientRect();
@@ -253,7 +254,8 @@
 
   /** Position chapter glow overlays to match their parent group height. */
   function positionGlows() {
-    document.querySelectorAll(".chapter-group").forEach(function (group) {
+    var activeView = document.querySelector(".course-view.active") || document;
+    activeView.querySelectorAll(".chapter-group").forEach(function (group) {
       var glow = group.querySelector(".chapter-glow");
       if (!glow) return;
       glow.style.top = "0";
@@ -314,21 +316,29 @@
       var fireMob = document.getElementById("ui-fire-mobile");
       var fireDesk = document.getElementById("ui-fire-desktop");
       
-      if (fireMob) {
-        fireMob.style.filter = "grayscale(1) opacity(0.4)";
-        if (fireMob.pauseAnimations) {
-          fireMob.pauseAnimations();
-          if (fireMob.setCurrentTime) fireMob.setCurrentTime(0);
+      var freezeAnims = function(targetEl) {
+        if (!targetEl) return;
+        targetEl.style.filter = "grayscale(1) opacity(0.4)";
+        var svgEl = targetEl.tagName.toLowerCase() === "svg" ? targetEl : targetEl.querySelector("svg");
+        if (!svgEl) return;
+        
+        if (svgEl.pauseAnimations) {
+          svgEl.pauseAnimations();
+          if (svgEl.setCurrentTime) svgEl.setCurrentTime(0);
         }
-      }
-      if (fireDesk) {
-        fireDesk.style.filter = "grayscale(1) opacity(0.4)";
-        var deskSvg = fireDesk.querySelector("svg");
-        if (deskSvg && deskSvg.pauseAnimations) {
-          deskSvg.pauseAnimations();
-          if (deskSvg.setCurrentTime) deskSvg.setCurrentTime(0);
-        }
-      }
+        var anims = svgEl.querySelectorAll("animate");
+        anims.forEach(function(a) {
+          var attr = a.getAttribute("attributeName");
+          var vals = a.getAttribute("values");
+          if (attr && vals && a.parentNode) {
+            a.parentNode.setAttribute(attr, vals.split(";")[0]);
+          }
+          a.remove();
+        });
+      };
+      
+      freezeAnims(fireMob);
+      freezeAnims(fireDesk);
       
       var numMob = document.getElementById("ui-streak-mobile");
       var numDesk = document.getElementById("ui-streak-desktop");
@@ -340,12 +350,16 @@
       }
     }
 
-    var chapters = document.querySelectorAll(".chapter-group");
+    var courseId = data.activeCourse || "python";
+    var progressData = data.progress[courseId] || { currentUnit: 1, currentMilestone: 1 };
+    
+    var activeView = document.querySelector(".course-view.active") || document;
+    var chapters = activeView.querySelectorAll(".chapter-group");
     chapters.forEach(function (chapter, i) {
       var unitIndex = i + 1;
       var milestones = chapter.querySelectorAll(".milestone-circle");
 
-      if (unitIndex > data.progress.currentUnit) {
+      if (unitIndex > progressData.currentUnit) {
         chapter.classList.add("chapter-locked");
       } else {
         chapter.classList.remove("chapter-locked");
@@ -354,7 +368,7 @@
           var msIndex = j + 1;
           var milestoneWrapper = circle.parentElement; // .milestone
           
-          if (unitIndex < data.progress.currentUnit || (unitIndex === data.progress.currentUnit && msIndex < data.progress.currentMilestone)) {
+          if (unitIndex < progressData.currentUnit || (unitIndex === progressData.currentUnit && msIndex < progressData.currentMilestone)) {
             // Completed milestone
             milestoneWrapper.classList.remove("current", "locked");
             milestoneWrapper.classList.add("completed");
@@ -367,7 +381,7 @@
             var btn = milestoneWrapper.querySelector(".milestone-start-btn");
             if (btn) btn.remove();
 
-          } else if (unitIndex === data.progress.currentUnit && msIndex === data.progress.currentMilestone) {
+          } else if (unitIndex === progressData.currentUnit && msIndex === progressData.currentMilestone) {
             // Current milestone (active)
             milestoneWrapper.classList.remove("completed", "locked");
             milestoneWrapper.classList.add("current");
@@ -400,6 +414,42 @@
   }
 
   /* ===============================================================
+     3.5 COURSE SWITCHER
+  ================================================================*/
+  var courseSelector = document.getElementById("course-selector");
+  if (courseSelector) {
+    courseSelector.addEventListener("change", function(e) {
+      var courseId = e.target.value;
+      e.target.blur(); // Remove focus to reset the arrow direction
+      
+      if (window.CodleData) window.CodleData.activeCourse = courseId;
+      
+      var labelEl = document.getElementById("ui-course-label");
+      if (labelEl) {
+        if (courseId === "javascript") labelEl.textContent = "Unit 1 — JS Basics";
+        else labelEl.textContent = "Unit 2 — Functions";
+      }
+
+      document.querySelectorAll(".course-view").forEach(function(el) {
+        el.classList.remove("active");
+        el.style.display = "none";
+      });
+      var activeEl = document.getElementById("course-view-" + courseId);
+      if (activeEl) {
+        activeEl.classList.add("active");
+        activeEl.style.display = "block";
+      }
+
+      var container = document.getElementById("path-container");
+      if (container) container.dataset.animated = "";
+      
+      hydrateApp();
+      drawAndAnimate();
+      positionGlows();
+    });
+  }
+
+  /* ===============================================================
      3. INITIALISATION
   ================================================================*/
 
@@ -420,6 +470,104 @@
       positionGlows();
     }, 150);
   });
+
+  /* ===============================================================
+     3.6 SPA VIEW SWITCHING
+  ================================================================*/
+
+  var tabViewMap = {
+    "tab-learn": "view-learn",
+    "tab-practice": "view-practice",
+    "tab-leaderboard": "view-leaderboard",
+    "tab-profile": "view-profile",
+    "mob-tab-learn": "view-learn",
+    "mob-tab-practice": "view-practice",
+    "mob-tab-ranks": "view-leaderboard",
+    "mob-tab-profile": "view-profile"
+  };
+
+  // Map view IDs back to desktop/mobile tab IDs for syncing
+  var viewToDesktopTab = {
+    "view-learn": "tab-learn",
+    "view-practice": "tab-practice",
+    "view-leaderboard": "tab-leaderboard",
+    "view-profile": "tab-profile"
+  };
+  var viewToMobileTab = {
+    "view-learn": "mob-tab-learn",
+    "view-practice": "mob-tab-practice",
+    "view-leaderboard": "mob-tab-ranks",
+    "view-profile": "mob-tab-profile"
+  };
+
+  var isSwitching = false;
+
+  function switchView(viewId) {
+    var currentView = document.querySelector(".page-view.active");
+    var nextView = document.getElementById(viewId);
+    if (!nextView || currentView === nextView || isSwitching) return;
+
+    isSwitching = true;
+
+    // Phase 1: Fade out current view
+    if (currentView) {
+      currentView.classList.add("page-view-leaving");
+    }
+
+    // Phase 2: After fade-out, swap views
+    setTimeout(function () {
+      if (currentView) {
+        currentView.classList.remove("active", "page-view-leaving");
+      }
+
+      // Prep new view: display it but invisible
+      nextView.classList.add("active", "page-view-entering");
+      // Force reflow so the browser registers the entering state
+      void nextView.offsetWidth;
+
+      // Set scroll position BEFORE fade-in so it's already there when view appears
+      if (viewId === "view-learn") {
+        var currentMs = document.querySelector(".milestone.current");
+        if (currentMs) {
+          var rect = currentMs.getBoundingClientRect();
+          var scrollTarget = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2);
+          window.scrollTo(0, Math.max(0, scrollTarget));
+        }
+      } else {
+        window.scrollTo(0, 0);
+      }
+
+      // Phase 3: Fade in new view
+      nextView.classList.remove("page-view-entering");
+
+      // Cleanup after transition finishes
+      setTimeout(function () {
+        isSwitching = false;
+      }, 380);
+    }, 260);
+  }
+
+  function syncTabs(viewId) {
+    // Sync desktop tabs
+    var deskId = viewToDesktopTab[viewId];
+    var deskBtns = document.querySelectorAll("#navbar-tabs .navbar-tab");
+    deskBtns.forEach(function (b) {
+      b.setAttribute("aria-selected", b.id === deskId ? "true" : "false");
+    });
+    // Move desktop indicator
+    var deskActive = document.getElementById(deskId);
+    if (deskActive && typeof moveNav === "function") moveNav(deskActive);
+
+    // Sync mobile tabs
+    var mobId = viewToMobileTab[viewId];
+    var mobBtns = document.querySelectorAll("#mobile-tabs .bottom-nav-item");
+    mobBtns.forEach(function (b) {
+      b.setAttribute("aria-selected", b.id === mobId ? "true" : "false");
+    });
+    // Move mobile indicator
+    var mobActive = document.getElementById(mobId);
+    if (mobActive && typeof moveMob === "function") moveMob(mobActive);
+  }
 
   /* ===============================================================
      4. DESKTOP NAVBAR — SLIDING INDICATOR
@@ -449,6 +597,18 @@
           x.setAttribute("aria-selected", x === b ? "true" : "false");
         });
         moveNav(b);
+        var viewId = tabViewMap[b.id];
+        if (viewId) {
+          switchView(viewId);
+          // Sync mobile tabs
+          var mobId = viewToMobileTab[viewId];
+          var mobBtns = document.querySelectorAll("#mobile-tabs .bottom-nav-item");
+          mobBtns.forEach(function (mb) {
+            mb.setAttribute("aria-selected", mb.id === mobId ? "true" : "false");
+          });
+          var mobActive = document.getElementById(mobId);
+          try { if (mobActive) moveMob(mobActive); } catch(e) {}
+        }
       });
     });
 
@@ -487,6 +647,18 @@
           x.setAttribute("aria-selected", x === b ? "true" : "false");
         });
         moveMob(b);
+        var viewId = tabViewMap[b.id];
+        if (viewId) {
+          switchView(viewId);
+          // Sync desktop tabs
+          var deskId = viewToDesktopTab[viewId];
+          var deskBtns = document.querySelectorAll("#navbar-tabs .navbar-tab");
+          deskBtns.forEach(function (db) {
+            db.setAttribute("aria-selected", db.id === deskId ? "true" : "false");
+          });
+          var deskActive = document.getElementById(deskId);
+          try { if (deskActive) moveNav(deskActive); } catch(e) {}
+        }
       });
     });
 

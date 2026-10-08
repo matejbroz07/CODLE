@@ -1,17 +1,24 @@
 window.CodleData = {
   user: {
-    streakActive: false, 
+    streakActive: true, 
     streakCount: 67,     
-    gems: 6767676767,         
-    rank: "Silver III", 
+    gems: 234567890,         
+    rank: "Global Elite", 
     nextBadge: {
       name: "Pythonista I",
       label: "Complete Unit 2",
       progressPercent: 50
     }
   },
+  activeCourse: "python",
   progress: {
-    currentUnit: 2,       // 1-indexed (1 = Basics, 2 = Functions, 3 = Classes, 4 = Advanced)
-    currentMilestone: 1   // 1-indexed milestone within the current unit
+    python: {
+      currentUnit: 2,
+      currentMilestone: 1
+    },
+    javascript: {
+      currentUnit: 1,
+      currentMilestone: 3
+    }
   }
 };
