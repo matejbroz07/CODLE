@@ -1,15 +1,14 @@
 /**
  * Codle — Registration & Login
- * Application Script
+ * Application script
  *
  * Features:
  * - Login / Registration toggle
  * - Multi-step registration wizard
- * - Adaptive quiz engine (10 questions, difficulty adjusts based on answers)
- * - Email verification with 6-digit code simulation
+ * - Adaptive placement quiz (10 questions, difficulty follows each answer)
+ * - Email verification with a simulated 6-digit code
  * - Username availability checking (simulated)
  * - Password strength meter with rule validation
- * - Floating particle background
  */
 
 (function () {
@@ -2230,27 +2229,42 @@
     ]
 };
 
-  /* Simulated list of taken usernames */
-  var TAKEN_USERNAMES = [
+  /* Usernames that already exist (simulated) */
+  var RESERVED_USERNAMES = [
     "admin", "codle", "codemaster", "user", "test", "root", "system",
     "moderator", "developer", "python", "javascript", "webdev", "hacker",
-    "john", "jane", "alex", "programmer", "null", "undefined","nigger"
+    "john", "jane", "alex", "programmer", "null", "undefined"
   ];
+  /* Terms that may not appear anywhere in a username (matched as a substring) */
+  var BLOCKED_USERNAME_TERMS = ["nigger"];
 
   /* Simulated verification code */
   var VERIFICATION_CODE = "111111"; // Hardcoded per user request
+  var QUIZ_LENGTH = 10;
+  var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  function $(id) { return document.getElementById(id); }
+
+  function setGroupState(groupId, errorId, state, message) {
+    var group = $(groupId);
+    var error = $(errorId);
+    if (!group) return;
+    group.classList.remove("valid", "invalid");
+    if (state) group.classList.add(state);
+    if (error) error.textContent = message || "";
+  }
 
   /* ===============================================================
-     2. AUTH TOGGLE (Login / Register)
+     1. AUTH TOGGLE (Login / Register)
   ================================================================*/
 
-  var toggleRegister = document.getElementById("toggle-register");
-  var toggleLogin = document.getElementById("toggle-login");
-  var slider = document.getElementById("auth-toggle-slider");
-  var loginView = document.getElementById("login-view");
-  var registerView = document.getElementById("register-view");
+  var toggleRegister = $("toggle-register");
+  var toggleLogin = $("toggle-login");
+  var slider = $("auth-toggle-slider");
+  var loginView = $("login-view");
+  var registerView = $("register-view");
 
   function updateToggle() {
     var activeBtn = document.querySelector(".auth-toggle-btn.active");
@@ -2259,176 +2273,173 @@
     slider.style.transform = "translateX(" + activeBtn.offsetLeft + "px)";
   }
 
-  if (toggleRegister) {
-    toggleRegister.addEventListener("click", function () {
-      toggleRegister.classList.add("active");
-      toggleLogin.classList.remove("active");
-      registerView.style.display = "";
-      registerView.style.animation = "fadeSlideUp .5s var(--lg-spring) both";
-      loginView.style.display = "none";
-      updateToggle();
-    });
-  }
-  if (toggleLogin) {
-    toggleLogin.addEventListener("click", function () {
-      toggleLogin.classList.add("active");
-      toggleRegister.classList.remove("active");
-      loginView.style.display = "";
-      loginView.style.animation = "fadeSlideUp .5s var(--lg-spring) both";
-      registerView.style.display = "none";
-      updateToggle();
-    });
+  function showAuthView(showLogin) {
+    toggleLogin.classList.toggle("active", showLogin);
+    toggleRegister.classList.toggle("active", !showLogin);
+    toggleLogin.setAttribute("aria-selected", showLogin ? "true" : "false");
+    toggleRegister.setAttribute("aria-selected", showLogin ? "false" : "true");
+    var show = showLogin ? loginView : registerView;
+    var hide = showLogin ? registerView : loginView;
+    hide.style.display = "none";
+    show.style.display = "";
+    show.style.animation = "none";
+    void show.offsetWidth; // restart the entrance animation
+    show.style.animation = "fadeSlideUp .5s var(--lg-spring) both";
+    updateToggle();
   }
 
+  if (toggleRegister && toggleLogin) {
+    toggleRegister.addEventListener("click", function () { showAuthView(false); });
+    toggleLogin.addEventListener("click", function () { showAuthView(true); });
+  }
   window.addEventListener("load", updateToggle);
   window.addEventListener("resize", updateToggle);
 
   /* ===============================================================
-     3. LOGIN FORM
+     2. LOGIN FORM
   ================================================================*/
 
-  var loginForm = document.getElementById("login-form");
+  var loginForm = $("login-form");
   if (loginForm) {
     loginForm.addEventListener("submit", function (e) {
       e.preventDefault();
-      var email = document.getElementById("login-email").value.trim();
-      var pass = document.getElementById("login-password").value;
+      var email = $("login-email").value.trim();
+      var pass = $("login-password").value;
       var valid = true;
 
-      // Email validation
-      var emailGroup = document.getElementById("login-email-group");
-      var emailError = document.getElementById("login-email-error");
-      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        emailGroup.classList.add("invalid");
-        emailGroup.classList.remove("valid");
-        emailError.textContent = "Please enter a valid e-mail";
+      if (!EMAIL_RE.test(email)) {
+        setGroupState("login-email-group", "login-email-error", "invalid", "Please enter a valid e-mail");
         valid = false;
       } else {
-        emailGroup.classList.remove("invalid");
-        emailGroup.classList.add("valid");
-        emailError.textContent = "";
+        setGroupState("login-email-group", "login-email-error", "valid");
       }
 
-      // Password validation
-      var passGroup = document.getElementById("login-password-group");
-      var passError = document.getElementById("login-password-error");
       if (!pass) {
-        passGroup.classList.add("invalid");
-        passGroup.classList.remove("valid");
-        passError.textContent = "Please enter your password";
+        setGroupState("login-password-group", "login-password-error", "invalid", "Please enter your password");
         valid = false;
       } else {
-        passGroup.classList.remove("invalid");
-        passGroup.classList.add("valid");
-        passError.textContent = "";
+        setGroupState("login-password-group", "login-password-error", "valid");
       }
 
       if (valid) {
-        var btn = document.getElementById("login-submit");
+        var btn = $("login-submit");
         btn.classList.add("loading");
         btn.disabled = true;
         setTimeout(function () {
-          // Simulated login — redirect to main app
-          window.location.href = "index.html";
+          window.location.href = "index.html"; // simulated login
         }, 1500);
       }
     });
   }
 
-  // Toggle password visibility for login
-  var loginToggleVis = document.getElementById("login-toggle-vis");
-  if (loginToggleVis) {
-    loginToggleVis.addEventListener("click", function () {
-      var inp = document.getElementById("login-password");
-      inp.type = inp.type === "password" ? "text" : "password";
-      loginToggleVis.querySelector("svg").style.color =
-        inp.type === "text" ? "var(--accent)" : "";
+  function bindVisibilityToggle(buttonId, inputId) {
+    var btn = $(buttonId);
+    var inp = $(inputId);
+    if (!btn || !inp) return;
+    btn.addEventListener("click", function () {
+      var show = inp.type === "password";
+      inp.type = show ? "text" : "password";
+      btn.setAttribute("aria-pressed", show ? "true" : "false");
+      btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+    });
+  }
+  bindVisibilityToggle("login-toggle-vis", "login-password");
+  bindVisibilityToggle("reg-toggle-vis", "reg-password");
+
+  var forgotLink = $("forgot-link");
+  if (forgotLink) {
+    forgotLink.addEventListener("click", function () {
+      var email = $("login-email");
+      setGroupState("login-email-group", "login-email-error", "invalid", "Password reset isn't available in this demo yet");
+      if (email) email.focus();
     });
   }
 
   /* ===============================================================
-     4. REGISTRATION WIZARD
+     3. REGISTRATION WIZARD
   ================================================================*/
 
   var currentStep = 1;
+  var currentPanel = "step-1";
+  var STEP_NAMES = { 1: "Language", 2: "Quiz", 3: "Email", 4: "Account" };
+  // Where the header back button goes from each panel
+  var BACK_TARGET = { "step-2": 1, "step-2-results": 1, "step-3": "2-results", "step-4": 3 };
   var selectedLang = null;
-  var quizState = {
-    lang: null,
-    questionIndex: 0,
-    currentDifficulty: 1,
-    score: 0,
-    correct: 0,
-    wrong: 0,
-    currentAnswer: null,
-    questions: [],
-    startTime: null
-  };
+  var quizState = {};
   var emailVerified = false;
   var usernameValid = false;
   var passwordValid = false;
   var confirmValid = false;
 
+  /**
+   * Show a wizard panel. `step` is 1–4, "2-results" or "success".
+   * The header shows the step, fills the progress segments and offers Back.
+   */
   function goToStep(step) {
-    // Hide all panels
-    document.querySelectorAll(".wizard-panel").forEach(function (p) {
-      p.classList.remove("active");
-    });
-
-    // Show target panel
     var targetId = "step-" + step;
-    if (step === "2-results") targetId = "step-2-results";
-    if (step === "success") targetId = "step-success";
-    var target = document.getElementById(targetId);
+    var numericStep = parseInt(step, 10) || currentStep;
+    var goingBack = numericStep < currentStep;
+    var resultsShown = step === "2-results";
+
+    document.querySelectorAll(".wizard-panel").forEach(function (p) { p.classList.remove("active", "back"); });
+    var target = $(targetId);
     if (target) {
       target.classList.add("active");
-      target.style.animation = "panelIn .5s var(--lg-spring) both";
+      if (goingBack && !reduceMotion) target.classList.add("back");
     }
 
-    // Update progress dots
-    var numericStep = parseInt(step) || currentStep;
-    document.querySelectorAll(".wizard-step").forEach(function (s) {
-      var sStep = parseInt(s.dataset.step);
-      s.classList.remove("active", "completed");
-      if (sStep < numericStep) s.classList.add("completed");
-      else if (sStep === numericStep) s.classList.add("active");
-    });
-
-    // Update progress bar
-    var progressEl = document.getElementById("wizard-progress");
-    if (progressEl) progressEl.dataset.progress = numericStep;
-
-    // Hide progress on success
-    if (step === "success") {
-      progressEl.style.display = "none";
+    var header = $("wizard-progress");
+    if (header) {
+      header.dataset.progress = numericStep;
+      header.classList.toggle("done", step === "success");
+      header.querySelector(".reg-progress").setAttribute("aria-valuenow", numericStep);
+      $("reg-step-label").textContent = "Step " + numericStep + " of 4 · " + (resultsShown ? "Results" : STEP_NAMES[numericStep]);
+      $("reg-back").hidden = !BACK_TARGET[targetId];
     }
 
     currentStep = numericStep;
+    currentPanel = targetId;
+    if (target) target.scrollIntoView({ block: "nearest", behavior: reduceMotion ? "auto" : "smooth" });
   }
 
-  /* ===== STEP 1: Language Selection ===== */
-  var langCards = document.querySelectorAll(".lang-card");
-  var btnStartQuiz = document.getElementById("btn-start-quiz");
+  var regBack = $("reg-back");
+  if (regBack) regBack.addEventListener("click", function () {
+    var target = BACK_TARGET[currentPanel];
+    if (target) goToStep(target);
+  });
 
+  /* ===== STEP 1: Language selection ===== */
+
+  var langCards = document.querySelectorAll(".lang-card");
+  var btnStartQuiz = $("btn-start-quiz");
+
+  // Brand colours per language + a text colour that stays readable on top of them
   var brandColors = {
-    html: { a1: "#e34f26", a2: "#f16529" },
-    css: { a1: "#1572b6", a2: "#33a9dc" },
-    javascript: { a1: "#f7df1e", a2: "#f9e64f" },
-    php: { a1: "#777bb4", a2: "#8892bf" }
+    html:       { accent: "#e34f26", ink: "#ffffff" },
+    css:        { accent: "#1572b6", ink: "#ffffff" },
+    javascript: { accent: "#f7df1e", ink: "#08090c" },
+    php:        { accent: "#777bb4", ink: "#ffffff" }
   };
+
+  function applyBrand(lang) {
+    var colors = brandColors[lang];
+    if (!colors) return;
+    var root = document.documentElement.style;
+    root.setProperty("--accent", colors.accent);
+    root.setProperty("--accent-ink", colors.ink);
+  }
 
   langCards.forEach(function (card) {
     card.addEventListener("click", function () {
-      langCards.forEach(function (c) { c.classList.remove("selected"); });
+      langCards.forEach(function (c) {
+        c.classList.remove("selected");
+        c.setAttribute("aria-checked", "false");
+      });
       card.classList.add("selected");
+      card.setAttribute("aria-checked", "true");
       selectedLang = card.dataset.lang;
       btnStartQuiz.disabled = false;
-      
-      // Dynamicky změnit accent barvu podle jazyka
-      var colors = brandColors[selectedLang];
-      if (colors) {
-        document.documentElement.style.setProperty("--accent", colors.a1);
-        document.documentElement.style.setProperty("--accent-2", colors.a2);
-      }
+      applyBrand(selectedLang);
     });
   });
 
@@ -2440,27 +2451,17 @@
     });
   }
 
-  /* ===== STEP 2: Adaptive Quiz Engine ===== */
+  /* ===== STEP 2: Adaptive quiz engine =====
+     Questions are chosen one at a time: a correct answer raises the
+     difficulty for the next question, a wrong one lowers it. */
 
-  function initQuiz(lang) {
-    quizState.lang = lang;
-    quizState.questionIndex = 0;
-    quizState.currentDifficulty = 1;
-    quizState.score = 0;
-    quizState.correct = 0;
-    quizState.wrong = 0;
-    quizState.answered = false;
-    quizState.startTime = Date.now();
-
-    // Build adaptive question list
-    var pool = QUESTIONS[lang] || [];
-    quizState.questions = selectAdaptiveQuestions(pool, 10);
-
-    // Update UI
-    document.getElementById("quiz-lang-name").textContent = langDisplayName(lang);
-    document.getElementById("quiz-total").textContent = quizState.questions.length;
-
-    showQuestion(0);
+  function shuffleArray(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
   }
 
   function langDisplayName(lang) {
@@ -2468,432 +2469,349 @@
     return names[lang] || lang;
   }
 
-  /**
-   * Adaptive question selection algorithm.
-   * Starts with easy questions, adjusts difficulty based on performance.
-   * Returns an ordered list of 10 questions from the pool.
-   */
-  function selectAdaptiveQuestions(pool, count) {
-    // Sort pool by level
+  function initQuiz(lang) {
     var byLevel = {};
-    pool.forEach(function (q) {
-      if (!byLevel[q.level]) byLevel[q.level] = [];
-      byLevel[q.level].push(q);
+    (QUESTIONS[lang] || []).forEach(function (q) {
+      (byLevel[q.level] = byLevel[q.level] || []).push(q);
     });
+    Object.keys(byLevel).forEach(function (lvl) { byLevel[lvl] = shuffleArray(byLevel[lvl]); });
 
-    // Shuffle within each level
-    Object.keys(byLevel).forEach(function (lvl) {
-      byLevel[lvl] = shuffleArray(byLevel[lvl]);
-    });
+    quizState = {
+      lang: lang,
+      byLevel: byLevel,
+      questions: [],        // questions asked so far, in order
+      answers: [],          // chosen answer index per question
+      difficulty: 1,
+      correct: 0,
+      wrong: 0,
+      currentAnswer: null,
+      startTime: Date.now()
+    };
 
-    // Pick questions adaptively — we'll start at level 1 and adjust
-    var selected = [];
-    var difficulty = 1;
-    var used = {};
-
-    for (var i = 0; i < count; i++) {
-      // Try to find a question at current difficulty
-      var candidates = (byLevel[difficulty] || []).filter(function (q) { return !used[q.q]; });
-
-      // If no candidates at current level, look nearby
-      if (candidates.length === 0) {
-        for (var delta = 1; delta <= 5; delta++) {
-          candidates = (byLevel[difficulty + delta] || []).filter(function (q) { return !used[q.q]; });
-          if (candidates.length > 0) break;
-          candidates = (byLevel[Math.max(1, difficulty - delta)] || []).filter(function (q) { return !used[q.q]; });
-          if (candidates.length > 0) break;
-        }
-      }
-
-      if (candidates.length === 0) break;
-
-      var pick = candidates[0];
-      selected.push(pick);
-      used[pick.q] = true;
-
-      // Adaptive: after every 2 questions, potentially increase difficulty
-      if ((i + 1) % 2 === 0) {
-        difficulty = Math.min(5, difficulty + 1);
-      }
-    }
-
-    return selected;
+    $("quiz-lang-name").textContent = langDisplayName(lang);
+    $("quiz-total").textContent = QUIZ_LENGTH;
+    askNextQuestion();
   }
 
-  function shuffleArray(arr) {
-    var a = arr.slice();
-    for (var i = a.length - 1; i > 0; i--) {
-      var j = Math.floor(Math.random() * (i + 1));
-      var tmp = a[i];
-      a[i] = a[j];
-      a[j] = tmp;
+  /** Pop an unused question at the wanted difficulty, or the nearest level that still has one. */
+  function takeQuestion(difficulty) {
+    for (var delta = 0; delta <= 4; delta++) {
+      var up = quizState.byLevel[difficulty + delta];
+      if (up && up.length) return up.shift();
+      var down = quizState.byLevel[difficulty - delta];
+      if (delta && down && down.length) return down.shift();
     }
-    return a;
+    return null;
   }
 
-  function showQuestion(idx) {
-    var q = quizState.questions[idx];
-    if (!q) return;
+  function askNextQuestion() {
+    var q = takeQuestion(quizState.difficulty);
+    if (!q) { showQuizResults(); return; }
+    quizState.questions.push(q);
+    showQuestion(q, quizState.questions.length - 1);
+  }
 
+  function showQuestion(q, idx) {
     quizState.currentAnswer = null;
-    document.getElementById("quiz-current").textContent = idx + 1;
-    document.getElementById("quiz-progress-fill").style.width =
-      ((idx + 1) / quizState.questions.length * 100) + "%";
-
-    // Difficulty indicator
+    $("quiz-current").textContent = idx + 1;
+    $("quiz-progress-fill").style.width = ((idx + 1) / QUIZ_LENGTH * 100) + "%";
     updateDifficultyIndicator(q.level);
+    $("quiz-question").textContent = q.q;
 
-    // Question
-    document.getElementById("quiz-question").textContent = q.q;
-
-    // Code block
-    var codeBlock = document.getElementById("quiz-code-block");
-    var codeEl = document.getElementById("quiz-code");
+    var codeBlock = $("quiz-code-block");
     if (q.code) {
-      codeEl.textContent = q.code;
+      $("quiz-code").textContent = q.code;
       codeBlock.style.display = "block";
     } else {
       codeBlock.style.display = "none";
     }
 
-    // Answers
-    var answersContainer = document.getElementById("quiz-answers");
+    var answersContainer = $("quiz-answers");
     answersContainer.innerHTML = "";
-    var letters = ["A", "B", "C", "D", "E"];
-    var currentAnswers = q.answers.slice();
-    currentAnswers.push("I don't know");
-    
-    currentAnswers.forEach(function (ans, i) {
+    var letters = ["A", "B", "C", "D"];
+
+    q.answers.forEach(function (ans, i) {
       var btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "quiz-answer";
+      btn.className = "reg-row quiz-answer";
+      btn.setAttribute("role", "radio");
+      btn.setAttribute("aria-checked", "false");
       btn.dataset.idx = i;
-      
-      var spanLetter = document.createElement("span");
-      spanLetter.className = "answer-letter";
-      spanLetter.textContent = letters[i];
-      
-      var spanText = document.createElement("span");
-      spanText.textContent = ans;
-      
-      btn.appendChild(spanLetter);
-      btn.appendChild(spanText);
-      
-      btn.addEventListener("click", function () { handleAnswer(idx, i); });
+
+      var letter = document.createElement("span");
+      letter.className = "answer-letter";
+      letter.textContent = letters[i];
+      var text = document.createElement("span");
+      text.className = "reg-row-text";
+      text.textContent = ans;
+
+      btn.appendChild(letter);
+      btn.appendChild(text);
+      btn.addEventListener("click", function () { selectAnswer(i); });
       answersContainer.appendChild(btn);
     });
 
-    // Hide feedback
-    var feedback = document.getElementById("quiz-feedback");
-    feedback.style.display = "none";
+    // "I don't know" lives outside the list; it selects the index after the last answer.
+    quizSkip.dataset.idx = q.answers.length;
+    quizSkip.setAttribute("aria-pressed", "false");
 
-    // Disable next button
-    document.getElementById("btn-quiz-next").disabled = true;
+    var btnNext = $("btn-quiz-next");
+    btnNext.disabled = true;
+    btnNext.querySelector(".btn-text").textContent = idx + 1 < QUIZ_LENGTH ? "Next" : "See results";
   }
 
   function updateDifficultyIndicator(level) {
     var labels = { 1: "Beginner", 2: "Basics", 3: "Intermediate", 4: "Advanced", 5: "Master" };
-    document.getElementById("difficulty-label").textContent = labels[level] || "???";
-    document.querySelectorAll(".diff-dot").forEach(function (dot) {
-      var dotLevel = parseInt(dot.dataset.level);
-      dot.classList.toggle("active", dotLevel <= level);
-    });
+    $("difficulty-label").textContent = labels[level] || "";
   }
 
-  function handleAnswer(questionIdx, answerIdx) {
+  var quizSkip = $("quiz-skip");
+  if (quizSkip) quizSkip.addEventListener("click", function () { selectAnswer(parseInt(quizSkip.dataset.idx, 10)); });
+
+  function selectAnswer(answerIdx) {
     quizState.currentAnswer = answerIdx;
-
-    // Mark answers
-    var answerBtns = document.querySelectorAll(".quiz-answer");
-    answerBtns.forEach(function (btn) {
-      btn.classList.remove("selected");
-      var bIdx = parseInt(btn.dataset.idx);
-      if (bIdx === answerIdx) {
-        btn.classList.add("selected");
-      }
+    document.querySelectorAll(".quiz-answer").forEach(function (btn) {
+      btn.setAttribute("aria-checked", parseInt(btn.dataset.idx, 10) === answerIdx ? "true" : "false");
     });
-
-    // Enable next button
-    var btnNext = document.getElementById("btn-quiz-next");
-    btnNext.disabled = false;
-
-    // Update next question difficulty if applicable
-    if (questionIdx + 1 < quizState.questions.length) {
-      btnNext.querySelector(".btn-text").textContent = "Next Question";
-    } else {
-      btnNext.querySelector(".btn-text").textContent = "Show Results";
-    }
+    quizSkip.setAttribute("aria-pressed", parseInt(quizSkip.dataset.idx, 10) === answerIdx ? "true" : "false");
+    $("btn-quiz-next").disabled = false;
   }
 
-  // Keyboard support for quiz answers and next button
-  window.addEventListener("keydown", function(e) {
-    if (document.getElementById("step-2").classList.contains("active")) {
-      var btnNext = document.getElementById("btn-quiz-next");
-      
-      if (e.key === "Enter") {
-        if (btnNext && !btnNext.disabled) {
-          btnNext.click();
-        }
-      } else {
-        var keyMap = { 'a': 0, 'b': 1, 'c': 2, 'd': 3, 'e': 4 };
-        var k = e.key.toLowerCase();
-        if (keyMap[k] !== undefined) {
-          var buttons = document.querySelectorAll(".quiz-answer");
-          if (buttons[keyMap[k]]) {
-            buttons[keyMap[k]].click();
-          }
-        }
-      }
+  // Keyboard: A–E picks an answer, Enter confirms (unless focus is on a control that handles Enter itself)
+  window.addEventListener("keydown", function (e) {
+    if (!$("step-2").classList.contains("active")) return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    var tag = (e.target.tagName || "").toLowerCase();
+    var onControl = tag === "button" || tag === "input" || tag === "textarea" || tag === "select" || tag === "a";
+
+    if (e.key === "Enter") {
+      if (onControl) return; // the focused button fires its own click
+      var btnNext = $("btn-quiz-next");
+      if (btnNext && !btnNext.disabled) btnNext.click();
+      return;
     }
+    if (tag === "input" || tag === "textarea") return;
+    var keyMap = { a: 0, b: 1, c: 2, d: 3, e: 4 };
+    var pos = keyMap[e.key.toLowerCase()];
+    if (pos === undefined) return;
+    var buttons = document.querySelectorAll(".quiz-answer");
+    if (buttons[pos]) buttons[pos].click();
+    else if (pos === buttons.length) quizSkip.click(); // E = "I don't know"
   });
-  
-  var btnQuizNext = document.getElementById("btn-quiz-next");
+
+  var btnQuizNext = $("btn-quiz-next");
   if (btnQuizNext) {
     btnQuizNext.addEventListener("click", function () {
-      if (quizState.currentAnswer === null) return;
-      
-      var q = quizState.questions[quizState.questionIndex];
+      if (quizState.currentAnswer === null || quizState.currentAnswer === undefined) return;
+      var q = quizState.questions[quizState.questions.length - 1];
       var isCorrect = quizState.currentAnswer === q.correct;
-      
+      quizState.answers.push(quizState.currentAnswer);
+
       if (isCorrect) {
         quizState.correct++;
-        quizState.score += q.level * 10;
-        quizState.currentDifficulty = Math.min(5, quizState.currentDifficulty + 1);
+        quizState.difficulty = Math.min(5, quizState.difficulty + 1);
       } else {
         quizState.wrong++;
-        quizState.currentDifficulty = Math.max(1, quizState.currentDifficulty - 1);
+        quizState.difficulty = Math.max(1, quizState.difficulty - 1);
       }
-      
-      quizState.currentAnswer = null;
-      quizState.questionIndex++;
-      
-      if (quizState.questionIndex < quizState.questions.length) {
-        showQuestion(quizState.questionIndex);
-      } else {
-        showQuizResults();
-      }
-    });
-  }
 
-  var btnQuizBack = document.getElementById("btn-quiz-back");
-  if (btnQuizBack) {
-    btnQuizBack.addEventListener("click", function () {
-      goToStep(1);
+      if (quizState.questions.length < QUIZ_LENGTH) askNextQuestion();
+      else showQuizResults();
     });
   }
 
   function showQuizResults() {
     var total = quizState.questions.length;
-    var pct = Math.round((quizState.correct / total) * 100);
+    var pct = total ? Math.round((quizState.correct / total) * 100) : 0;
     var elapsed = Math.round((Date.now() - quizState.startTime) / 1000);
 
-    // Determine level
-    var level = "Beginner";
-    if (pct >= 90) level = "Master";
-    else if (pct >= 70) level = "Advanced";
-    else if (pct >= 50) level = "Intermediate";
-    else if (pct >= 30) level = "Basics";
+    // Placement = the hardest level the learner answered correctly.
+    var highest = 0;
+    quizState.questions.forEach(function (q, i) {
+      if (quizState.answers[i] === q.correct && q.level > highest) highest = q.level;
+    });
+    var levelNames = { 0: "Beginner", 1: "Beginner", 2: "Basics", 3: "Intermediate", 4: "Advanced", 5: "Master" };
 
     goToStep("2-results");
 
-    document.getElementById("results-score").textContent = pct + "%";
-    document.getElementById("results-correct").textContent = quizState.correct;
-    document.getElementById("results-wrong").textContent = quizState.wrong;
-    document.getElementById("results-time").textContent = elapsed + "s";
-    document.getElementById("results-level-name").textContent = level;
+    $("results-score").textContent = pct + "%";
+    $("results-correct").textContent = quizState.correct;
+    $("results-wrong").textContent = quizState.wrong;
+    $("results-time").textContent = elapsed >= 60 ? Math.floor(elapsed / 60) + "m " + (elapsed % 60) + "s" : elapsed + "s";
+    $("results-level-name").textContent = levelNames[highest];
+    $("results-title").textContent = (pct >= 80 ? "Great job!" : pct >= 50 ? "Well done!" : "Good start!") +
+      " You answered " + quizState.correct + " of " + total + " correctly.";
 
-    // Determine title
-    if (pct >= 80) document.getElementById("results-title").textContent = "Great job! 🎉";
-    else if (pct >= 50) document.getElementById("results-title").textContent = "Well done! 👍";
-    else document.getElementById("results-title").textContent = "Good start! 💪";
-
-    // Animate ring
-    setTimeout(function () {
-      var ring = document.getElementById("results-ring-fill");
-      var offset = 327 - (327 * pct / 100);
-      ring.style.transition = "stroke-dashoffset 1.5s var(--lg-spring)";
-      ring.style.strokeDashoffset = offset;
-    }, 100);
-
-    // Update step 2 as completed in progress
-    var step2dot = document.querySelector('.wizard-step[data-step="2"]');
-    if (step2dot) {
-      step2dot.classList.add("completed");
-      step2dot.classList.remove("active");
-    }
+    // Fill the level meter after the panel is visible so the change animates.
+    var meter = $("level-meter");
+    meter.dataset.level = 0;
+    setTimeout(function () { meter.dataset.level = Math.max(1, highest); }, 150);
   }
 
-  var btnToEmail = document.getElementById("btn-to-email");
-  if (btnToEmail) {
-    btnToEmail.addEventListener("click", function () {
-      goToStep(3);
+  var btnToEmail = $("btn-to-email");
+  if (btnToEmail) btnToEmail.addEventListener("click", function () { goToStep(3); });
+
+  /* ===== STEP 3: Email verification ===== */
+
+  var regEmail = $("reg-email");
+  var btnSendCode = $("btn-send-code");
+  var verifySection = $("verify-code-section");
+  var codeDigits = document.querySelectorAll(".code-digit");
+  var btnResend = $("btn-resend");
+  var btnToAccount = $("btn-to-account");
+  var resendInterval = null;
+
+  function resetCodeDigits() {
+    codeDigits.forEach(function (d) {
+      d.value = "";
+      d.disabled = false;
+      d.classList.remove("filled", "correct", "wrong");
     });
+    var status = $("verify-status");
+    status.className = "verify-status";
+    status.textContent = "";
   }
 
-  /* ===== STEP 3: Email Verification ===== */
+  /** Forget everything about a previously sent code (used when the address changes). */
+  function resetVerification() {
+    clearInterval(resendInterval);
+    emailVerified = false;
+    verifySection.style.display = "none";
+    btnSendCode.textContent = "Send code";
+    btnSendCode.classList.remove("sent");
+    btnToAccount.disabled = true;
+    resetCodeDigits();
+  }
 
-  var regEmail = document.getElementById("reg-email");
-  var btnSendCode = document.getElementById("btn-send-code");
-  var verifySection = document.getElementById("verify-code-section");
-
-  // Enable send button when valid email entered
   if (regEmail) {
     regEmail.addEventListener("input", function () {
       var val = regEmail.value.trim();
-      var isValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+      var isValid = EMAIL_RE.test(val);
+
+      if (verifySection.style.display !== "none") resetVerification();
       btnSendCode.disabled = !isValid;
 
-      var group = document.getElementById("reg-email-group");
-      var error = document.getElementById("reg-email-error");
-      if (val && !isValid) {
-        group.classList.add("invalid");
-        group.classList.remove("valid");
-        error.textContent = "Please enter a valid e-mail";
-      } else if (isValid) {
-        group.classList.remove("invalid");
-        group.classList.add("valid");
-        error.textContent = "";
-      } else {
-        group.classList.remove("invalid", "valid");
-        error.textContent = "";
-      }
+      if (val && !isValid) setGroupState("reg-email-group", "reg-email-error", "invalid", "Please enter a valid e-mail");
+      else if (isValid) setGroupState("reg-email-group", "reg-email-error", "valid");
+      else setGroupState("reg-email-group", "reg-email-error", null);
     });
+  }
+
+  function sendCode() {
+    console.log("Verification code (simulation):", VERIFICATION_CODE);
+    btnSendCode.textContent = "Sent ✓";
+    btnSendCode.classList.add("sent");
+    btnSendCode.disabled = true;
+    startResendTimer();
   }
 
   if (btnSendCode) {
     btnSendCode.addEventListener("click", function () {
       var email = regEmail.value.trim();
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return;
-
-      // Verification code is hardcoded to 111111 per user instructions
-      VERIFICATION_CODE = "111111";
-      console.log("📧 Verification code (simulation):", VERIFICATION_CODE);
-
-      // Show verification section
+      if (!EMAIL_RE.test(email)) return;
       verifySection.style.display = "block";
-      document.getElementById("verify-email-display").textContent = email;
-
-      // Update button
-      btnSendCode.textContent = "Sent ✓";
-      btnSendCode.classList.add("sent");
-      btnSendCode.disabled = true;
-
-      // Start resend countdown
-      startResendTimer();
-
-      // Focus first code digit
-      setTimeout(function () {
-        document.getElementById("code-digit-0").focus();
-      }, 300);
+      $("verify-email-display").textContent = email;
+      sendCode();
+      setTimeout(function () { codeDigits[0].focus(); }, 300);
     });
   }
 
-  // Code digit inputs
-  var codeDigits = document.querySelectorAll(".code-digit");
+  function fillDigitsFrom(startIdx, digits) {
+    for (var i = 0; i < digits.length && startIdx + i < codeDigits.length; i++) {
+      codeDigits[startIdx + i].value = digits[i];
+      codeDigits[startIdx + i].classList.add("filled");
+    }
+    var next = Math.min(startIdx + digits.length, codeDigits.length - 1);
+    codeDigits[next].focus();
+    checkVerificationCode();
+  }
+
   codeDigits.forEach(function (digit, idx) {
     digit.addEventListener("input", function (e) {
-      var val = e.target.value.replace(/[^0-9]/g, "");
+      var val = e.target.value.replace(/\D/g, "");
+      if (val.length > 1) { // mobile keyboards can insert several characters at once
+        e.target.value = "";
+        fillDigitsFrom(idx, val.slice(0, codeDigits.length - idx));
+        return;
+      }
       e.target.value = val;
+      e.target.classList.toggle("filled", !!val);
       if (val) {
-        e.target.classList.add("filled");
-        // Auto-focus next
-        if (idx < 5) {
-          codeDigits[idx + 1].focus();
-        }
-        // Check if all filled
+        if (idx < codeDigits.length - 1) codeDigits[idx + 1].focus();
         checkVerificationCode();
       }
     });
 
     digit.addEventListener("keydown", function (e) {
       if (e.key === "Backspace" && !e.target.value && idx > 0) {
-        codeDigits[idx - 1].focus();
         codeDigits[idx - 1].value = "";
         codeDigits[idx - 1].classList.remove("filled");
+        codeDigits[idx - 1].focus();
+      } else if (e.key === "ArrowLeft" && idx > 0) {
+        codeDigits[idx - 1].focus();
+      } else if (e.key === "ArrowRight" && idx < codeDigits.length - 1) {
+        codeDigits[idx + 1].focus();
       }
     });
 
-    // Allow paste of full code
     digit.addEventListener("paste", function (e) {
       e.preventDefault();
       var paste = (e.clipboardData || window.clipboardData).getData("text").replace(/\D/g, "");
-      if (paste.length >= 6) {
-        for (var i = 0; i < 6; i++) {
-          codeDigits[i].value = paste[i] || "";
-          if (paste[i]) codeDigits[i].classList.add("filled");
-        }
-        codeDigits[5].focus();
-        checkVerificationCode();
-      }
+      if (paste) fillDigitsFrom(idx, paste.slice(0, codeDigits.length - idx));
     });
   });
 
   function checkVerificationCode() {
     var code = "";
     codeDigits.forEach(function (d) { code += d.value; });
-    if (code.length < 6) return;
+    if (code.length < codeDigits.length) return;
 
-    var status = document.getElementById("verify-status");
-    var btnContinue = document.getElementById("btn-to-account");
-
+    var status = $("verify-status");
     if (code === VERIFICATION_CODE) {
       status.className = "verify-status success";
       status.textContent = "✓ E-mail verified successfully!";
       emailVerified = true;
-      btnContinue.disabled = false;
+      btnToAccount.disabled = false;
       codeDigits.forEach(function (d) { d.classList.add("correct"); d.disabled = true; });
+      clearInterval(resendInterval);
+      btnResend.disabled = true;
+      btnResend.textContent = "Verified";
     } else {
       status.className = "verify-status error";
       status.textContent = "✗ Incorrect code. Try again.";
       codeDigits.forEach(function (d) { d.classList.add("wrong"); });
-      // Shake and reset after delay
       setTimeout(function () {
-        codeDigits.forEach(function (d) {
-          d.value = "";
-          d.classList.remove("filled", "wrong");
-        });
+        resetCodeDigits();
         codeDigits[0].focus();
-        status.textContent = "";
       }, 1200);
     }
   }
 
   function startResendTimer() {
     var timer = 60;
-    var timerEl = document.getElementById("resend-timer");
-    var btnResend = document.getElementById("btn-resend");
+    clearInterval(resendInterval);
     btnResend.disabled = true;
-
-    var iv = setInterval(function () {
+    btnResend.innerHTML = 'Resend in <span id="resend-timer">60</span>s';
+    var timerEl = $("resend-timer");
+    resendInterval = setInterval(function () {
       timer--;
       timerEl.textContent = timer;
       if (timer <= 0) {
-        clearInterval(iv);
+        clearInterval(resendInterval);
         btnResend.disabled = false;
-        btnResend.innerHTML = "Resend Code";
+        btnResend.textContent = "Resend code";
       }
     }, 1000);
   }
 
-  var btnResend = document.getElementById("btn-resend");
   if (btnResend) {
     btnResend.addEventListener("click", function () {
-      VERIFICATION_CODE = "111111"; // Still hardcoded
-      console.log("📧 New verification code (simulation):", VERIFICATION_CODE);
-      btnResend.innerHTML = 'Resend in <span id="resend-timer">60</span>s';
-      startResendTimer();
-      // Reset digits
-      codeDigits.forEach(function (d) {
-        d.value = "";
-        d.classList.remove("filled", "correct", "wrong");
-        d.disabled = false;
-      });
-      document.getElementById("verify-status").textContent = "";
+      resetCodeDigits();
+      sendCode();
       codeDigits[0].focus();
     });
   }
 
-  var btnToAccount = document.getElementById("btn-to-account");
   if (btnToAccount) {
     btnToAccount.addEventListener("click", function () {
       if (!emailVerified) return;
@@ -2901,83 +2819,56 @@
     });
   }
 
-  var btnEmailBack = document.getElementById("btn-email-back");
-  if (btnEmailBack) {
-    btnEmailBack.addEventListener("click", function () {
-      goToStep("2-results");
-    });
-  }
+  /* ===== STEP 4: Username & password ===== */
 
-  /* ===== STEP 4: Username & Password ===== */
-
-  var regUsername = document.getElementById("reg-username");
-  var regPassword = document.getElementById("reg-password");
-  var regConfirm = document.getElementById("reg-confirm");
+  var regUsername = $("reg-username");
+  var regPassword = $("reg-password");
+  var regConfirm = $("reg-confirm");
   var usernameTimer = null;
 
-  // Username validation
+  function setUsernameStatus(html) {
+    var status = $("username-status");
+    status.style.display = html ? "flex" : "none";
+    status.innerHTML = html || "";
+  }
+
   if (regUsername) {
     regUsername.addEventListener("input", function () {
       var val = regUsername.value.trim();
-      var group = document.getElementById("reg-username-group");
-      var error = document.getElementById("reg-username-error");
-      var status = document.getElementById("username-status");
-
       usernameValid = false;
       updateCreateButton();
-
-      if (!val) {
-        group.classList.remove("valid", "invalid");
-        error.textContent = "";
-        status.style.display = "none";
-        return;
-      }
-
-      // Format validation
-      if (val.length < 3) {
-        group.classList.add("invalid");
-        group.classList.remove("valid");
-        error.textContent = "Minimum 3 characters";
-        status.style.display = "none";
-        return;
-      }
-      if (val.length > 20) {
-        group.classList.add("invalid");
-        group.classList.remove("valid");
-        error.textContent = "Maximum 20 characters";
-        status.style.display = "none";
-        return;
-      }
-      if (!/^[a-zA-Z0-9_]+$/.test(val)) {
-        group.classList.add("invalid");
-        group.classList.remove("valid");
-        error.textContent = "Only letters, numbers, and underscores allowed";
-        status.style.display = "none";
-        return;
-      }
-
-      // Simulated availability check (with debounce)
-      group.classList.remove("valid", "invalid");
-      error.textContent = "";
-      status.style.display = "flex";
-      status.innerHTML = '<div class="spinner-sm"></div>';
-
       clearTimeout(usernameTimer);
+
+      var formatError = null;
+      if (!val) formatError = "";
+      else if (val.length < 3) formatError = "Minimum 3 characters";
+      else if (val.length > 20) formatError = "Maximum 20 characters";
+      else if (!/^[a-zA-Z0-9_]+$/.test(val)) formatError = "Only letters, numbers, and underscores allowed";
+
+      if (formatError !== null) {
+        setGroupState("reg-username-group", "reg-username-error", formatError ? "invalid" : null, formatError);
+        setUsernameStatus("");
+        return;
+      }
+
+      // Simulated availability check, debounced
+      setGroupState("reg-username-group", "reg-username-error", null);
+      setUsernameStatus('<div class="spinner-sm"></div>');
+
       usernameTimer = setTimeout(function () {
-        var taken = TAKEN_USERNAMES.indexOf(val.toLowerCase()) !== -1;
-        if (taken) {
-          group.classList.add("invalid");
-          group.classList.remove("valid");
-          error.textContent = "This username is already taken";
-          status.style.display = "flex";
-          status.innerHTML = '<span style="color:var(--error);font-size:16px;">✗</span>';
-          usernameValid = false;
+        var lower = val.toLowerCase();
+        var blocked = BLOCKED_USERNAME_TERMS.some(function (t) { return lower.indexOf(t) !== -1; });
+        var taken = RESERVED_USERNAMES.indexOf(lower) !== -1;
+
+        if (blocked) {
+          setGroupState("reg-username-group", "reg-username-error", "invalid", "This username isn't allowed");
+          setUsernameStatus('<span class="bad">✗</span>');
+        } else if (taken) {
+          setGroupState("reg-username-group", "reg-username-error", "invalid", "This username is already taken");
+          setUsernameStatus('<span class="bad">✗</span>');
         } else {
-          group.classList.add("valid");
-          group.classList.remove("invalid");
-          error.textContent = "";
-          status.style.display = "flex";
-          status.innerHTML = '<span style="color:var(--success);font-size:16px;">✓</span>';
+          setGroupState("reg-username-group", "reg-username-error", "valid");
+          setUsernameStatus('<span class="ok">✓</span>');
           usernameValid = true;
         }
         updateCreateButton();
@@ -2985,7 +2876,6 @@
     });
   }
 
-  // Password validation
   if (regPassword) {
     regPassword.addEventListener("input", function () {
       var val = regPassword.value;
@@ -2994,52 +2884,29 @@
         upper: /[A-Z]/.test(val),
         lower: /[a-z]/.test(val),
         number: /[0-9]/.test(val),
-        special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val)
+        special: /[^A-Za-z0-9]/.test(val)
       };
 
       var metCount = 0;
       Object.keys(rules).forEach(function (key) {
-        var el = document.getElementById("rule-" + key);
-        if (rules[key]) {
-          el.classList.add("met");
-          el.querySelector(".rule-icon").textContent = "✓";
-          metCount++;
-        } else {
-          el.classList.remove("met");
-          el.querySelector(".rule-icon").textContent = "○";
-        }
+        var el = $("rule-" + key);
+        el.classList.toggle("met", rules[key]);
+        el.querySelector(".rule-icon").textContent = rules[key] ? "✓" : "○";
+        if (rules[key]) metCount++;
       });
 
-      // Strength meter
-      var fill = document.getElementById("strength-fill");
-      var label = document.getElementById("strength-label");
-      fill.dataset.level = metCount;
-
-      var labels = ["", "Very Weak", "Weak", "Fair", "Strong", "Very Strong"];
-      var colors = ["", "var(--error)", "var(--coral)", "var(--warning)", "var(--accent)", "var(--success)"];
-      label.textContent = val ? labels[metCount] : "Enter password";
-      label.style.color = colors[metCount] || "";
+      var labels = ["", "Very weak", "Weak", "Fair", "Strong", "Very strong"];
+      var colors = ["", "var(--error)", "var(--coral)", "var(--warning)", "#a7e9c5", "var(--success)"];
+      $("strength-fill").dataset.level = metCount;
+      $("strength-label").textContent = val ? labels[metCount] : "Enter password";
+      $("strength-label").style.color = val ? colors[metCount] : "";
 
       passwordValid = metCount === 5;
-
-      // Check confirm match
       checkPasswordMatch();
       updateCreateButton();
     });
   }
 
-  // Toggle password visibility for register
-  var regToggleVis = document.getElementById("reg-toggle-vis");
-  if (regToggleVis) {
-    regToggleVis.addEventListener("click", function () {
-      var inp = document.getElementById("reg-password");
-      inp.type = inp.type === "password" ? "text" : "password";
-      regToggleVis.querySelector("svg").style.color =
-        inp.type === "text" ? "var(--accent)" : "";
-    });
-  }
-
-  // Password confirmation
   if (regConfirm) {
     regConfirm.addEventListener("input", function () {
       checkPasswordMatch();
@@ -3048,59 +2915,37 @@
   }
 
   function checkPasswordMatch() {
-    var pass = document.getElementById("reg-password").value;
-    var conf = document.getElementById("reg-confirm").value;
-    var group = document.getElementById("reg-confirm-group");
-    var error = document.getElementById("reg-confirm-error");
-
+    var pass = regPassword.value;
+    var conf = regConfirm.value;
     if (!conf) {
-      group.classList.remove("valid", "invalid");
-      error.textContent = "";
+      setGroupState("reg-confirm-group", "reg-confirm-error", null);
       confirmValid = false;
-      return;
-    }
-
-    if (pass === conf) {
-      group.classList.add("valid");
-      group.classList.remove("invalid");
-      error.textContent = "";
+    } else if (pass === conf) {
+      setGroupState("reg-confirm-group", "reg-confirm-error", "valid");
       confirmValid = true;
     } else {
-      group.classList.add("invalid");
-      group.classList.remove("valid");
-      error.textContent = "Passwords do not match";
+      setGroupState("reg-confirm-group", "reg-confirm-error", "invalid", "Passwords do not match");
       confirmValid = false;
     }
   }
 
   function updateCreateButton() {
-    var btn = document.getElementById("btn-create-account");
-    btn.disabled = !(usernameValid && passwordValid && confirmValid);
+    $("btn-create-account").disabled = !(usernameValid && passwordValid && confirmValid);
   }
 
-  var btnAccountBack = document.getElementById("btn-account-back");
-  if (btnAccountBack) {
-    btnAccountBack.addEventListener("click", function () {
-      goToStep(3);
-    });
-  }
-
-  // Account form submit
-  var accountForm = document.getElementById("account-form");
+  var accountForm = $("account-form");
   if (accountForm) {
     accountForm.addEventListener("submit", function (e) {
       e.preventDefault();
       if (!(usernameValid && passwordValid && confirmValid)) return;
 
-      var btn = document.getElementById("btn-create-account");
+      var btn = $("btn-create-account");
       btn.classList.add("loading");
       btn.disabled = true;
-
-      var username = document.getElementById("reg-username").value.trim();
+      var username = regUsername.value.trim();
 
       setTimeout(function () {
-        // Show success
-        document.getElementById("success-username").textContent = username;
+        $("success-username").textContent = username;
         goToStep("success");
         animateSuccess();
       }, 2000);
@@ -3109,12 +2954,11 @@
 
   function animateSuccess() {
     setTimeout(function () {
-      var circle = document.getElementById("success-circle");
+      var circle = $("success-circle");
       circle.style.transition = "stroke-dashoffset 1s var(--lg-spring)";
       circle.style.strokeDashoffset = "0";
-
       setTimeout(function () {
-        var check = document.getElementById("success-checkmark");
+        var check = $("success-checkmark");
         check.style.transition = "stroke-dashoffset .6s var(--lg-spring)";
         check.style.strokeDashoffset = "0";
       }, 600);
