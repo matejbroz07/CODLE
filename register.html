@@ -39,9 +39,6 @@
   <div class="bg-tint" id="bg-tint"></div>
 </div>
 
-<!-- Floating Particles -->
-<canvas id="particles-canvas" aria-hidden="true"></canvas>
-
 <!-- ===== MAIN AUTH CONTAINER ===== -->
 <div class="auth-wrapper" id="auth-wrapper">
 
@@ -58,7 +55,7 @@
   </div>
 
   <!-- ===== LOGIN FORM ===== -->
-  <div class="auth-card glass-card" id="login-view" style="display:none;">
+  <div class="auth-card" id="login-view" style="display:none;">
     <div class="auth-card-inner">
       <h1 class="auth-title" id="login-title">Welcome back</h1>
       <p class="auth-subtitle">Log into your account</p>
@@ -113,7 +110,7 @@
   </div>
 
   <!-- ===== REGISTRATION WIZARD ===== -->
-  <div class="auth-card glass-card" id="register-view">
+  <div class="auth-card" id="register-view">
     <div class="auth-card-inner">
 
       <!-- Progress Bar -->
@@ -400,8 +397,8 @@
               <polyline points="24,42 35,53 56,30" stroke="url(#success-grad)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="60" stroke-dashoffset="60" id="success-checkmark"/>
               <defs>
                 <linearGradient id="success-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stop-color="#6ee7a0"/>
-                  <stop offset="100%" stop-color="#ffffff"/>
+                  <stop offset="0%" stop-color="var(--accent)"/>
+                  <stop offset="100%" stop-color="var(--accent-2)"/>
                 </linearGradient>
               </defs>
             </svg>

@@ -23,7 +23,7 @@
   --bg: #08090c;
   --lg-blur: 14px;
   --error: #ff6b6b;
-  --success: #6ee7a0;
+  --success: var(--accent);
   --warning: #ffd666;
 }
 
@@ -48,44 +48,29 @@ button { font-family: inherit; }
   position: fixed;
   inset: 0;
   z-index: -2;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 150px;
   overflow: hidden;
 }
 .bg-tint {
   position: absolute;
   inset: 0;
-  z-index: 1;
-  background-color: #f8fafc;
-  opacity: 0.08;
+  z-index: 2;
+  background-color: var(--accent);
+  opacity: 0.03;
   pointer-events: none;
-  transition: background-color 1.5s ease;
+  transition: background-color 1s ease;
 }
+/* Elegant radial glow */
 .bg::before {
   content: "";
   position: absolute;
-  inset: -10%;
-  z-index: 2;
-  background:
-    radial-gradient(38% 32% at 18% 22%, rgba(255,255,255,.18), transparent 60%),
-    radial-gradient(42% 36% at 82% 18%, rgba(255,255,255,.14), transparent 60%),
-    radial-gradient(46% 40% at 70% 82%, rgba(255,126,179,.10), transparent 60%),
-    radial-gradient(40% 34% at 12% 78%, rgba(110,231,160,.08), transparent 60%);
-  filter: blur(60px) saturate(120%);
-  animation: drift 42s ease-in-out infinite alternate;
-}
-.bg::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  background: radial-gradient(120% 90% at 50% 0%, transparent 40%, var(--bg) 92%);
-}
-@keyframes drift {
-  0%   { transform: translate3d(0,0,0) scale(1); }
-  100% { transform: translate3d(-2%,2%,0) scale(1.06); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .bg::before { animation: none; }
+  inset: -20%;
+  z-index: 1;
+  background: radial-gradient(circle at 50% -20%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%);
+  filter: blur(60px);
 }
 
 /* ===== PARTICLES CANVAS ===== */
@@ -296,8 +281,8 @@ button { font-family: inherit; }
 
 /* Input states */
 .form-group.valid .form-input {
-  border-color: rgba(110,231,160,.4);
-  background: rgba(110,231,160,.03);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: color-mix(in srgb, var(--accent) 3%, transparent);
 }
 .form-group.valid .input-icon { color: var(--success); }
 .form-group.invalid .form-input {
@@ -457,7 +442,7 @@ button { font-family: inherit; }
   position: absolute;
   inset: -2px;
   border-radius: inherit;
-  background: linear-gradient(135deg, var(--accent), var(--accent-2), var(--pink));
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
   opacity: 0;
   filter: blur(12px);
   transition: opacity .4s;
@@ -622,7 +607,7 @@ button { font-family: inherit; }
 .wizard-step.completed .wizard-step-dot {
   background: var(--success);
   border-color: transparent;
-  box-shadow: 0 0 0 4px rgba(110,231,160,.1);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 .wizard-step.completed .wizard-step-dot::after {
   content: "✓";
@@ -722,7 +707,6 @@ button { font-family: inherit; }
   justify-content: center;
   margin-bottom: 10px;
   border-radius: 14px;
-  background: rgba(255,255,255,.06);
   transition: transform .4s var(--lg-spring);
 }
 .lang-card:hover .lang-icon-wrap {
@@ -902,8 +886,8 @@ button { font-family: inherit; }
   color: #08090c;
 }
 .quiz-answer.correct {
-  border-color: rgba(110,231,160,.5);
-  background: rgba(110,231,160,.08);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 .quiz-answer.correct .answer-letter {
   background: var(--success);
@@ -935,8 +919,8 @@ button { font-family: inherit; }
   animation: feedbackIn .4s var(--lg-spring) both;
 }
 .quiz-feedback.correct {
-  background: rgba(110,231,160,.08);
-  border: 1px solid rgba(110,231,160,.2);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--success);
 }
 .quiz-feedback.wrong {
@@ -1073,8 +1057,8 @@ button { font-family: inherit; }
   background: rgba(255,255,255,.06);
 }
 .code-digit.correct {
-  border-color: rgba(110,231,160,.5);
-  background: rgba(110,231,160,.06);
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 .code-digit.wrong {
   border-color: rgba(255,107,107,.5);
@@ -1201,7 +1185,7 @@ button { font-family: inherit; }
 .success-check-svg {
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 4px 20px rgba(110,231,160,.3));
+  filter: drop-shadow(0 4px 20px color-mix(in srgb, var(--accent) 30%, transparent));
 }
 .success-title {
   margin: 0 0 8px;
