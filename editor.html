@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <!-- maximum-scale stops iOS from zooming in when the editor gets focus; pinch zoom still works -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, viewport-fit=cover">
+  <title>Codle — Code Editor</title>
+  <meta name="description" content="Write HTML, CSS and JavaScript and see the result live.">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <meta name="theme-color" content="#08090c">
+  <!-- Picks full or lite visual effects before first paint (slow devices) -->
+  <script src="js/perf.js"></script>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/editor.css">
+</head>
+<body class="editor-page">
+
+<div class="bg" aria-hidden="true"></div>
+
+<!-- ===== TOP BAR ===== -->
+<header class="ed-topbar liquid-glass liquid-glass--bar">
+  <div class="ed-topbar-left">
+    <a class="ed-back" href="index.html" aria-label="Back to the learning path">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+    </a>
+    <div class="ed-lesson">
+      <span class="ed-lesson-crumb" id="ed-crumb">Unit 1 · Lesson 3</span>
+      <span class="ed-lesson-title" id="ed-title">Lesson</span>
+    </div>
+  </div>
+
+  <div class="ed-progress" aria-label="Quest progress">
+    <div class="ed-progress-track"><div class="ed-progress-fill" id="ed-progress-fill"></div></div>
+    <span class="ed-progress-label" id="ed-progress-label">0 / 0</span>
+  </div>
+
+  <div class="ed-topbar-right">
+    <span class="ed-xp-pill" title="Reward for finishing this quest">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span id="ed-xp">+0 XP</span>
+    </span>
+    <button class="ed-btn ghost ed-quest-toggle" type="button" id="ed-quest-toggle" aria-controls="ed-quest" aria-expanded="false">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+      Quest
+    </button>
+    <button class="ed-btn ghost round" type="button" id="ed-settings-btn" aria-controls="ed-settings" aria-expanded="false" aria-label="Workspace settings" title="Workspace">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+    </button>
+    <button class="ed-btn run" type="button" id="ed-run" title="Run code">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.85l10.74-6.86a1 1 0 0 0 0-1.7L9.52 4.29A1 1 0 0 0 8 5.14z"/></svg>
+      Run <kbd id="ed-run-kbd">⌘↵</kbd>
+    </button>
+  </div>
+</header>
+
+<!-- ===== MOBILE PANE SWITCHER ===== -->
+<nav class="ed-mobile-tabs" id="ed-mobile-tabs" role="tablist" aria-label="Editor panes">
+  <div class="ed-mobile-indicator glass-pill" id="ed-mobile-indicator"></div>
+  <button type="button" role="tab" data-pane="quest" aria-selected="true">Quest</button>
+  <button type="button" role="tab" data-pane="code" aria-selected="false">Code</button>
+  <button type="button" role="tab" data-pane="output" aria-selected="false">Output</button>
+</nav>
+
+<!-- ===== WORKSPACE ===== -->
+<main class="ed-layout" id="ed-layout" data-pane="quest" data-quest="open">
+
+  <!-- Quest -->
+  <aside class="ed-quest liquid-glass" id="ed-quest" aria-label="Quest">
+    <!-- Slim rail shown when the panel is collapsed (desktop) -->
+    <button class="ed-quest-rail" type="button" id="ed-quest-expand" aria-label="Expand quest panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      <span class="ed-quest-rail-label">Quest</span>
+      <span class="ed-quest-rail-progress" id="ed-rail-progress">0/0</span>
+      <svg class="ed-quest-rail-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+
+    <div class="ed-quest-scroll">
+      <div class="ed-quest-top">
+        <span class="ed-quest-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          Quest
+        </span>
+        <button class="ed-icon-btn ed-quest-collapse" type="button" id="ed-quest-collapse" aria-label="Collapse quest panel" title="Collapse">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+        </button>
+      </div>
+      <h1 class="ed-quest-title" id="quest-title"></h1>
+      <div class="ed-quest-desc" id="quest-desc"></div>
+
+      <h2 class="ed-section-label">Objectives</h2>
+      <ol class="ed-objectives" id="quest-objectives"></ol>
+
+      <details class="ed-hint" id="quest-hint-box">
+        <summary>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>
+          Need a hint?
+          <svg class="ed-hint-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="ed-hint-body" id="quest-hint"></div>
+      </details>
+    </div>
+    <div class="ed-quest-footer">
+      <button class="ed-btn primary block" type="button" id="ed-check">
+        <span class="ed-btn-label">Check solution</span>
+        <span class="ed-spinner" aria-hidden="true"></span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Editor + output, arranged by the chosen layout -->
+  <div class="ed-work" id="ed-work" data-layout="split">
+
+    <section class="ed-editor liquid-glass" id="ed-editor" data-pane-id="code" data-theme="codle" aria-label="Code editor">
+      <div class="ed-panel-head">
+        <div class="ed-file-tabs" id="ed-file-tabs" role="tablist" aria-label="Files">
+          <div class="ed-file-indicator glass-pill" id="ed-file-indicator"></div>
+          <button class="ed-file-tab" type="button" role="tab" data-lang="html" aria-selected="true"><span class="ed-logo-slot" data-logo="html"></span>HTML</button>
+          <button class="ed-file-tab" type="button" role="tab" data-lang="css" aria-selected="false"><span class="ed-logo-slot" data-logo="css"></span>CSS</button>
+          <button class="ed-file-tab" type="button" role="tab" data-lang="js" aria-selected="false"><span class="ed-logo-slot" data-logo="js"></span>JS</button>
+        </div>
+        <div class="ed-panel-actions">
+          <button class="ed-icon-btn" type="button" id="ed-font-dec" aria-label="Smaller text" title="Smaller text">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <button class="ed-icon-btn" type="button" id="ed-font-inc" aria-label="Larger text" title="Larger text">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+          <span class="ed-panel-divider" aria-hidden="true"></span>
+          <button class="ed-icon-btn" type="button" id="ed-reset" aria-label="Reset code to the starting point" title="Reset code">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="ed-code" id="ed-code">
+        <div class="ed-gutter" aria-hidden="true"><div class="ed-gutter-inner" id="ed-gutter"></div></div>
+        <div class="ed-code-area">
+          <div class="ed-active-line" id="ed-active-line" aria-hidden="true"></div>
+          <pre class="ed-highlight" aria-hidden="true"><code id="ed-highlight"></code></pre>
+          <textarea class="ed-input" id="ed-input" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" wrap="off" aria-label="Code"></textarea>
+        </div>
+      </div>
+
+      <div class="ed-statusbar">
+        <span class="ed-status-lang" id="ed-status-lang"></span>
+        <span id="ed-status-pos">Ln 1, Col 1</span>
+        <span class="ed-status-hide-sm" id="ed-status-indent">Spaces: 2</span>
+        <span class="ed-status-hide-sm" id="ed-status-font">14px</span>
+        <label class="ed-switch ed-status-switch">
+          <input type="checkbox" id="ed-autorun" checked>
+          <span class="ed-switch-track" aria-hidden="true"></span>
+          Auto-run
+        </label>
+      </div>
+    </section>
+
+    <div class="ed-splitter" id="ed-splitter" role="separator" aria-orientation="vertical" aria-label="Resize editor and output" tabindex="0"></div>
+
+    <section class="ed-output liquid-glass" id="ed-output" data-pane-id="output" data-console="on" aria-label="Output">
+      <div class="ed-panel-head">
+        <div class="ed-browser-dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="ed-address">
+          <span class="ed-live-dot" id="ed-live-dot"></span>
+          <span>Output</span>
+        </div>
+        <button class="ed-icon-btn" type="button" id="ed-refresh" aria-label="Reload output" title="Reload output">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+      </div>
+
+      <div class="ed-preview-wrap">
+        <iframe class="ed-preview" id="ed-preview" title="Output of your code" sandbox="allow-scripts allow-modals"></iframe>
+      </div>
+
+      <div class="ed-console" id="ed-console">
+        <div class="ed-console-head">
+          <button class="ed-console-toggle" type="button" id="ed-console-toggle" aria-expanded="false" aria-controls="ed-console-body">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+            Console
+            <span class="ed-console-count" id="ed-console-count">0</span>
+            <svg class="ed-console-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <button class="ed-console-clear" type="button" id="ed-console-clear">Clear</button>
+        </div>
+        <div class="ed-console-body" id="ed-console-body" role="log" aria-live="polite"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<!-- ===== WORKSPACE SETTINGS ===== -->
+<div class="ed-settings liquid-glass" id="ed-settings" role="dialog" aria-modal="false" aria-labelledby="ed-settings-title" aria-hidden="true">
+  <div class="ed-settings-head">
+    <h2 id="ed-settings-title">Workspace</h2>
+    <button class="ed-icon-btn" type="button" id="ed-settings-close" aria-label="Close workspace settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <div class="ed-settings-body">
+    <section class="ed-set-section ed-set-wide">
+      <h3>Layout</h3>
+      <div class="ed-layout-options" role="radiogroup" aria-label="Layout">
+        <button type="button" role="radio" data-layout="split" aria-checked="true">
+          <span class="ed-layout-preview split" aria-hidden="true"><i class="e"></i><i class="o"></i></span>
+          Side by side
+        </button>
+        <button type="button" role="radio" data-layout="swap" aria-checked="false">
+          <span class="ed-layout-preview swap" aria-hidden="true"><i class="o"></i><i class="e"></i></span>
+          Output left
+        </button>
+        <button type="button" role="radio" data-layout="stacked" aria-checked="false">
+          <span class="ed-layout-preview stacked" aria-hidden="true"><i class="e"></i><i class="o"></i></span>
+          Stacked
+        </button>
+      </div>
+    </section>
+
+    <section class="ed-set-section">
+      <h3>Panels</h3>
+      <label class="ed-set-row ed-set-desktop">
+        <span>Quest panel<small>Collapse to a slim rail for more room</small></span>
+        <span class="ed-switch"><input type="checkbox" id="set-quest" checked><span class="ed-switch-track" aria-hidden="true"></span></span>
+      </label>
+      <label class="ed-set-row">
+        <span>Console<small>Show console output under the preview</small></span>
+        <span class="ed-switch"><input type="checkbox" id="set-console" checked><span class="ed-switch-track" aria-hidden="true"></span></span>
+      </label>
+    </section>
+
+    <section class="ed-set-section">
+      <h3>Editor</h3>
+      <div class="ed-set-row">
+        <span>Font size</span>
+        <div class="ed-stepper">
+          <button type="button" id="set-font-dec" aria-label="Smaller text">−</button>
+          <output id="set-font-val">14px</output>
+          <button type="button" id="set-font-inc" aria-label="Larger text">+</button>
+        </div>
+      </div>
+      <div class="ed-set-row">
+        <span>Tab size</span>
+        <div class="ed-seg" role="radiogroup" aria-label="Tab size" id="set-tab">
+          <button type="button" role="radio" data-tab="2" aria-checked="true">2</button>
+          <button type="button" role="radio" data-tab="4" aria-checked="false">4</button>
+        </div>
+      </div>
+      <label class="ed-set-row">
+        <span>Word wrap</span>
+        <span class="ed-switch"><input type="checkbox" id="set-wrap"><span class="ed-switch-track" aria-hidden="true"></span></span>
+      </label>
+      <label class="ed-set-row">
+        <span>Line numbers</span>
+        <span class="ed-switch"><input type="checkbox" id="set-lines" checked><span class="ed-switch-track" aria-hidden="true"></span></span>
+      </label>
+      <label class="ed-set-row">
+        <span>Auto-run<small>Refresh the output while you type</small></span>
+        <span class="ed-switch"><input type="checkbox" id="set-autorun" checked><span class="ed-switch-track" aria-hidden="true"></span></span>
+      </label>
+    </section>
+
+    <section class="ed-set-section">
+      <h3>Editor theme</h3>
+      <div class="ed-theme-options" role="radiogroup" aria-label="Editor theme">
+        <button type="button" role="radio" data-theme="codle" aria-checked="true">
+          <span class="ed-theme-swatch codle" aria-hidden="true"><i></i><i></i><i></i></span>Codle
+        </button>
+        <button type="button" role="radio" data-theme="ember" aria-checked="false">
+          <span class="ed-theme-swatch ember" aria-hidden="true"><i></i><i></i><i></i></span>Ember
+        </button>
+        <button type="button" role="radio" data-theme="paper" aria-checked="false">
+          <span class="ed-theme-swatch paper" aria-hidden="true"><i></i><i></i><i></i></span>Paper
+        </button>
+      </div>
+    </section>
+
+    <section class="ed-set-section">
+      <h3>Performance</h3>
+      <div class="ed-set-row">
+        <span>Visual effects<small id="set-effects-note">Full effects</small></span>
+        <div class="ed-seg" role="radiogroup" aria-label="Visual effects" id="set-effects">
+          <button type="button" role="radio" data-effects="auto" aria-checked="true">Auto</button>
+          <button type="button" role="radio" data-effects="full" aria-checked="false">Full</button>
+          <button type="button" role="radio" data-effects="lite" aria-checked="false">Lite</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="ed-settings-foot">
+    <button class="ed-link-btn" type="button" id="set-reset">Restore defaults</button>
+  </div>
+</div>
+
+<div class="ed-scrim" id="ed-scrim" aria-hidden="true"></div>
+<div class="ed-toast" id="ed-toast" role="status" aria-live="polite"></div>
+
+<!-- Quest complete -->
+<div class="ed-modal" id="ed-modal" role="dialog" aria-modal="true" aria-labelledby="ed-modal-title">
+  <div class="ed-modal-card liquid-glass">
+    <div class="ed-modal-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <h3 id="ed-modal-title">Quest complete!</h3>
+    <p class="ed-modal-sub" id="ed-modal-sub">Every objective passed.</p>
+    <div class="ed-modal-reward">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span id="ed-modal-xp">+0 XP</span>
+    </div>
+    <div class="ed-modal-actions">
+      <button class="ed-btn ghost" type="button" id="ed-modal-stay">Keep editing</button>
+      <a class="ed-btn primary" href="index.html" id="ed-modal-next">Continue</a>
+    </div>
+  </div>
+</div>
+
+<script src="js/editor.js"></script>
+</body>
+</html>

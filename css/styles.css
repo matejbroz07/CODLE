@@ -670,3 +670,14 @@
   .milestone.current .milestone-circle .ms-icon { width: 30px; height: 30px; }
   .empty-view { padding-bottom: 120px; min-height: 70vh; }
 }
+
+/* ===== LITE MODE (see base.css) =====
+   Without backdrop blur a translucent circle would let the trail show
+   through, so milestone fills are mixed with the page colour instead. */
+html.lite .milestone-circle { background: #1f2127; }
+html.lite .milestone.completed .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 16%, #17191e); }
+html.lite .milestone.current .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 28%, #17191e); }
+html.lite .milestone.locked .milestone-circle { filter: none; background: #1a1c21; }
+html.lite .milestone:hover .milestone-circle { box-shadow: 0 12px 20px -12px rgba(0,0,0,.7); }
+html.lite .path-section-header { background: linear-gradient(145deg, #262931, #1d1f25); }
+html.lite .view-veil { transition-duration: .15s; }

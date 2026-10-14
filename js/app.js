@@ -11,6 +11,9 @@
   "use strict";
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  // Lite mode (js/perf.js) on slow devices: skip the decorative motion as well.
+  function isLite() { return !!(window.CodlePerf && window.CodlePerf.lite); }
+  function calmMotion() { return reduceMotion || isLite(); }
   var RING_CIRCUMFERENCE = 283; // 2 * PI * 45 (progress-ring viewBox radius)
   var XP_RING_CIRCUMFERENCE = 264; // 2 * PI * 42 (XP ring radius)
   var LEVEL_RING_CIRCUMFERENCE = 289; // 2 * PI * 46 (level ring radius)
@@ -174,6 +177,59 @@
   }
 
   /* ===============================================================
+     1b. STREAK FLAMES — only animate while someone can see them
+         The flames morph SVG paths every frame (SMIL), which keeps the
+         CPU busy even when nothing else moves. Pause them when they are
+         off screen, hidden by the layout, in a background tab, or when
+         lite mode is on.
+  ================================================================*/
+
+  var FLAME_FPS = 24; // a flame reads as alive at film rate; 60 fps cost ~2.5x more CPU
+
+  function setupFlames() {
+    var flames = [$("ui-fire-mobile"), document.querySelector("#ui-fire-desktop svg")].filter(function (el) {
+      return el && el.pauseAnimations && el.setCurrentTime;
+    });
+    if (!flames.length) return;
+    var onScreen = new Map();
+    var timer = null;
+    var startedAt = 0;
+
+    // The SMIL timeline stays paused; a timer seeks it FLAME_FPS times a second.
+    // Each seek is one style/paint pass instead of one per display frame.
+    function step() {
+      var t = (performance.now() - startedAt) / 1000;
+      flames.forEach(function (svg) { if (onScreen.get(svg)) svg.setCurrentTime(t); });
+    }
+
+    function update() {
+      var anyVisible = flames.some(function (svg) { return onScreen.get(svg); });
+      var run = anyVisible && !document.hidden && !isLite() && !reduceMotion;
+      if (run && !timer) {
+        if (!startedAt) startedAt = performance.now();
+        timer = setInterval(step, 1000 / FLAME_FPS);
+      } else if (!run && timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    flames.forEach(function (svg) { onScreen.set(svg, false); svg.pauseAnimations(); });
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) { onScreen.set(en.target, en.isIntersecting); });
+        update();
+      });
+      flames.forEach(function (svg) { io.observe(svg); });
+    } else {
+      flames.forEach(function (svg) { onScreen.set(svg, true); });
+    }
+    document.addEventListener("visibilitychange", update);
+    if (window.CodlePerf) window.CodlePerf.onChange(update);
+    update();
+  }
+
+  /* ===============================================================
      2. LEARNING PATH — DRAW TRAIL + ANIMATE
   ================================================================*/
 
@@ -248,7 +304,7 @@
     var completedEnd = firstLockedIdx >= 0 ? firstLockedIdx + 1 : points.length;
     var segmentPaths = [];
     var segmentLengths = [];
-    var animate = !reduceMotion && !container.dataset.animated;
+    var animate = !calmMotion() && !container.dataset.animated;
     var speedFactor = 1.5; // ms per px
 
     for (var i = 0; i < completedEnd - 1; i++) {
@@ -364,7 +420,16 @@
   }
 
   // Scroll events already arrive at most once per frame, and the check is a few rect reads.
-  window.addEventListener("scroll", updateUnitAccent, { passive: true });
+  // One update per frame at most, however many scroll events arrive.
+  var accentQueued = false;
+  window.addEventListener("scroll", function () {
+    if (accentQueued) return;
+    accentQueued = true;
+    requestAnimationFrame(function () {
+      accentQueued = false;
+      updateUnitAccent();
+    });
+  }, { passive: true });
 
   /* ===============================================================
      4. COURSE SWITCHER
@@ -422,7 +487,7 @@
       if (tr.width === 0) return; // strip is hidden at this breakpoint
       ind.style.width = br.width + "px";
       ind.style.transform = "translateX(" + (br.left - tr.left - inset) + "px)";
-      if (!reduceMotion) {
+      if (!calmMotion()) {
         fill.classList.remove("squash");
         void fill.offsetWidth;
         fill.classList.add("squash");
@@ -495,6 +560,7 @@
 
   // Pointer-tracked specular highlight on the navigation bars
   document.addEventListener("pointermove", function (e) {
+    if (isLite()) return;
     var el = e.target.closest ? e.target.closest(".liquid-glass--bar") : null;
     if (!el) return;
     var r = el.getBoundingClientRect();
@@ -504,7 +570,7 @@
   }, { passive: true });
 
   var rippleHost = $("lg-ripple-host");
-  var RIPPLE_TARGETS = ".milestone:not(.locked) .milestone-circle, .milestone-start-btn, .bottom-nav-item, .navbar-tab, .nav-profile";
+  var RIPPLE_TARGETS = ".milestone:not(.locked) .milestone-circle, .milestone-start-btn, .bottom-nav-item, .navbar-tab, .nav-profile, .game-card:not(.is-soon), .game-back, .icon-btn, .wordle-btn";
 
   function ripple(el, cx, cy) {
     var r = el.getBoundingClientRect();
@@ -526,13 +592,14 @@
 
   if (!reduceMotion) {
     document.addEventListener("pointerdown", function (e) {
+      if (isLite()) return;
       var el = e.target.closest ? e.target.closest(RIPPLE_TARGETS) : null;
       if (el && !el.hasAttribute("disabled")) ripple(el, e.clientX, e.clientY);
     });
   }
 
   function bounce(circle) {
-    if (!circle || reduceMotion) return;
+    if (!circle || calmMotion()) return;
     circle.style.transition = "transform .15s ease-out";
     circle.style.transform = "scale(.88)";
     setTimeout(function () {
@@ -567,6 +634,7 @@
 
   window.addEventListener("load", function () {
     hydrateApp();
+    setupFlames();
     drawAndAnimate();
     updateUnitAccent();
     if (desktopNav) desktopNav.refresh();

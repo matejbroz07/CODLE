@@ -30,8 +30,11 @@
   <meta name="theme-color" content="#08090c">
 
   <!-- Stylesheets -->
+  <!-- Picks full or lite visual effects before first paint (slow devices) -->
+  <script src="js/perf.js"></script>
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/practice.css">
 </head>
 <body>
 
@@ -561,16 +564,159 @@
 
 <!-- ===== PRACTICE VIEW ===== -->
 <div class="page-view" id="view-practice" role="tabpanel" aria-labelledby="tab-practice">
-  <div class="empty-view">
-    <div class="empty-view-icon liquid-glass">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-        <line x1="8" y1="21" x2="16" y2="21"/>
-        <line x1="12" y1="17" x2="12" y2="21"/>
-      </svg>
-    </div>
-    <h2 class="empty-view-title">Practice</h2>
-    <p class="empty-view-sub">Coming soon</p>
+  <div class="practice-shell">
+
+    <!-- Hub: list of minigames -->
+    <section class="practice-hub" id="practice-hub">
+      <header class="practice-head">
+        <h2>Practice</h2>
+        <p>Quick games about the terms and history of programming. No code required.</p>
+      </header>
+      <div class="practice-grid">
+        <button class="game-card liquid-glass" type="button" id="card-wordle" data-game="wordle">
+          <div class="game-card-icon" aria-hidden="true">
+            <span class="c"></span><span></span><span class="p"></span><span class="c"></span>
+          </div>
+          <div class="game-card-body">
+            <h3>Wordle</h3>
+            <p>Guess the 5-letter programming term in 6 tries. A new word every day.</p>
+            <div class="game-card-meta">
+              <span class="game-pill">Daily</span>
+              <span id="wordle-card-status">Not played today</span>
+            </div>
+          </div>
+        </button>
+        <button class="game-card liquid-glass" type="button" id="card-older" data-game="older">
+          <div class="game-card-icon oy-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="9" width="17" height="24" rx="4" fill="rgba(255,255,255,.12)"/><rect x="26" y="15" width="17" height="24" rx="4" fill="#0a84ff"/><path d="M13.5 17v9M10 20.5l3.5-3.5 3.5 3.5" stroke="#fff" stroke-width="2.4"/><path d="M34.5 22v9M31 27.5l3.5 3.5 3.5-3.5" stroke="#fff" stroke-width="2.4"/></svg>
+          </div>
+          <div class="game-card-body">
+            <h3>Older or Younger</h3>
+            <p>Two moments from computing history. Which one came first? Keep the streak going.</p>
+            <div class="game-card-meta">
+              <span class="game-pill">Endless</span>
+              <span id="older-card-status">Best streak: 0</span>
+            </div>
+          </div>
+        </button>
+        <button class="game-card liquid-glass" type="button" id="card-story" data-game="story">
+          <div class="game-card-icon story-icon" aria-hidden="true">
+            <svg viewBox="0 0 48 48" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11c5-2 10-2 15 1v26c-5-3-10-3-15-1z" fill="#ffd60a"/><path d="M39 11c-5-2-10-2-15 1v26c5-3 10-3 15-1z" fill="rgba(255,214,10,.55)"/><path d="M13 18h7M13 23h7M28 18h7M28 23h5" stroke="#3a2e00" stroke-width="2"/></svg>
+          </div>
+          <div class="game-card-body">
+            <h3>Daily Story</h3>
+            <p>One short story from programming history every day, with a question at the end.</p>
+            <div class="game-card-meta">
+              <span class="game-pill">Daily</span>
+              <span id="story-card-status">New story today</span>
+            </div>
+          </div>
+        </button>
+        <div class="game-card is-soon" aria-hidden="true">
+          <p>More games coming soon</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Wordle -->
+    <section class="practice-game" id="game-wordle" hidden aria-label="Wordle">
+      <div class="game-topbar">
+        <button class="game-back liquid-glass" type="button" id="wordle-back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>Practice</span>
+        </button>
+        <div class="game-title">Wordle <span id="wordle-number">#1</span></div>
+        <div class="game-actions">
+          <button class="icon-btn" type="button" id="wordle-hint-btn" aria-label="Show a hint" title="Hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>
+          </button>
+          <button class="icon-btn" type="button" id="wordle-stats-btn" aria-label="Statistics" title="Statistics">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </button>
+          <button class="icon-btn" type="button" id="wordle-help-btn" aria-label="How to play" title="How to play">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="wordle-stage">
+        <div class="wordle-hint" id="wordle-hint" hidden>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg>
+          <div><strong>Hint:</strong> <span id="wordle-hint-text"></span></div>
+        </div>
+        <div class="wordle-board" id="wordle-board" role="grid" aria-label="Guesses"></div>
+        <div class="wordle-keyboard" id="wordle-keyboard" aria-label="On-screen keyboard"></div>
+      </div>
+    </section>
+
+    <!-- Older or Younger -->
+    <section class="practice-game" id="game-older" hidden aria-label="Older or Younger">
+      <div class="game-topbar">
+        <button class="game-back liquid-glass" type="button" data-back>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>Practice</span>
+        </button>
+        <div class="game-title">Older or Younger</div>
+        <div class="oy-scores" aria-live="polite">
+          <span>Streak <b id="oy-score">0</b></span>
+          <span>Best <b id="oy-best">0</b></span>
+        </div>
+      </div>
+
+      <div class="oy-board" id="oy-board">
+        <article class="oy-card" id="oy-a" aria-live="polite"></article>
+        <div class="oy-vs" aria-hidden="true">vs</div>
+        <article class="oy-card is-question" id="oy-b" aria-live="polite"></article>
+      </div>
+
+      <div class="oy-over liquid-glass" id="oy-over" hidden role="dialog" aria-labelledby="oy-over-title">
+        <h3 id="oy-over-title">Streak over</h3>
+        <p class="oy-over-score" id="oy-over-score"></p>
+        <div class="oy-over-facts" id="oy-over-facts"></div>
+        <button class="oy-btn primary" type="button" id="oy-again">Play again</button>
+      </div>
+    </section>
+
+    <!-- Daily Story -->
+    <section class="practice-game" id="game-story" hidden aria-label="Daily Story">
+      <div class="game-topbar">
+        <button class="game-back liquid-glass" type="button" data-back>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          <span>Practice</span>
+        </button>
+        <div class="game-title">Daily Story <span id="story-number">#1</span></div>
+        <div class="story-streak" id="story-streak" title="Days in a row with a correct answer">0 day streak</div>
+      </div>
+
+      <article class="story-card liquid-glass" id="story-card">
+        <div class="story-meta">
+          <span class="story-year" id="story-year"></span>
+          <span class="story-date" id="story-date"></span>
+        </div>
+        <h2 class="story-title" id="story-title"></h2>
+        <p class="story-text" id="story-text"></p>
+        <div class="story-question" id="story-question"></div>
+        <div class="story-options" id="story-options" role="group" aria-labelledby="story-question"></div>
+        <div class="story-result" id="story-result" hidden aria-live="polite">
+          <p class="story-verdict" id="story-verdict"></p>
+          <p class="story-why" id="story-why"></p>
+          <a class="story-source" id="story-source" href="#" target="_blank" rel="noopener noreferrer">Read more about it</a>
+          <div class="story-next"><span>Next story in</span> <b id="story-countdown">00:00:00</b></div>
+        </div>
+      </article>
+    </section>
+
+  </div>
+</div>
+
+<!-- Wordle toast + modal live outside the view so they can float above everything -->
+<div class="wordle-toast" id="wordle-toast" role="status" aria-live="polite"></div>
+<div class="wordle-modal" id="wordle-modal" role="dialog" aria-modal="true" aria-labelledby="wordle-modal-title">
+  <div class="wordle-modal-card liquid-glass" id="wordle-modal-card">
+    <button class="icon-btn wordle-modal-close" type="button" id="wordle-modal-close" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div id="wordle-modal-body"></div>
   </div>
 </div>
 
@@ -633,5 +779,9 @@
 <!-- Application Script -->
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
+<script src="js/wordle-words.js"></script>
+<script src="js/practice.js"></script>
+<script src="js/history-data.js"></script>
+<script src="js/history-games.js"></script>
 </body>
 </html>

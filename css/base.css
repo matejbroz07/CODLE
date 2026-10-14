@@ -178,3 +178,35 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
     transition-duration: .01ms !important;
   }
 }
+
+/* ===== LITE MODE =====
+   <html class="lite"> is set by js/perf.js on weak devices (or by choice).
+   Same layout and colours, minus the effects that cost the most on a slow
+   GPU/CPU: backdrop blur, the blended film grain, masked rims, pointer glare
+   and continuous animations. Glass surfaces become opaque instead. */
+html.lite .bg::after { display: none; }
+
+html.lite .liquid-glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: linear-gradient(145deg, #24272e, #1b1d23);
+  box-shadow: 0 10px 22px -14px rgba(0,0,0,.7);
+}
+html.lite .liquid-glass--bar { background: linear-gradient(145deg, #2a2d35, #202229); }
+html.lite .liquid-glass::before {
+  /* simple 1px rim instead of a masked gradient border */
+  padding: 0;
+  background: none;
+  -webkit-mask: none;
+  mask: none;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+}
+html.lite .liquid-glass::after {
+  background: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+  transition: none;
+}
+html.lite .glass-pill {
+  background: rgba(255,255,255,.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
+}
