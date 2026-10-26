@@ -1,0 +1,9 @@
+# Admin config with the password hash and database login
+admin/config.php
+
+# API config with the database login and the secret
+api/config.php
+
+# Uploaded avatars (personal data); the folder and its .htaccess stay in git
+uploads/avatars/*
+!uploads/avatars/.htaccess

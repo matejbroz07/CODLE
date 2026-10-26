@@ -1,0 +1,18 @@
+# Codle avatars (written by api/lib/profile.php as <user id>-<random>.jpg)
+# Only those JPEGs are served; nothing in this folder runs as code.
+Options -Indexes -ExecCGI
+RemoveHandler .php .phtml .phar .cgi .pl .py
+RemoveType .php .phtml .phar
+<IfModule mod_php.c>
+  php_flag engine off
+</IfModule>
+
+Require all denied
+<FilesMatch "^[0-9]+-[0-9a-f]{12}\.jpg$">
+  Require all granted
+  ForceType image/jpeg
+  <IfModule mod_headers.c>
+    Header set X-Content-Type-Options nosniff
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </IfModule>
+</FilesMatch>

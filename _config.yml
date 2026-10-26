@@ -1,0 +1,4 @@
+# GitHub Pages (Jekyll) serves only static files. The PHP admin and API run in XAMPP / on a PHP host.
+exclude:
+  - admin
+  - api

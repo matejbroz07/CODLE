@@ -1,0 +1,6 @@
+# Codle admin (Apache 2.4 / XAMPP)
+Options -Indexes
+
+<FilesMatch "^(config|config\.sample)\.php$">
+  Require all denied
+</FilesMatch>

@@ -6,7 +6,10 @@
  * Daily Story: one short story per day with a multiple-choice question.
  *   Same story for everyone on a given day (seeded order, like Wordle).
  *
- * Content lives in js/history-data.js. Progress is kept in localStorage.
+ * Online (js/api.js, logged in): cards and today's story come from the API,
+ * runs and answers are saved there (XP, best streak, story streak), and the
+ * right answer to the story is only revealed by the server after answering.
+ * Offline demo: content from js/history-data.js, progress in localStorage.
  */
 (function () {
   "use strict";
@@ -15,6 +18,9 @@
   if (!H || !document.getElementById("game-older")) return;
 
   function $(id) { return document.getElementById(id); }
+  var api = window.CodleApi;
+  var remote = false; // true = the API holds the data (see header)
+  function rewarded(res) { if (res && res.reward && window.CodleApp) window.CodleApp.refreshUser(); }
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   function calm() { return reduceMotion || !!(window.CodlePerf && window.CodlePerf.lite); }
 
@@ -195,7 +201,7 @@
       }
       if (correct) {
         oy.score++;
-        if (oy.score > oy.best) { oy.best = oy.score; save(OY_BEST_KEY, oy.best); }
+        if (oy.score > oy.best) { oy.best = oy.score; if (!remote) save(OY_BEST_KEY, oy.best); }
         $("oy-score").textContent = oy.score;
         $("oy-best").textContent = oy.best;
         setTimeout(function () {
@@ -210,6 +216,14 @@
   }
 
   function showOver() {
+    if (remote) {
+      api.post("history/older", { score: oy.score }).then(function (res) {
+        oy.best = Math.max(oy.best, res.best);
+        $("oy-best").textContent = oy.best;
+        if (res.reward) toastXp(res.reward.xpGained);
+        rewarded(res);
+      }, function () { /* the run still counts locally on this page */ });
+    }
     var newBest = oy.score > 0 && oy.score === oy.best;
     $("oy-over-title").textContent = oy.score === 0 ? "Not this time" : "Streak over";
     $("oy-over-score").innerHTML = "You got <b>" + oy.score + "</b> in a row." + (newBest ? " That's a new best!" : " Best: " + oy.best + ".");
@@ -256,7 +270,83 @@
     }
   }
 
+  /* Online: the server's story of the day (options as {id, text}, answer revealed after picking) */
+  var rs = null;
+
+  function loadStory() {
+    return api.get("history/story").then(function (res) { rs = res; });
+  }
+
+  function renderStoryRemote() {
+    if (!rs.available) {
+      $("story-title").textContent = "No story today";
+      $("story-text").textContent = "Come back tomorrow.";
+      $("story-question").textContent = "";
+      $("story-options").innerHTML = "";
+      $("story-result").hidden = true;
+      return;
+    }
+    var answered = rs.picked !== null;
+    $("story-number").textContent = "#" + rs.number;
+    $("story-year").textContent = rs.year;
+    $("story-date").textContent = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    $("story-title").textContent = rs.title;
+    $("story-text").textContent = rs.text;
+    $("story-question").textContent = rs.question;
+    $("story-options").innerHTML = rs.options.map(function (o, i) {
+      var cls = "story-option";
+      if (answered) {
+        if (o.id === rs.correctId) cls += " is-correct";
+        else if (o.id === rs.picked) cls += " is-wrong";
+        else cls += " is-dim";
+      }
+      return '<button class="' + cls + '" type="button" data-i="' + o.id + '"' + (answered ? " disabled" : "") + ">" +
+        '<span class="story-letter" aria-hidden="true">' + LETTERS[i] + "</span><span>" + esc(o.text) + "</span></button>";
+    }).join("");
+    $("story-streak").textContent = rs.stats.streak + " day streak";
+    $("story-streak").classList.toggle("is-on", rs.stats.streak > 0);
+
+    var result = $("story-result");
+    result.hidden = !answered;
+    if (answered) {
+      var right = rs.picked === rs.correctId;
+      var correct = rs.options.filter(function (o) { return o.id === rs.correctId; })[0];
+      $("story-verdict").textContent = right ? "Correct!" : "Not quite. The answer is: " + (correct ? correct.text : "") + ".";
+      $("story-verdict").className = "story-verdict " + (right ? "is-correct" : "is-wrong");
+      $("story-why").textContent = rs.why;
+      $("story-source").href = rs.source;
+      startCountdown();
+    } else {
+      stopCountdown();
+    }
+  }
+
+  var answering = false;
+  function answerStoryRemote(optionId) {
+    if (answering || rs.picked !== null) return;
+    answering = true;
+    api.post("history/story", { optionId: optionId }).then(function (res) {
+      answering = false;
+      rs = res;
+      renderStoryRemote();
+      if (res.reward) toastXp(res.reward.xpGained);
+      rewarded(res);
+      var el = $("story-result");
+      if (!calm()) el.classList.add("enter");
+      el.scrollIntoView({ block: "nearest", behavior: calm() ? "auto" : "smooth" });
+    }, function (err) {
+      answering = false;
+      if (window.CodleApp) window.CodleApp.toast(err.message);
+      if (err.code === "already_answered") loadStory().then(renderStoryRemote);
+    });
+  }
+
+  function toastXp(xp) {
+    if (xp && window.CodleApp) window.CodleApp.toast("+" + xp + " XP");
+  }
+
   function renderStory() {
+    if (remote) { renderStoryRemote(); return; }
     if (dayNumber(new Date()) !== story.day) initStory();
     var it = story.item, answered = story.state.picked !== null;
     $("story-number").textContent = "#" + (story.day + 1);
@@ -321,7 +411,9 @@
 
   $("story-options").addEventListener("click", function (e) {
     var btn = e.target.closest ? e.target.closest("[data-i]") : null;
-    if (btn && !btn.disabled) answerStory(+btn.dataset.i);
+    if (!btn || btn.disabled) return;
+    if (remote) answerStoryRemote(+btn.dataset.i);
+    else answerStory(+btn.dataset.i);
   });
 
   var countdownTimer = null;
@@ -333,7 +425,10 @@
     var now = new Date();
     var next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
     $("story-countdown").textContent = fmt(next - now);
-    if (dayNumber(now) !== story.day && visible("story")) { initStory(); renderStory(); }
+    if (dayNumber(now) !== story.day && visible("story")) {
+      if (remote) { story.day = dayNumber(now); loadStory().then(renderStoryRemote); }
+      else { initStory(); renderStory(); }
+    }
   }
   function startCountdown() {
     tickCountdown();
@@ -350,9 +445,16 @@
 
   function updateHubCards() {
     $("older-card-status").textContent = "Best streak: " + oy.best;
-    if (dayNumber(new Date()) !== story.day) initStory();
     var el = $("story-card-status");
     el.className = "";
+    if (remote) {
+      if (!rs || !rs.available) el.textContent = "No story today";
+      else if (rs.picked === null) el.textContent = "New story today";
+      else if (rs.picked === rs.correctId) { el.textContent = "Answered correctly today"; el.className = "is-done"; }
+      else { el.textContent = "Answered today"; el.className = "is-lost"; }
+      return;
+    }
+    if (dayNumber(new Date()) !== story.day) initStory();
     if (story.state.picked === null) el.textContent = "New story today";
     else if (story.state.picked === story.item.answer) { el.textContent = "Answered correctly today"; el.className = "is-done"; }
     else { el.textContent = "Answered today"; el.className = "is-lost"; }
@@ -367,16 +469,22 @@
       }
       if (e.key === "ArrowLeft" || e.key === "ArrowUp") { e.preventDefault(); guess("older"); }
       else if (e.key === "ArrowRight" || e.key === "ArrowDown") { e.preventDefault(); guess("younger"); }
-    } else if (visible("story") && story.state.picked === null) {
+    } else if (visible("story") && (remote ? rs && rs.available && rs.picked === null : story.state.picked === null)) {
       var i = ["a", "b", "c", "d"].indexOf(e.key.toLowerCase());
       if (i < 0) i = ["1", "2", "3", "4"].indexOf(e.key);
-      if (i >= 0 && i < story.options.length) answerStory(story.options[i]);
+      if (remote) { if (i >= 0 && i < rs.options.length) answerStoryRemote(rs.options[i].id); }
+      else if (i >= 0 && i < story.options.length) answerStory(story.options[i]);
     }
   });
 
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) return;
     if (dayNumber(new Date()) !== story.day) {
+      if (remote) {
+        story.day = dayNumber(new Date());
+        loadStory().then(function () { if (visible("story")) renderStory(); updateHubCards(); });
+        return;
+      }
       initStory();
       if (visible("story")) renderStory();
       updateHubCards();
@@ -386,4 +494,15 @@
   initStory();
   updateHubCards();
   $("oy-best").textContent = oy.best;
+
+  (api ? api.ready : Promise.resolve({ online: false })).then(function (s) {
+    if (!s.online || !s.user) return;
+    Promise.all([api.get("history/cards"), loadStory()]).then(function (res) {
+      if (res[0].cards.length > 1) H.cards = res[0].cards;
+      oy.best = res[0].best;
+      remote = true;
+      updateHubCards();
+      $("oy-best").textContent = oy.best;
+    }, function () { /* keep the offline content */ });
+  });
 })();

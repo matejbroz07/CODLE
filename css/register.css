@@ -641,3 +641,7 @@ html { scroll-behavior: smooth; }
   .code-digit { width: 38px; height: 46px; font-size: 18px; border-radius: 10px; }
   .level-meter-labels { font-size: 9px; gap: 2px; }
 }
+
+/* Password reset swaps the login form for its own; these keep the swapped-out parts hidden */
+#reset-form[hidden], .auth-divider[hidden], .social-buttons[hidden] { display: none; }
+#reset-back { margin: 14px auto 0; display: block; }

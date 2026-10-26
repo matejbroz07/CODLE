@@ -4,7 +4,8 @@
 --  Engine InnoDB, charset utf8mb4.
 --
 --  Areas
---    1. Accounts      users, oauth_accounts, email_verifications, sessions, user_settings
+--    1. Accounts      users, username_history, oauth_accounts, email_verifications, sessions,
+--                     user_settings, auth_throttle
 --    2. Content       courses, units, lessons, quests, quest_files, quest_objectives,
 --                     questions, question_answers, badges
 --    3. Progress      enrollments, placement_attempts, placement_answers, lesson_progress,
@@ -45,6 +46,9 @@ CREATE TABLE users (
   role              ENUM('learner','admin') NOT NULL DEFAULT 'learner',
   timezone          VARCHAR(64)     NOT NULL DEFAULT 'Europe/Prague',
   daily_goal_xp     SMALLINT UNSIGNED NOT NULL DEFAULT 200,
+  bio               VARCHAR(300)    NULL,                     -- shown on the profile, plain text
+  avatar_file       VARCHAR(64)     NULL,                     -- file name in uploads/avatars/; NULL = gradient from the username
+  profile_public    TINYINT(1)      NOT NULL DEFAULT 1,       -- 0 = other learners see only name, avatar and level
 
   -- Cached counters (rebuildable from xp_events / daily_activity)
   xp_total          INT UNSIGNED    NOT NULL DEFAULT 0,
@@ -55,6 +59,8 @@ CREATE TABLE users (
   created_at        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   last_login_at     DATETIME        NULL,
+  username_changed_at DATETIME      NULL,                     -- the profile allows one change per cooldown period
+  password_changed_at DATETIME      NULL,
 
   PRIMARY KEY (id),
   UNIQUE KEY uq_users_username (username),
@@ -62,6 +68,20 @@ CREATE TABLE users (
   KEY ix_users_xp (xp_total),
   CONSTRAINT ck_users_username CHECK (username REGEXP '^[A-Za-z0-9_]{3,20}$'),
   CONSTRAINT ck_users_goal CHECK (daily_goal_xp BETWEEN 10 AND 2000)
+) ENGINE=InnoDB;
+
+-- Earlier usernames. A released name stays reserved for its old owner for a while,
+-- so nobody can take it over and pose as them.
+CREATE TABLE username_history (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  user_id       BIGINT UNSIGNED NOT NULL,
+  old_username  VARCHAR(20)     NOT NULL,
+  new_username  VARCHAR(20)     NOT NULL,
+  changed_at    DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_uh_user (user_id, changed_at),
+  KEY ix_uh_old (old_username, changed_at),
+  CONSTRAINT fk_uh_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- "Continue with Google / GitHub"
@@ -107,6 +127,17 @@ CREATE TABLE sessions (
   KEY ix_sessions_user (user_id),
   KEY ix_sessions_expires (expires_at),
   CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Rate limits for login, verification codes and password reset.
+-- Keyed by a hash of the e-mail (or another key), never by IP address.
+CREATE TABLE auth_throttle (
+  bucket        VARCHAR(32)       NOT NULL,                  -- login, send_code, verify_code …
+  key_hash      CHAR(64)          NOT NULL,                  -- SHA-256 of the key + server secret
+  hits          SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  window_start  DATETIME          NOT NULL,
+  PRIMARY KEY (bucket, key_hash),
+  KEY ix_throttle_window (window_start)
 ) ENGINE=InnoDB;
 
 -- Code editor workspace + performance preferences (one row per user, shared by all lessons)
@@ -457,7 +488,7 @@ CREATE TABLE history_story_options (
   CONSTRAINT fk_story_option_story FOREIGN KEY (story_id) REFERENCES history_stories (id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- One answer per learner per story; drives the "day streak"
+-- One answer per learner per day; drives the "day streak"
 CREATE TABLE history_story_answers (
   user_id      BIGINT UNSIGNED   NOT NULL,
   story_id     SMALLINT UNSIGNED NOT NULL,
@@ -465,8 +496,8 @@ CREATE TABLE history_story_answers (
   is_correct   TINYINT(1)        NOT NULL,
   local_day    DATE              NOT NULL,
   answered_at  DATETIME          NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (user_id, story_id),
-  KEY ix_story_answers_day (user_id, local_day),
+  PRIMARY KEY (user_id, local_day),                            -- stories rotate, so one answer per day
+  KEY ix_story_answers_story (story_id),
   CONSTRAINT fk_sa_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
   CONSTRAINT fk_sa_story FOREIGN KEY (story_id) REFERENCES history_stories (id) ON DELETE CASCADE,
   CONSTRAINT fk_sa_option FOREIGN KEY (option_id) REFERENCES history_story_options (id) ON DELETE CASCADE

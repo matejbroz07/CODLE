@@ -6,12 +6,17 @@
  * tab size, word wrap, line numbers, theme); those preferences are shared
  * by every lesson, while code and progress are saved per lesson.
  *
- * Front end only: the quest below is sample content. Objective checks run
- * inside the sandboxed preview iframe and report back with postMessage, so
- * the preview never needs same-origin access to this page.
+ * editor.html?lesson=ID with the API (js/api.js) loads that lesson's quest
+ * from the database, autosaves the code to the server and completes the
+ * lesson (XP) once every objective passes. Without a lesson id or without the
+ * API the sample quest below runs, saved in localStorage only.
+ *
+ * Objective checks run inside the sandboxed preview iframe and report back
+ * with postMessage, so the preview never needs same-origin access to this page.
  */
 
-(function () {
+/** Builds the editor. `lesson` is the API's GET lessons/{id} answer, or null for the sample quest. */
+function codleEditor(lesson) {
   "use strict";
 
   function $(id) { return document.getElementById(id); }
@@ -40,10 +45,15 @@
   document.querySelectorAll("[data-logo]").forEach(function (el) { el.innerHTML = LOGOS[el.dataset.logo]; });
 
   /* ===============================================================
-     2. QUEST (sample content — will come from the lesson data later)
+     2. QUEST — from the lesson (online) or the sample below
+     An objective's check is a function (sample) or the body of
+     function (doc) { … } as a string (database, quest_objectives.check_js).
   ================================================================*/
 
-  var QUEST = {
+  var api = window.CodleApi;
+  var remote = !!lesson;
+
+  var SAMPLE_QUEST = {
     id: "u1-l3-profile-card",
     crumb: "Unit 1 · Lesson 3",
     title: "Build a profile card",
@@ -158,8 +168,20 @@
     }
   };
 
+  var QUEST = remote ? {
+    id: lesson.quest.id,
+    crumb: lesson.lesson.crumb,
+    title: lesson.quest.title,
+    xp: lesson.lesson.xp,
+    descHtml: lesson.quest.descHtml,
+    objectives: lesson.quest.objectives,
+    starter: lesson.quest.starter
+  } : SAMPLE_QUEST;
+
   /* ===============================================================
      3. STATE + STORAGE
+     Online the server keeps the code (quest_saves) and the workspace
+     (user_settings); offline both live in localStorage.
   ================================================================*/
 
   var LESSON_KEY = "codle.editor." + QUEST.id;
@@ -176,7 +198,7 @@
   }
 
   // Lesson state: code + objective results
-  var saved = loadJSON(LESSON_KEY) || {};
+  var saved = (remote ? lesson.save : loadJSON(LESSON_KEY)) || {};
   var files = {
     html: saved.files && typeof saved.files.html === "string" ? saved.files.html : QUEST.starter.html,
     css:  saved.files && typeof saved.files.css  === "string" ? saved.files.css  : QUEST.starter.css,
@@ -185,13 +207,29 @@
   var done = QUEST.objectives.map(function (_, i) { return !!(saved.done && saved.done[i]); });
 
   var saveTimer = null;
+  var unsaved = false;     // online: code changed since the last save reached the server
+  function lessonPath(action) { return "lessons/" + lesson.lesson.id + "/" + action; }
+  function payload() { return { html: files.html, css: files.css, js: files.js, done: done }; }
+
   function persist() {
     clearTimeout(saveTimer);
-    saveJSON(LESSON_KEY, { files: files, done: done });
+    if (!remote) { saveJSON(LESSON_KEY, { files: files, done: done }); return; }
+    unsaved = false;
+    api.put(lessonPath("save"), payload()).catch(function (err) {
+      unsaved = true;
+      if (err.status === 401) toast("You were logged out. Log in again to keep your work.", 4000);
+    });
   }
   function persistSoon() {
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(persist, 400);
+    unsaved = true;
+    saveTimer = setTimeout(persist, remote ? 1500 : 400);
+  }
+  // Leaving the page: send what is not saved yet (keepalive lets the request outlive the page).
+  if (remote) {
+    window.addEventListener("pagehide", function () {
+      if (unsaved) api.put(lessonPath("save"), payload(), { keepalive: true });
+    });
   }
 
   // Workspace preferences
@@ -211,8 +249,14 @@
     ["quest", "console", "wrap", "lines", "autorun"].forEach(function (k) { o[k] = !!o[k]; });
     return o;
   }
-  var ws = sanitize(loadJSON(WS_KEY));
-  function saveWs() { saveJSON(WS_KEY, ws); }
+  var ws = sanitize(remote ? lesson.settings : loadJSON(WS_KEY));
+  var wsTimer = null;
+  function saveWs() {
+    saveJSON(WS_KEY, ws);
+    if (!remote) return;
+    clearTimeout(wsTimer);
+    wsTimer = setTimeout(function () { api.put("me/settings", ws).catch(function () { /* kept locally */ }); }, 800);
+  }
 
   var lang = "html";
   var viewState = { html: null, css: null, js: null }; // caret + scroll per tab
@@ -584,6 +628,7 @@
   // requests with the objective results.
   function prelude() {
     var runId = window.__CODLE_RUN__;
+    var logs = window.__codleLogs = []; // what console.log printed; checks can read doc.defaultView.__codleLogs
     var send = function (type, args) {
       try { parent.postMessage({ __codle: 1, run: runId, type: type, args: args }, "*"); } catch (e) { /* ignore */ }
     };
@@ -595,7 +640,9 @@
     ["log", "info", "warn", "error"].forEach(function (m) {
       var orig = console[m];
       console[m] = function () {
-        send(m === "info" ? "log" : m, Array.prototype.map.call(arguments, fmt));
+        var args = Array.prototype.map.call(arguments, fmt);
+        if (m === "log" || m === "info") logs.push(args.join(" "));
+        send(m === "info" ? "log" : m, args);
         if (orig) orig.apply(console, arguments);
       };
     });
@@ -603,15 +650,19 @@
     window.addEventListener("load", function () { send("ready", []); });
     window.addEventListener("message", function (e) {
       if (!e.data || e.data.__codle !== "check") return;
-      var results = window.__CODLE_CHECKS__.map(function (fn) {
-        try { return !!fn(document); } catch (err) { return false; }
+      var results = window.__CODLE_CHECKS__.map(function (src) {
+        try { return !!new Function("doc", src)(document); } catch (err) { return false; }
       });
       send("check", results);
     });
   }
 
+  // Every check as a function body, compiled one by one in the iframe so one broken check fails alone.
+  var CHECK_SRC = QUEST.objectives.map(function (o) {
+    return typeof o.check === "function" ? "return (" + o.check.toString() + ")(doc);" : String(o.check);
+  });
   var PRELUDE_SRC =
-    "window.__CODLE_CHECKS__=[" + QUEST.objectives.map(function (o) { return "(" + o.check.toString() + ")"; }).join(",") + "];" +
+    "window.__CODLE_CHECKS__=" + JSON.stringify(CHECK_SRC).replace(/</g, "\\u003c") + ";" +
     "(" + prelude.toString() + ")();";
 
   var runId = 0; // every run gets an id so messages from replaced documents are ignored
@@ -776,12 +827,22 @@
   function applyResults(results) {
     done = QUEST.objectives.map(function (_, i) { return !!results[i]; });
     renderProgress();
-    persist();
     var n = done.filter(Boolean).length;
-    if (n === done.length) {
-      setTimeout(openModal, 350);
-      return;
+    if (remote) {
+      // The check is the attempt: the server records it and completes the lesson when all pass.
+      clearTimeout(saveTimer);
+      unsaved = false;
+      api.post(lessonPath("check"), payload()).then(function (res) {
+        if (res.completed) setTimeout(function () { openModal(res); }, 350);
+      }, function (err) {
+        unsaved = true;
+        toast(err.status === 401 ? "You were logged out. Log in again to save your progress." : "Couldn't save your result: " + err.message, 3500);
+      });
+    } else {
+      persist();
+      if (n === done.length) setTimeout(openModal, 350);
     }
+    if (n === done.length) return;
     objectiveList.querySelectorAll(".ed-objective").forEach(function (li, i) {
       if (done[i]) return;
       li.classList.remove("failed");
@@ -1043,7 +1104,23 @@
   }
 
   var modal = $("ed-modal");
-  function openModal() {
+  /** `res` is the API's check answer (online): XP actually earned and the next lesson. */
+  function openModal(res) {
+    if (res) {
+      var gained = res.reward ? res.reward.xpGained : 0;
+      $("ed-modal-xp").textContent = "+" + gained + " XP";
+      $("ed-modal-sub").textContent = res.firstCompletion
+        ? "Every objective passed." + (res.badges && res.badges.length ? " New badge: " + res.badges.join(", ") + "!" : "")
+        : "Every objective passed. You already earned the XP for this lesson.";
+      var next = $("ed-modal-next");
+      if (res.next && res.next.playable) {
+        next.href = "editor.html?lesson=" + res.next.id;
+        next.textContent = "Next: " + res.next.title;
+      } else {
+        next.href = "index.html";
+        next.textContent = "Back to the path";
+      }
+    }
     modal.classList.add("open");
     $("ed-modal-next").focus();
   }
@@ -1121,4 +1198,28 @@
     requestAnimationFrame(function () { document.body.classList.add("ed-ready"); });
   });
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { moveFileIndicator(); fitWrap(); });
+}
+
+/* Loader: a lesson from the API when the URL names one, otherwise the sample quest. */
+(function () {
+  "use strict";
+  var match = /[?&]lesson=(\d+)/.exec(location.search);
+  var api = window.CodleApi;
+  if (!match || !api) { codleEditor(null); return; }
+
+  function giveUp(message) {
+    var el = document.getElementById("ed-toast");
+    el.textContent = message;
+    el.classList.add("show");
+    setTimeout(function () { window.location.replace("index.html"); }, 2500);
+  }
+
+  api.ready.then(function (s) {
+    if (!s.online) { codleEditor(null); return; } // static demo: sample quest
+    if (!s.user) { window.location.replace("register.html"); return; }
+    api.get("lessons/" + match[1]).then(codleEditor, function (err) {
+      giveUp(err.code === "lesson_locked" ? "This lesson is still locked." :
+        err.code === "no_content" ? "This lesson isn't ready yet." : "Couldn't open the lesson: " + err.message);
+    });
+  });
 })();

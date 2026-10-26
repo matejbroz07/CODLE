@@ -1,0 +1,11 @@
+# Codle API (Apache 2.4 / XAMPP)
+Options -Indexes
+
+<FilesMatch "^(config|config\.sample)\.php$">
+  Require all denied
+</FilesMatch>
+
+RewriteEngine On
+RewriteRule ^(lib|routes|tools)(/|$) - [F,L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]

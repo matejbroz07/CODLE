@@ -2,9 +2,15 @@
  * Codle — Practice
  *
  * Minigame hub plus the first game: Wordle. One 5-letter programming term
- * per day, six guesses. The word is the same for everyone on a given day
- * (seeded order over js/wordle-words.js, indexed by days since launch).
- * Progress and lifetime stats live in localStorage.
+ * per day, six guesses.
+ *
+ * Online (js/api.js, logged in): the server holds the schedule and the answer.
+ * Each guess is sent to api/wordle/guess and only the colours come back, so
+ * the word is unknown to the browser until the game is over. Stats and XP live
+ * in the database.
+ * Offline demo: the word is the same for everyone on a given day (seeded order
+ * over js/wordle-words.js, indexed by days since launch), progress and
+ * lifetime stats live in localStorage.
  */
 
 (function () {
@@ -87,6 +93,8 @@
   ================================================================*/
 
   var today, day, puzzle, state, stats;
+  var remote = false;        // true = the API runs the game (see header)
+  var api = window.CodleApi;
   var current = "";          // letters typed into the active row
   var busy = false;          // true while a row is flipping
   var modalKind = null;      // "result" | "stats" | "help" | null
@@ -110,7 +118,34 @@
     busy = false;
   }
 
-  function answer() { return puzzle.word; }
+  function answer() { return remote ? state.answer : puzzle.word; }
+
+  /** Colours of guess i: from the server online, computed here offline. */
+  function resultOf(i) {
+    return remote ? state.results[i] : evaluate(state.guesses[i], answer());
+  }
+
+  /** Takes over a state object from the API (GET wordle, POST wordle/guess|hint). */
+  function applyRemote(res) {
+    today = new Date();
+    day = res.available ? res.number - 1 : dayNumber(today);
+    state = {
+      dateKey: res.date || dateKey(today),
+      available: res.available,
+      guesses: res.guesses || [],
+      results: res.results || [],
+      status: res.available ? res.status : "unavailable",
+      hintUsed: !!res.hintUsed,
+      hint: res.hint,
+      answer: res.answer
+    };
+    puzzle = { word: res.answer, hint: res.hint };
+    stats = res.stats;
+  }
+
+  function loadRemote() {
+    return api.get("wordle").then(applyRemote);
+  }
 
   /* ===============================================================
      4. BOARD + KEYBOARD
@@ -190,8 +225,8 @@
 
   function paintKeyboard() {
     var best = {};
-    state.guesses.forEach(function (g) {
-      var res = evaluate(g, answer());
+    state.guesses.forEach(function (g, i) {
+      var res = resultOf(i);
       for (var c = 0; c < WORD_LEN; c++) {
         var ch = g[c];
         if (!best[ch] || RANK[res[c]] > RANK[best[ch]]) best[ch] = res[c];
@@ -205,7 +240,7 @@
   }
 
   function renderAll() {
-    state.guesses.forEach(function (g, i) { paintRow(i, g, evaluate(g, answer())); });
+    state.guesses.forEach(function (g, i) { paintRow(i, g, resultOf(i)); });
     for (var i = state.guesses.length; i < MAX_GUESSES; i++) paintRow(i, "", null);
     paintCurrentRow();
     paintKeyboard();
@@ -276,6 +311,7 @@
       return;
     }
     var guess = current;
+    if (remote) { submitRemote(rowIdx, guess); return; }
     var result = evaluate(guess, answer());
     state.guesses.push(guess);
     if (guess === answer()) state.status = "won";
@@ -291,6 +327,28 @@
       if (state.status === "playing") return;
       renderHint(); // the bulb is no longer useful once the game is over
       finishGame(rowIdx);
+    });
+  }
+
+  function submitRemote(rowIdx, guess) {
+    busy = true;
+    api.post("wordle/guess", { guess: guess }).then(function (res) {
+      applyRemote(res);
+      current = "";
+      revealRow(rowIdx, guess, res.result, function () {
+        busy = false;
+        paintKeyboard();
+        updateCardStatus();
+        if (res.reward && window.CodleApp) window.CodleApp.refreshUser();
+        if (state.status === "playing") return;
+        renderHint();
+        finishGame(rowIdx);
+      });
+    }, function (err) {
+      busy = false;
+      toast(err.message, 2200);
+      shakeRow(rowIdx);
+      if (err.code === "game_over") loadRemote().then(renderAll);
     });
   }
 
@@ -318,17 +376,19 @@
     var won = state.status === "won";
     var n = state.guesses.length;
 
-    stats.played += 1;
-    if (won) {
-      stats.won += 1;
-      stats.streak = stats.lastDay === day - 1 ? stats.streak + 1 : 1;
-      stats.maxStreak = Math.max(stats.maxStreak, stats.streak);
-      stats.dist[n - 1] += 1;
-    } else {
-      stats.streak = 0;
+    if (!remote) { // online the server already counted the game
+      stats.played += 1;
+      if (won) {
+        stats.won += 1;
+        stats.streak = stats.lastDay === day - 1 ? stats.streak + 1 : 1;
+        stats.maxStreak = Math.max(stats.maxStreak, stats.streak);
+        stats.dist[n - 1] += 1;
+      } else {
+        stats.streak = 0;
+      }
+      stats.lastDay = day;
+      save(STATS_KEY, stats);
     }
-    stats.lastDay = day;
-    save(STATS_KEY, stats);
 
     if (won) {
       toast(WIN_WORDS[n - 1] || "Nice", 1600);
@@ -353,13 +413,17 @@
     if (!box || !btn) return;
     var show = state.hintUsed;
     box.hidden = !show;
-    if (show) $("wordle-hint-text").textContent = puzzle.hint;
+    if (show) $("wordle-hint-text").textContent = puzzle.hint || "";
     btn.classList.toggle("is-on", show);
     btn.disabled = state.status !== "playing" || show;
   }
 
   function useHint() {
     if (state.status !== "playing" || state.hintUsed) return;
+    if (remote) {
+      api.post("wordle/hint").then(function (res) { applyRemote(res); renderHint(); }, function (err) { toast(err.message, 2200); });
+      return;
+    }
     state.hintUsed = true;
     save(STATE_KEY, state);
     renderHint();
@@ -516,8 +580,8 @@
 
   function shareText() {
     var won = state.status === "won";
-    var lines = state.guesses.map(function (g) {
-      return evaluate(g, answer()).map(function (r) {
+    var lines = state.guesses.map(function (g, i) {
+      return resultOf(i).map(function (r) {
         return r === "correct" ? "🟩" : r === "present" ? "🟨" : "⬛";
       }).join("");
     });
@@ -567,6 +631,7 @@
 
   function showGame() {
     if (!hub || !game) return;
+    if (remote && !state.available) { toast("There is no word today", 2000); return; }
     checkDayRollover();
     hub.hidden = true;
     game.hidden = false;
@@ -588,7 +653,9 @@
     var el = $("wordle-card-status");
     if (!el) return;
     el.className = "";
-    if (state.status === "won") {
+    if (state.status === "unavailable") {
+      el.textContent = "No word today";
+    } else if (state.status === "won") {
       el.textContent = "Solved in " + state.guesses.length + "/" + MAX_GUESSES + " today";
       el.className = "is-done";
     } else if (state.status === "lost") {
@@ -606,9 +673,13 @@
     if (dayNumber(new Date()) === day) return;
     var wasOpen = gameVisible();
     closeModal();
+    function done() {
+      renderAll();
+      if (wasOpen) toast("A new word is ready", 1800);
+    }
+    if (remote) { loadRemote().then(done); return; }
     initPuzzle();
-    renderAll();
-    if (wasOpen) toast("A new word is ready", 1800);
+    done();
   }
 
   /* ===============================================================
@@ -664,10 +735,23 @@
     setInterval(checkDayRollover, 60 * 1000);
   }
 
-  if (!ORDER.length || !board || !keyboard) return;
-  initPuzzle();
-  buildBoard();
-  buildKeyboard();
-  bind();
-  renderAll();
+  if (!board || !keyboard) return;
+
+  function start() {
+    buildBoard();
+    buildKeyboard();
+    bind();
+    renderAll();
+  }
+
+  (api ? api.ready : Promise.resolve({ online: false })).then(function (s) {
+    if (s.online && s.user) {
+      remote = true;
+      loadRemote().then(start, function () { remote = false; if (ORDER.length) { initPuzzle(); start(); } });
+      return;
+    }
+    if (!ORDER.length) return;
+    initPuzzle();
+    start();
+  });
 })();

@@ -681,3 +681,22 @@ html.lite .milestone.locked .milestone-circle { filter: none; background: #1a1c2
 html.lite .milestone:hover .milestone-circle { box-shadow: 0 12px 20px -12px rgba(0,0,0,.7); }
 html.lite .path-section-header { background: linear-gradient(145deg, #262931, #1d1f25); }
 html.lite .view-veil { transition-duration: .15s; }
+
+/* ===== LEADERBOARD + PROFILE TABS (filled in by app.js when the API is on) ===== */
+.practice-shell.online-view { max-width: 720px; animation: practice-in .45s var(--lg-spring) both; }
+.online-view .practice-head p { overflow-wrap: anywhere; }
+
+.lb-board { padding: 10px 22px; }
+.lb-board .leaderboard-item { padding: 12px 0; }
+.lb-board .leaderboard-item .lb-name { font-size: 15px; }
+.lb-board .leaderboard-item .lb-xp { font-size: 14px; }
+.lb-board .leaderboard-item .lb-avatar { width: 34px; height: 34px; }
+.lb-gap { text-align: center; color: var(--ink-faint); padding: 2px 0; }
+.lb-empty { margin: 14px 0; color: var(--ink-dim); font-size: 15px; }
+
+/* Profile tab: css/profile.css */
+.stat-card[hidden] { display: none; }
+
+@media (max-width: 768px) {
+  .practice-shell.online-view { padding-bottom: 120px; }
+}

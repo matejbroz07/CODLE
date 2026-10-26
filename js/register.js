@@ -3,12 +3,16 @@
  * Application script
  *
  * Features:
- * - Login / Registration toggle
+ * - Login / Registration toggle, password reset with an e-mailed code
  * - Multi-step registration wizard
  * - Adaptive placement quiz (10 questions, difficulty follows each answer)
- * - Email verification with a simulated 6-digit code
- * - Username availability checking (simulated)
+ * - Email verification with a 6-digit code
+ * - Username availability checking
  * - Password strength meter with rule validation
+ *
+ * With the API (js/api.js) everything goes to the server: questions come from
+ * the database and the account is created there. Without it (static hosting)
+ * the page runs as a demo: the question bank below, code 111111, no account.
  */
 
 (function () {
@@ -2229,7 +2233,7 @@
     ]
 };
 
-  /* Usernames that already exist (simulated) */
+  /* Usernames that already exist (offline demo only; online the server checks) */
   var RESERVED_USERNAMES = [
     "admin", "codle", "codemaster", "user", "test", "root", "system",
     "moderator", "developer", "python", "javascript", "webdev", "hacker",
@@ -2238,7 +2242,7 @@
   /* Terms that may not appear anywhere in a username (matched as a substring) */
   var BLOCKED_USERNAME_TERMS = ["nigger"];
 
-  /* Simulated verification code */
+  /* Verification code of the offline demo */
   var VERIFICATION_CODE = "111111"; // Hardcoded per user request
   var QUIZ_LENGTH = 10;
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -2246,6 +2250,27 @@
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function $(id) { return document.getElementById(id); }
+
+  /* Online = the API answered. A logged-in visitor goes straight to the app. */
+  var online = false;
+  var api = window.CodleApi;
+  if (api) {
+    api.ready.then(function (s) {
+      online = s.online;
+      if (s.online && s.user) window.location.replace("index.html");
+    });
+  }
+
+  /** Shows an API error under a field; falls back to a generic message. */
+  function apiMessage(err, fallback) {
+    if (err && err.code === "offline") return "No connection to the server. Try again.";
+    return (err && err.message) || fallback || "Something went wrong. Try again.";
+  }
+
+  function setLoading(btn, on) {
+    btn.classList.toggle("loading", on);
+    btn.disabled = on;
+  }
 
   function setGroupState(groupId, errorId, state, message) {
     var group = $(groupId);
@@ -2321,14 +2346,21 @@
         setGroupState("login-password-group", "login-password-error", "valid");
       }
 
-      if (valid) {
-        var btn = $("login-submit");
-        btn.classList.add("loading");
-        btn.disabled = true;
+      if (!valid) return;
+      var btn = $("login-submit");
+      setLoading(btn, true);
+      if (!online) {
         setTimeout(function () {
-          window.location.href = "index.html"; // simulated login
+          window.location.href = "index.html"; // offline demo: no accounts
         }, 1500);
+        return;
       }
+      api.post("auth/login", { login: email, password: pass }).then(function () {
+        window.location.href = "index.html";
+      }, function (err) {
+        setLoading(btn, false);
+        setGroupState("login-password-group", "login-password-error", "invalid", apiMessage(err));
+      });
     });
   }
 
@@ -2346,12 +2378,78 @@
   bindVisibilityToggle("login-toggle-vis", "login-password");
   bindVisibilityToggle("reg-toggle-vis", "reg-password");
 
+  /* Password reset (online only): e-mail → code → new password, then logged in */
+
   var forgotLink = $("forgot-link");
+  var resetForm = $("reset-form");
+
+  function showReset(show) {
+    loginForm.hidden = show;
+    resetForm.hidden = !show;
+    $("login-divider").hidden = show;
+    $("login-social").hidden = show;
+    $("login-title").textContent = show ? "Reset password" : "Welcome back";
+    $("login-subtitle").textContent = show ? "We'll e-mail you a code to set a new password" : "Log into your account";
+    if (show) {
+      $("reset-email").value = $("login-email").value.trim();
+      $("reset-email").focus();
+    }
+  }
+
   if (forgotLink) {
     forgotLink.addEventListener("click", function () {
+      if (online) { showReset(true); return; }
       var email = $("login-email");
       setGroupState("login-email-group", "login-email-error", "invalid", "Password reset isn't available in this demo yet");
       if (email) email.focus();
+    });
+  }
+
+  if (resetForm) {
+    $("reset-back").addEventListener("click", function () { showReset(false); });
+
+    $("reset-send").addEventListener("click", function () {
+      var email = $("reset-email").value.trim();
+      if (!EMAIL_RE.test(email)) {
+        setGroupState("reset-email-group", "reset-email-error", "invalid", "Please enter a valid e-mail");
+        return;
+      }
+      var btn = $("reset-send");
+      btn.disabled = true;
+      api.post("auth/password/code", { email: email }).then(function (res) {
+        setGroupState("reset-email-group", "reset-email-error", "valid");
+        btn.textContent = "Sent ✓";
+        var status = $("reset-status");
+        status.className = "verify-status success";
+        status.textContent = res.devCode
+          ? "Dev mode: e-mail is off, your code is " + res.devCode + "."
+          : "If an account uses this e-mail, a code is on its way.";
+        $("reset-code").focus();
+        setTimeout(function () { btn.disabled = false; btn.textContent = "Resend"; }, 60000);
+      }, function (err) {
+        btn.disabled = false;
+        setGroupState("reset-email-group", "reset-email-error", "invalid", apiMessage(err));
+      });
+    });
+
+    resetForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      var email = $("reset-email").value.trim();
+      var code = $("reset-code").value.replace(/\D/g, "");
+      var pass = $("reset-password").value;
+      setGroupState("reset-code-group", "reset-code-error", code.length === 6 ? null : "invalid", code.length === 6 ? "" : "The code has 6 digits");
+      setGroupState("reset-password-group", "reset-password-error", pass ? null : "invalid", pass ? "" : "Enter a new password");
+      if (code.length !== 6 || !pass) return;
+
+      var btn = $("reset-submit");
+      setLoading(btn, true);
+      api.post("auth/password/reset", { email: email, code: code, password: pass }).then(function () {
+        window.location.href = "index.html";
+      }, function (err) {
+        setLoading(btn, false);
+        var field = err.code === "weak_password" ? "password" : "code";
+        setGroupState("reset-" + field + "-group", "reset-" + field + "-error", "invalid", apiMessage(err));
+      });
     });
   }
 
@@ -2446,8 +2544,23 @@
   if (btnStartQuiz) {
     btnStartQuiz.addEventListener("click", function () {
       if (!selectedLang) return;
-      initQuiz(selectedLang);
-      goToStep(2);
+      if (!online) {
+        initQuiz(selectedLang, QUESTIONS[selectedLang]);
+        goToStep(2);
+        return;
+      }
+      // Online the questions come from the database; their ids go back with the answers.
+      var lang = selectedLang;
+      btnStartQuiz.disabled = true;
+      api.get("placement/questions?course=" + encodeURIComponent(lang)).then(function (res) {
+        btnStartQuiz.disabled = false;
+        initQuiz(lang, res.questions.length ? res.questions : QUESTIONS[lang]);
+        goToStep(2);
+      }, function () {
+        btnStartQuiz.disabled = false;
+        initQuiz(lang, QUESTIONS[lang]);
+        goToStep(2);
+      });
     });
   }
 
@@ -2469,9 +2582,9 @@
     return names[lang] || lang;
   }
 
-  function initQuiz(lang) {
+  function initQuiz(lang, bank) {
     var byLevel = {};
-    (QUESTIONS[lang] || []).forEach(function (q) {
+    (bank || []).forEach(function (q) {
       (byLevel[q.level] = byLevel[q.level] || []).push(q);
     });
     Object.keys(byLevel).forEach(function (lvl) { byLevel[lvl] = shuffleArray(byLevel[lvl]); });
@@ -2624,6 +2737,7 @@
     var total = quizState.questions.length;
     var pct = total ? Math.round((quizState.correct / total) * 100) : 0;
     var elapsed = Math.round((Date.now() - quizState.startTime) / 1000);
+    quizState.seconds = elapsed;
 
     // Placement = the hardest level the learner answered correctly.
     var highest = 0;
@@ -2676,6 +2790,7 @@
   function resetVerification() {
     clearInterval(resendInterval);
     emailVerified = false;
+    verifiedToken = null;
     verifySection.style.display = "none";
     btnSendCode.textContent = "Send code";
     btnSendCode.classList.remove("sent");
@@ -2697,22 +2812,49 @@
     });
   }
 
-  function sendCode() {
-    console.log("Verification code (simulation):", VERIFICATION_CODE);
+  var verifiedToken = null;  // from the API once the code is right; proves the e-mail at step 4
+
+  function markSent() {
     btnSendCode.textContent = "Sent ✓";
     btnSendCode.classList.add("sent");
     btnSendCode.disabled = true;
     startResendTimer();
   }
 
+  /** Sends a code and resolves true when it went out (offline demo: always, code 111111). */
+  function sendCode() {
+    var email = regEmail.value.trim();
+    if (!online) {
+      console.log("Verification code (simulation):", VERIFICATION_CODE);
+      markSent();
+      return Promise.resolve(true);
+    }
+    btnSendCode.disabled = true;
+    return api.post("auth/register/code", { email: email }).then(function (res) {
+      markSent();
+      // Local XAMPP sends no e-mail (mail mode "dev"): the API hands the code back instead.
+      $("verify-hint").innerHTML = res.devCode
+        ? 'Dev mode: e-mail is off, your code is <strong>' + res.devCode + "</strong>"
+        : 'Sent to <strong id="verify-email-display"></strong>';
+      if (!res.devCode) $("verify-email-display").textContent = email;
+      return true;
+    }, function (err) {
+      btnSendCode.disabled = false;
+      setGroupState("reg-email-group", "reg-email-error", "invalid", apiMessage(err));
+      return false;
+    });
+  }
+
   if (btnSendCode) {
     btnSendCode.addEventListener("click", function () {
       var email = regEmail.value.trim();
       if (!EMAIL_RE.test(email)) return;
-      verifySection.style.display = "block";
-      $("verify-email-display").textContent = email;
-      sendCode();
-      setTimeout(function () { codeDigits[0].focus(); }, 300);
+      sendCode().then(function (sent) {
+        if (!sent) return;
+        verifySection.style.display = "block";
+        if ($("verify-email-display")) $("verify-email-display").textContent = email;
+        setTimeout(function () { codeDigits[0].focus(); }, 300);
+      });
     });
   }
 
@@ -2767,7 +2909,7 @@
     if (code.length < codeDigits.length) return;
 
     var status = $("verify-status");
-    if (code === VERIFICATION_CODE) {
+    function accept() {
       status.className = "verify-status success";
       status.textContent = "✓ E-mail verified successfully!";
       emailVerified = true;
@@ -2776,15 +2918,34 @@
       clearInterval(resendInterval);
       btnResend.disabled = true;
       btnResend.textContent = "Verified";
-    } else {
+    }
+    function reject(message) {
       status.className = "verify-status error";
-      status.textContent = "✗ Incorrect code. Try again.";
+      status.textContent = "✗ " + (message || "Incorrect code. Try again.");
       codeDigits.forEach(function (d) { d.classList.add("wrong"); });
       setTimeout(function () {
         resetCodeDigits();
+        status.className = "verify-status error";
+        status.textContent = "✗ " + (message || "Incorrect code. Try again.");
         codeDigits[0].focus();
       }, 1200);
     }
+
+    if (!online) {
+      if (code === VERIFICATION_CODE) accept(); else reject();
+      return;
+    }
+    codeDigits.forEach(function (d) { d.disabled = true; });
+    api.post("auth/register/verify", { email: regEmail.value.trim(), code: code }).then(function (res) {
+      verifiedToken = res.verifiedToken;
+      accept();
+    }, function (err) {
+      codeDigits.forEach(function (d) { d.disabled = false; });
+      var msg = err.code === "wrong_code"
+        ? "Incorrect code. " + err.data.attemptsLeft + (err.data.attemptsLeft === 1 ? " try" : " tries") + " left."
+        : apiMessage(err);
+      reject(msg);
+    });
   }
 
   function startResendTimer() {
@@ -2851,19 +3012,16 @@
         return;
       }
 
-      // Simulated availability check, debounced
+      // Availability check, debounced (offline demo: a fixed list)
       setGroupState("reg-username-group", "reg-username-error", null);
       setUsernameStatus('<div class="spinner-sm"></div>');
 
-      usernameTimer = setTimeout(function () {
-        var lower = val.toLowerCase();
-        var blocked = BLOCKED_USERNAME_TERMS.some(function (t) { return lower.indexOf(t) !== -1; });
-        var taken = RESERVED_USERNAMES.indexOf(lower) !== -1;
-
-        if (blocked) {
+      function show(reason) {
+        if (regUsername.value.trim() !== val) return; // the field changed meanwhile
+        if (reason === "not_allowed") {
           setGroupState("reg-username-group", "reg-username-error", "invalid", "This username isn't allowed");
           setUsernameStatus('<span class="bad">✗</span>');
-        } else if (taken) {
+        } else if (reason) {
           setGroupState("reg-username-group", "reg-username-error", "invalid", "This username is already taken");
           setUsernameStatus('<span class="bad">✗</span>');
         } else {
@@ -2872,7 +3030,23 @@
           usernameValid = true;
         }
         updateCreateButton();
-      }, 800);
+      }
+
+      usernameTimer = setTimeout(function () {
+        if (online) {
+          api.get("auth/username?u=" + encodeURIComponent(val)).then(function (res) {
+            show(res.available ? null : res.reason);
+          }, function () {
+            setUsernameStatus("");
+            setGroupState("reg-username-group", "reg-username-error", "invalid", "Couldn't check the username. Try again.");
+          });
+          return;
+        }
+        var lower = val.toLowerCase();
+        var blocked = BLOCKED_USERNAME_TERMS.some(function (t) { return lower.indexOf(t) !== -1; });
+        var taken = RESERVED_USERNAMES.indexOf(lower) !== -1;
+        show(blocked ? "not_allowed" : taken ? "taken" : null);
+      }, online ? 400 : 800);
     });
   }
 
@@ -2940,16 +3114,48 @@
       if (!(usernameValid && passwordValid && confirmValid)) return;
 
       var btn = $("btn-create-account");
-      btn.classList.add("loading");
-      btn.disabled = true;
+      setLoading(btn, true);
       var username = regUsername.value.trim();
 
-      setTimeout(function () {
+      function done() {
         $("success-username").textContent = username;
         goToStep("success");
         animateSuccess();
-      }, 2000);
+      }
+      if (!online) {
+        setTimeout(done, 2000);
+        return;
+      }
+      api.post("auth/register", {
+        verifiedToken: verifiedToken,
+        username: username,
+        password: regPassword.value,
+        course: selectedLang,
+        timezone: (Intl.DateTimeFormat().resolvedOptions().timeZone || ""),
+        placement: { answers: placementAnswers(), seconds: quizState.seconds || 0 }
+      }).then(done, function (err) {
+        setLoading(btn, false);
+        if (err.code === "email_not_verified" || err.code === "email_taken") {
+          resetVerification();
+          goToStep(3);
+          setGroupState("reg-email-group", "reg-email-error", "invalid", apiMessage(err));
+          return;
+        }
+        var field = err.code === "weak_password" ? ["reg-password-group", null] : ["reg-username-group", "reg-username-error"];
+        if (err.code.indexOf("username_") === 0) usernameValid = false;
+        setGroupState(field[0], field[1], "invalid", apiMessage(err));
+        if (!field[1]) $("strength-label").textContent = apiMessage(err);
+        updateCreateButton();
+      });
     });
+  }
+
+  /** The quiz answers as question / answer ids, so the server can grade them itself. */
+  function placementAnswers() {
+    return (quizState.questions || []).map(function (q, i) {
+      var a = quizState.answers[i];
+      return { questionId: q.id, answerId: q.answerIds && a < q.answerIds.length ? q.answerIds[a] : null };
+    }).filter(function (x) { return x.questionId; });
   }
 
   function animateSuccess() {
