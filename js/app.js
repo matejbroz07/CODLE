@@ -382,8 +382,62 @@
   /** Opens a lesson in the editor. Offline, every open lesson shows the sample quest. */
   function openLesson(ms) {
     if (!online) { window.location.href = "editor.html"; return; }
-    if (!ms.dataset.playable) { toast("This lesson isn't ready yet"); return; }
+    if (!ms.dataset.playable) {
+      if (mascot) mascot.say("This lesson isn't ready yet. Keep going on the current one and I'll let you know.", { mood: "sad" });
+      else toast("This lesson isn't ready yet");
+      return;
+    }
     window.location.href = "editor.html?lesson=" + encodeURIComponent(ms.dataset.lesson);
+  }
+
+  /* ===============================================================
+     1a. MASCOT — greets, explains each view, and answers clicks
+  ================================================================*/
+
+  var mascot = window.CodleMascot || null;
+  var VIEW_TIPS = {
+    "view-learn": "This is your path. The glowing lesson is the one to do next.",
+    "view-practice": "Practice games earn XP too. Wordle changes every day, so come back tomorrow for a new word.",
+    "view-leaderboard": "The leaderboard ranks everyone by XP. Finish lessons and games to climb.",
+    "view-profile": "Your profile: level, streak and badges. Keep the streak alive by learning every day."
+  };
+
+  function currentLessonTitle() {
+    var ms = activeCourseView().querySelector(".milestone.current");
+    if (!ms) return "";
+    var label = ms.querySelector(".milestone-label");
+    return label ? label.textContent.trim() : "";
+  }
+
+  function mascotHelp() {
+    var view = document.querySelector(".page-view.active");
+    var id = view ? view.id : "view-learn";
+    if (id === "view-learn") {
+      var title = currentLessonTitle();
+      var user = window.CodleData && window.CodleData.user;
+      var days = user ? (user.streak || user.streakCount || 0) : 0;
+      var streak = days ? "You're on a " + days + "-day streak, keep it going. " : "";
+      return {
+        text: streak + (title ? "Your next lesson is <b>" + esc(title) + "</b>. Click the glowing circle on the path to open it." : "Pick the glowing lesson on the path to continue."),
+        html: true,
+        mood: "happy"
+      };
+    }
+    if (id === "view-practice") {
+      return { text: "Pick a game. In <b>Wordle</b> you guess a five-letter coding word in six tries. Green means right spot, gold means right letter, wrong spot.", html: true };
+    }
+    return { text: VIEW_TIPS[id] || "Click a tab above to continue learning." };
+  }
+
+  function mascotGreet() {
+    if (!mascot) return;
+    mascot.help(mascotHelp);
+    var user = window.CodleData && window.CodleData.user;
+    var name = user && (user.displayName || user.username || user.name);
+    var hour = new Date().getHours();
+    var when = hour < 5 ? "Still up" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    var title = currentLessonTitle();
+    mascot.tip(when + (name ? ", " + name : "") + ". " + (title ? "Ready for " + title + "? It's the glowing lesson on your path." : "Click me any time you need a hand."), { key: "greet", mood: "happy", ms: 6000 });
   }
 
   window.CodleApp = {
@@ -755,6 +809,7 @@
     if (!nextView || currentView === nextView || isSwitching) return;
     isSwitching = true;
     stopAutoScroll();
+    if (mascot) { mascot.close(); setTimeout(function () { mascot.tip(VIEW_TIPS[viewId], { key: "view:" + viewId, mood: "think" }); }, 700); }
 
     var veil = $("view-veil");
     if (veil) veil.classList.add("on");
@@ -876,6 +931,7 @@
     updateUnitAccent();
     if (desktopNav) desktopNav.refresh();
     if (mobileNav) mobileNav.refresh();
+    setTimeout(mascotGreet, 900);
   }
 
   var pageLoaded = new Promise(function (resolve) { window.addEventListener("load", resolve); });

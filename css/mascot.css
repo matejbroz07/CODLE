@@ -1,0 +1,261 @@
+/* =============================================
+   Codle — Curly, the mascot
+   A pair of curly braces with eyes that floats in
+   a corner, watches the pointer, and talks in a
+   glass speech bubble. Built by js/mascot.js.
+   ============================================= */
+
+.mascot {
+  position: fixed;
+  right: 18px;
+  bottom: var(--mascot-bottom, 22px);
+  z-index: 60; /* above the nav bars (40–50), below modals and toasts (70+) */
+  width: var(--mascot-size, 76px);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.mascot[data-side="left"] { right: auto; left: 18px; }
+.mascot.is-dragging { transition: none; }
+.mascot.is-hidden { display: none; }
+
+/* ----- body (the button) ----- */
+.mascot-body {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: grab;
+  color: var(--mascot-color, #0a84ff); /* Curly stays blue even where a page uses another accent */
+  filter: drop-shadow(0 10px 18px rgba(0,0,0,.55)) drop-shadow(0 0 1px rgba(255,255,255,.18));
+  animation: mascot-bob 3.6s ease-in-out infinite;
+  transition: transform .35s var(--lg-spring);
+}
+.mascot-body:active, .mascot.is-dragging .mascot-body { cursor: grabbing; }
+.mascot-body:focus-visible { outline: none; }
+.mascot-body:focus-visible svg { outline: 2px solid rgba(255,255,255,.7); outline-offset: 4px; border-radius: 50%; }
+.mascot-body svg { display: block; width: 100%; height: 100%; overflow: visible; }
+
+/* braces = the body */
+.mascot-brace {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform .4s var(--lg-spring);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+/* a dark glass pane between the braces so the face reads on any background */
+.mascot-face {
+  fill: rgba(10,12,16,.78);
+  stroke: rgba(255,255,255,.18);
+  stroke-width: 1;
+}
+
+/* ----- eyes ----- */
+.mascot-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform .16s ease;
+}
+.mascot-sclera { fill: #fff; }
+.mascot-pupil { transition: transform .14s ease-out; }
+.mascot-pupil circle { fill: #08090c; }
+.mascot-pupil .mascot-glint { fill: #fff; }
+.mascot-eye-happy {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 6;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.mascot-eye-open { transition: opacity .15s; }
+
+/* mouth */
+.mascot-mouth {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  opacity: .92;
+}
+.mascot-mouth-o { fill: #fff; opacity: 0; }
+
+/* blink + sleep: eyes squash to a line */
+.mascot.is-blinking .mascot-eye,
+.mascot[data-mood="sleep"] .mascot-eye { transform: scaleY(.08); }
+
+/* moods */
+.mascot[data-mood="happy"] .mascot-eye-open { opacity: 0; }
+.mascot[data-mood="happy"] .mascot-eye-happy { opacity: 1; }
+.mascot[data-mood="happy"] .mascot-body { animation: mascot-jump .9s var(--lg-spring) 1, mascot-bob 3.6s ease-in-out .9s infinite; }
+
+.mascot[data-mood="sad"] .mascot-eye-l .mascot-eye-open { clip-path: url(#mascot-lid-sad-l); }
+.mascot[data-mood="sad"] .mascot-eye-r .mascot-eye-open { clip-path: url(#mascot-lid-sad-r); }
+.mascot[data-mood="sad"] .mascot-body { transform: translateY(3px) rotate(-3deg); }
+
+.mascot[data-mood="think"] .mascot-eye-l .mascot-eye-open { clip-path: url(#mascot-lid-think); }
+.mascot[data-mood="think"] .mascot-eye-r .mascot-eye-open { clip-path: url(#mascot-lid-think-r); }
+.mascot[data-mood="think"] .mascot-body { transform: rotate(4deg); }
+
+.mascot[data-mood="surprised"] .mascot-eye { transform: scale(1.14); }
+.mascot[data-mood="surprised"] .mascot-pupil circle:first-child { r: 5; }
+.mascot[data-mood="surprised"] .mascot-mouth { opacity: 0; }
+.mascot[data-mood="surprised"] .mascot-mouth-o { opacity: .92; }
+.mascot[data-mood="surprised"] .mascot-body { animation: mascot-pop .5s var(--lg-spring) 1, mascot-bob 3.6s ease-in-out .5s infinite; }
+
+.mascot[data-mood="sleep"] .mascot-body { animation: mascot-breathe 4.5s ease-in-out infinite; }
+.mascot[data-mood="sleep"] .mascot-brace { transform: scaleY(.96); }
+.mascot-zz {
+  fill: #fff;
+  font: 700 15px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  opacity: 0;
+}
+.mascot[data-mood="sleep"] .mascot-zz { animation: mascot-zz 2.4s ease-in-out infinite; }
+.mascot[data-mood="sleep"] .mascot-zz:nth-child(2) { animation-delay: .8s; }
+
+/* ----- speech bubble ----- */
+.mascot-bubble {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  right: 0;
+  width: max-content;
+  max-width: min(300px, calc(100vw - 36px));
+  padding: 12px 36px 10px 14px;
+  border-radius: 18px;
+  border-bottom-right-radius: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(6px) scale(.96);
+  transform-origin: bottom right;
+  pointer-events: none;
+  transition: opacity .25s var(--lg-spring), transform .3s var(--lg-spring);
+  /* darker than the shared glass: the bubble floats over light previews too */
+  background: linear-gradient(145deg, rgba(34,37,44,.94), rgba(22,24,30,.94));
+}
+html.lite .mascot-bubble { background: linear-gradient(145deg, #24272e, #1b1d23); }
+.mascot[data-side="left"] .mascot-bubble {
+  right: auto;
+  left: 0;
+  transform-origin: bottom left;
+  border-bottom-right-radius: 18px;
+  border-bottom-left-radius: 6px;
+}
+.mascot.bubble-below .mascot-bubble {
+  bottom: auto;
+  top: calc(100% + 10px);
+  transform-origin: top right;
+  border-radius: 18px;
+  border-top-right-radius: 6px;
+}
+.mascot.bubble-below[data-side="left"] .mascot-bubble { transform-origin: top left; border-top-right-radius: 18px; border-top-left-radius: 6px; }
+.mascot.bubble-open .mascot-bubble {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+.mascot-bubble-text { word-wrap: break-word; }
+.mascot-bubble-text b { font-weight: 600; }
+.mascot-bubble-text code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  padding: 1px 5px;
+  border-radius: 6px;
+  background: rgba(255,255,255,.1);
+}
+.mascot-bubble-text pre {
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(0,0,0,.35);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+.mascot-bubble-close {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  color: var(--ink-dim);
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.mascot-bubble-close:hover { background: rgba(255,255,255,.16); color: var(--ink); }
+.mascot-bubble-close svg { width: 12px; height: 12px; }
+.mascot-bubble-foot {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255,255,255,.08);
+}
+.mascot-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink-faint);
+  font-size: 12px;
+  cursor: pointer;
+  transition: color .2s;
+}
+.mascot-link:hover { color: var(--ink); }
+
+/* ----- keyframes ----- */
+@keyframes mascot-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes mascot-breathe {
+  0%, 100% { transform: translateY(2px) scale(1); }
+  50% { transform: translateY(2px) scale(1.03, .98); }
+}
+@keyframes mascot-jump {
+  0% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(2px) scale(1.08, .9); }
+  55% { transform: translateY(-16px) scale(.94, 1.08); }
+  80% { transform: translateY(0) scale(1.04, .96); }
+  100% { transform: translateY(0) scale(1); }
+}
+@keyframes mascot-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+@keyframes mascot-zz {
+  0% { opacity: 0; transform: translate(0, 0); }
+  30% { opacity: .9; }
+  100% { opacity: 0; transform: translate(6px, -14px); }
+}
+
+/* ----- phones: smaller, above the bottom nav bar ----- */
+@media (max-width: 768px) {
+  .mascot {
+    --mascot-size: 62px;
+    right: 14px;
+    bottom: var(--mascot-bottom, calc(env(safe-area-inset-bottom, 0px) + 86px));
+  }
+  .mascot[data-side="left"] { left: 14px; }
+  .mascot-bubble { font-size: 13.5px; }
+}
+body.editor-page .mascot { --mascot-size: 64px; bottom: var(--mascot-bottom, 72px); } /* clear of the console bar */
+
+/* ----- lite mode: no continuous animation ----- */
+html.lite .mascot-body { animation: none !important; filter: drop-shadow(0 6px 10px rgba(0,0,0,.5)); }
+html.lite .mascot[data-mood="sleep"] .mascot-zz { animation: none; opacity: .8; }

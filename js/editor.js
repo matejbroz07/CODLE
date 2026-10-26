@@ -752,6 +752,10 @@ function codleEditor(lesson) {
       return;
     }
     addLog(e.data.type, e.data.args);
+    if (e.data.type === "error" && mascot) {
+      mascot.mood("surprised", 1500);
+      mascot.tip("Your JavaScript threw an error. Open the console under the preview to see what went wrong.", { key: "ed-error:" + (lesson ? lesson.lesson.id : "demo"), mood: "surprised" });
+    }
   });
 
   /* ===============================================================
@@ -819,7 +823,11 @@ function codleEditor(lesson) {
       checking = false;
       btn.classList.remove("loading");
       btn.disabled = false;
-      if (!results) { toast("Couldn't check your code. Try again."); return; }
+      if (!results) {
+        if (mascot) mascot.say("Hmm, I couldn't check your code. Is the page stuck in a loop? Try again.", { mood: "surprised" });
+        else toast("Couldn't check your code. Try again.");
+        return;
+      }
       applyResults(results);
     }
   }
@@ -842,7 +850,10 @@ function codleEditor(lesson) {
       persist();
       if (n === done.length) setTimeout(openModal, 350);
     }
-    if (n === done.length) return;
+    if (n === done.length) {
+      if (mascot) mascot.say("Every objective passed. That's how it's done!", { mood: "happy", ms: 5000 });
+      return;
+    }
     objectiveList.querySelectorAll(".ed-objective").forEach(function (li, i) {
       if (done[i]) return;
       li.classList.remove("failed");
@@ -850,7 +861,55 @@ function codleEditor(lesson) {
       li.classList.add("failed");
       setTimeout(function () { li.classList.remove("failed"); }, 1600);
     });
-    toast(n + " of " + done.length + " objectives complete");
+    if (mascot) {
+      failedChecks++;
+      var next = QUEST.objectives[done.indexOf(false)];
+      var lead = n === 0 ? "Not yet. " : n + " of " + done.length + " done. ";
+      if (failedChecks >= 2 && next) {
+        mascot.say(lead + "Here's a nudge: " + next.hint, { html: true, mood: "think", ms: 0 });
+      } else {
+        mascot.say(lead + "Check the objective that flashed red, then try again. Click me if you want a hint.", { mood: "sad" });
+      }
+    } else {
+      toast(n + " of " + done.length + " objectives complete");
+    }
+  }
+
+  /* ===============================================================
+     8b. MASCOT — hints on request, reactions to checks and errors,
+         and a nudge when the editor goes quiet
+  ================================================================*/
+
+  var mascot = window.CodleMascot || null;
+  var failedChecks = 0;
+  var lastEdit = Date.now();
+
+  if (mascot) {
+    mascot.help(function () {
+      var next = QUEST.objectives[done.indexOf(false)];
+      if (!next) return { text: "All objectives are complete. Nice work! Head back to the path for the next lesson.", mood: "happy" };
+      return {
+        text: "<b>" + next.text + "</b><br>" + next.hint,
+        html: true,
+        mood: "think"
+      };
+    });
+
+    $("quest-hint-box").addEventListener("toggle", function () {
+      if (this.open) mascot.mood("think", 2500);
+    });
+
+    input.addEventListener("input", function () { lastEdit = Date.now(); });
+    setInterval(function () {
+      if (document.hidden || done.indexOf(false) < 0) return;
+      if (Date.now() - lastEdit < 90000 || input !== document.activeElement && Date.now() - lastEdit < 180000) return;
+      lastEdit = Date.now();
+      mascot.tip("Stuck? Click me and I'll point you to the next step.", { key: "ed-idle:" + (lesson ? lesson.lesson.id : "demo"), mood: "think" });
+    }, 15000);
+
+    setTimeout(function () {
+      mascot.tip("Read the quest, edit the code, then hit <b>Check solution</b>. I'm here if you get stuck.", { key: "ed-intro", html: true, mood: "happy", ms: 7000 });
+    }, 1200);
   }
 
   /* ===============================================================

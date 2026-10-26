@@ -306,6 +306,7 @@
   function submitGuess() {
     var rowIdx = state.guesses.length;
     if (current.length < WORD_LEN) {
+      if (window.CodleMascot) window.CodleMascot.mood("surprised", 1200);
       toast("Not enough letters");
       shakeRow(rowIdx);
       return;
@@ -390,8 +391,10 @@
       save(STATS_KEY, stats);
     }
 
+    var mascot = window.CodleMascot;
     if (won) {
       toast(WIN_WORDS[n - 1] || "Nice", 1600);
+      if (mascot) mascot.say((WIN_WORDS[n - 1] || "Nice") + "! You got it in " + n + (n === 1 ? " try." : " tries."), { mood: "happy", ms: 4000 });
       if (!reduceMotion) {
         tiles(rowIdx).forEach(function (tile, c) {
           setTimeout(function () { tile.classList.add("bounce"); }, c * 100);
@@ -399,6 +402,7 @@
       }
     } else {
       toast(answer(), 2200);
+      if (mascot) mascot.say("So close. The word was " + answer() + ". There's a new one tomorrow.", { mood: "sad", ms: 5000 });
     }
     setTimeout(function () { openModal("result"); }, won ? 1700 : 2000);
   }

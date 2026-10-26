@@ -2279,6 +2279,20 @@
     group.classList.remove("valid", "invalid");
     if (state) group.classList.add(state);
     if (error) error.textContent = message || "";
+    if (state === "invalid" && message && window.CodleMascot) window.CodleMascot.mood("sad", 1800);
+  }
+
+  /* The mascot explains the page and answers clicks */
+  if (window.CodleMascot) {
+    window.CodleMascot.help(function () {
+      var loginOpen = $("login-view") && $("login-view").style.display !== "none";
+      return loginOpen
+        ? { text: "Log in with your e-mail or username. Forgot the password? Use the reset link under the form." }
+        : { text: "Pick a username, add your e-mail and a password, and you're in. Your progress, XP and streak are saved to your account." };
+    });
+    setTimeout(function () {
+      window.CodleMascot.tip("Hi, I'm " + window.CodleMascot.name + ". Create an account and I'll walk you through Codle.", { key: "reg-greet", mood: "happy", ms: 6000 });
+    }, 1200);
   }
 
   /* ===============================================================
