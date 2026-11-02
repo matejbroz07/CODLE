@@ -5,16 +5,19 @@ Návrh databáze pro MariaDB 10.4+ (verze v XAMPP) a MySQL 8.0+.
 | Soubor | Obsah |
 |---|---|
 | `schema.sql` | Vytvoří databázi `codle`, všechny tabulky a pohledy. |
-| `seed.sql` | Vývojová data: kurzy, jednotky a lekce z výukové cesty, odznak, 159 slov pro Wordle s rozpisem na 365 dní, 64 historických karet a 23 historek. Neobsahuje osobní údaje. |
+| `seed.sql` | Vývojová data: kurzy HTML, CSS a JavaScript po šesti jednotkách (stejná osnova jako `js/curriculum.js`), 9 odznaků, 159 slov pro Wordle s rozpisem na 365 dní, 64 historických karet a 23 historek. Neobsahuje osobní údaje. |
 | `seed-placement.sql` | 200 otázek rozřazovacího kvízu (HTML, CSS, JavaScript, PHP, 10 na každou obtížnost). Stejná banka jako offline záloha v `js/register.js`. |
-| `seed-quests.sql` | Úlohy do editoru pro JavaScript, Unit 1: Console Log, Variables, Data Types. |
+| `seed-quests.sql` | Úlohy do editoru pro všech 79 běžných lekcí HTML, CSS a JavaScriptu. Generuje se z `content/quests/` (viz `content/README.md`). |
+| `seed-quiz.sql` | 156 otázek kvízů jednotek a závěrečných zkoušek (8 na kvíz, 12 na zkoušku). Generuje se z `content/quiz/`. |
+| `content/` | Zdrojové soubory úloh a otázek a generátor `build.php`, ze kterého `seed-quests.sql` a `seed-quiz.sql` vznikají. Postup v `content/README.md`. |
 | `migrations/001_api.sql` | Úpravy pro API na databázi vytvořené před 23. 10. 2026: tabulka `auth_throttle` a klíč odpovědí na Denní historku. `schema.sql` je už obsahuje. |
 | `migrations/002_profile.sql` | Záložka Profile, pro databázi vytvořenou před 26. 10. 2026: bio, profilová fotka, viditelnost profilu a data změn v `users`, tabulka `username_history`. `schema.sql` je už obsahuje. |
+| `migrations/003_courses.sql` | Kurzy HTML, CSS a JavaScript po šesti jednotkách a odstranění Pythonu, pro databázi naplněnou před 27. 10. 2026. `seed.sql` je už obsahuje. Spouští se jen jednou. |
 | `migrations/003_mascot.sql` | Záložka Curly v profilu, pro databázi vytvořenou před 2. 11. 2026: sloupec `mascot` v `user_settings` (vzhled a chování maskota jako JSON). `schema.sql` ho už obsahuje. Bez migrace API funguje dál, vzhled se jen neukládá k účtu. |
 
 ## Import
 
-V phpMyAdmin (XAMPP) otevřete záložku **Import** a nahrajte v tomto pořadí `schema.sql`, `seed.sql`, `seed-placement.sql`, `seed-quests.sql`.
+V phpMyAdmin (XAMPP) otevřete záložku **Import** a nahrajte v tomto pořadí `schema.sql`, `seed.sql`, `seed-placement.sql`, `seed-quests.sql`, `seed-quiz.sql`.
 
 Z terminálu:
 
@@ -23,9 +26,10 @@ Z terminálu:
 /Applications/XAMPP/xamppfiles/bin/mysql -u root < database/seed.sql
 /Applications/XAMPP/xamppfiles/bin/mysql -u root < database/seed-placement.sql
 /Applications/XAMPP/xamppfiles/bin/mysql -u root < database/seed-quests.sql
+/Applications/XAMPP/xamppfiles/bin/mysql -u root < database/seed-quiz.sql
 ```
 
-`schema.sql` počítá s prázdnou databází. Pokud `codle` už existuje, import skončí chybou a nic nepřepíše. Existující databázi doplníte migracemi ze složky `migrations/` (postup v `api/README.md`). `seed-placement.sql` při opakovaném importu přidá otázky podruhé; `seed-quests.sql` své tři úlohy nahradí.
+`schema.sql` počítá s prázdnou databází. Pokud `codle` už existuje, import skončí chybou a nic nepřepíše. Existující databázi doplníte migracemi ze složky `migrations/` (postup v `api/README.md`). `seed-placement.sql` při opakovaném importu přidá otázky podruhé; `seed-quests.sql` a `seed-quiz.sql` úlohy a otázky svých lekcí nahradí, takže se dají importovat opakovaně.
 
 ## Oblasti
 

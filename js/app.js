@@ -4,12 +4,13 @@
  *
  * Handles: hydrating the UI from CodleData, learning-path trail drawing
  * and reveal animation, background tinting on scroll, SPA view switching,
- * navbar indicators and the liquid-glass pointer effects.
+ * navbar indicators, the phone course sheet and the liquid-glass pointer effects.
  *
  * With the API (js/api.js) CodleData comes from the server: the path is built
  * from the database, lessons open in the editor, and the Leaderboard and
- * Profile tabs are filled in. Without it the static demo in index.html and
- * js/data.js is shown, and a visitor who is not logged in goes to register.html.
+ * Profile tabs are filled in. Without it the static demo is shown (path from
+ * js/curriculum.js, progress from js/data.js), and a visitor who is not logged
+ * in goes to register.html.
  */
 
 (function () {
@@ -139,7 +140,7 @@
   }
 
   function hydrateCourse(data) {
-    var courseId = data.activeCourse || "python";
+    var courseId = data.activeCourse || "html";
     var progress = data.progress[courseId] || { currentUnit: 1, currentMilestone: 1, currentMilestoneProgress: 0 };
     var chapters = activeCourseView().querySelectorAll(".chapter-group");
     var currentUnitTitle = "";
@@ -170,6 +171,10 @@
 
     // Course label under the dropdown mirrors the unit that holds the current lesson.
     setText("ui-course-label", currentUnitTitle.replace(" · ", " — "));
+    // The phone header shows the course name in the chip instead
+    var sel = $("course-selector");
+    if (sel && sel.value !== courseId && sel.querySelector('option[value="' + courseId + '"]')) sel.value = courseId;
+    if (sel && sel.selectedIndex >= 0) setText("ui-course-chip", sel.options[sel.selectedIndex].textContent);
 
     // Animate the progress ring on the current lesson.
     var fill = activeCourseView().querySelector(".milestone.current .progress-ring .fill");
@@ -186,6 +191,33 @@
     if (!data) return;
     hydrateUserStats(data.user);
     hydrateCourse(data);
+  }
+
+  /**
+   * Static demo: the same path object the API returns, built from js/curriculum.js
+   * and the demo learner's position in js/data.js.
+   */
+  function demoPath(courseId) {
+    var cur = window.CodleCurriculum || {};
+    var course = cur[courseId] || cur[Object.keys(cur)[0]];
+    if (!course) return null;
+    var progress = (window.CodleData && window.CodleData.progress[courseId]) || { currentUnit: 1, currentMilestone: 1, currentMilestoneProgress: 0 };
+    var id = 0;
+    return {
+      course: { slug: courseId, name: course.name },
+      units: course.units.map(function (u, i) {
+        var unitIndex = i + 1;
+        var lessons = u.lessons.map(function (l, j) {
+          var msIndex = j + 1;
+          var state = unitIndex < progress.currentUnit || (unitIndex === progress.currentUnit && msIndex < progress.currentMilestone) ? "completed"
+            : unitIndex === progress.currentUnit && msIndex === progress.currentMilestone ? "current" : "locked";
+          return { id: ++id, slug: l[0], title: l[1], kind: l[2] || "lesson", xp: l[3] || 20, state: state,
+                   progress: state === "current" ? progress.currentMilestoneProgress : 0, playable: state !== "locked" };
+        });
+        var done = lessons.filter(function (l) { return l.state === "completed"; }).length;
+        return { position: unitIndex, title: u.title, total: lessons.length, completed: done, lessons: lessons };
+      })
+    };
   }
 
   /* ===============================================================
@@ -223,18 +255,60 @@
     tuple: '<rect x="3" y="14" width="18" height="4" rx="2" ry="2"/><rect x="3" y="6" width="18" height="4" rx="2" ry="2"/>',
     bars: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
     search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
-    check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+    check: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+    file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>',
+    heading: '<path d="M6 4v16"/><path d="M18 4v16"/><path d="M6 12h12"/>',
+    link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+    play: '<polygon points="5 3 19 12 5 21 5 3"/>',
+    layout: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>',
+    table: '<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="10" y1="4" x2="10" y2="20"/>',
+    form: '<rect x="3" y="5" width="18" height="5" rx="1.5"/><rect x="3" y="14" width="18" height="5" rx="1.5"/>',
+    palette: '<circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="10.5" r="1.5"/><circle cx="8.5" cy="7.5" r="1.5"/><circle cx="6.5" cy="12.5" r="1.5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.9 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1-.3-.3-.4-.6-.4-1 0-.8.7-1.5 1.5-1.5H16c3.3 0 6-2.7 6-6 0-5-4.5-9-10-9z"/>',
+    type: '<polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/>',
+    square: '<rect x="3" y="3" width="18" height="18" rx="2"/><rect x="8" y="8" width="8" height="8" rx="1"/>',
+    ruler: '<path d="M21 3 3 21"/><path d="m15 5 2 2"/><path d="m11 9 2 2"/><path d="m7 13 2 2"/>',
+    phone: '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>',
+    move: '<polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>',
+    sparkle: '<path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.2 2.2M16.2 16.2l2.2 2.2M5.6 18.4l2.2-2.2M16.2 7.8l2.2-2.2"/>',
+    branch: '<line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/>',
+    scale: '<line x1="12" y1="3" x2="12" y2="21"/><path d="M5 7l-3 7a4 4 0 0 0 6 0z"/><path d="M19 7l-3 7a4 4 0 0 0 6 0z"/><line x1="3" y1="7" x2="21" y2="7"/>',
+    repeat: '<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>',
+    braces: '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>',
+    pointer: '<path d="M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z"/>',
+    plus: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>',
+    quote: '<path d="M8 10H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6a4 4 0 0 1-4 4"/><path d="M19 10h-3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v6a4 4 0 0 1-4 4"/>',
+    clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    cloud: '<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>',
+    eye: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',
+    tag: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>'
   };
   var SLUG_ICON = {
-    "hello-world": "terminal", "console-log": "terminal", "variables": "box", "data-types": "grid",
-    "strings": "text", "numbers": "hash", "type-casting": "cycle", "boolean-logic": "bolt",
-    "defining-functions": "code", "arrow-functions": "code", "parameters": "sliders", "return-values": "back",
-    "scope": "target", "closures": "target", "lambda-functions": "lambda", "lists": "list",
-    "dictionaries": "book", "sets": "sets", "tuples": "tuple", "sorting": "bars", "searching": "search",
-    "recursion": "cycle", "final-exam": "check"
+    // HTML
+    "hello-html": "file", "headings": "heading", "paragraphs": "text", "comments": "quote",
+    "links": "link", "lists": "list", "emphasis": "type", "line-breaks": "bars",
+    "images": "image", "alt-text": "eye", "figures": "square", "audio-video": "play",
+    "document-structure": "layout", "semantic-tags": "tag", "header-footer": "layout", "navigation": "move", "sections": "grid",
+    "tables": "table", "table-headers": "table", "forms": "form", "inputs": "sliders", "buttons-labels": "pointer",
+    "attributes": "hash", "classes": "tag", "meta-tags": "search", "accessibility": "eye",
+    // CSS
+    "hello-css": "palette", "selectors": "target", "colors": "palette", "classes-ids": "hash",
+    "fonts": "type", "text-styling": "text", "text-spacing": "ruler", "web-fonts": "cloud",
+    "box-model": "square", "padding-margin": "square", "borders": "square", "width-height": "ruler",
+    "display": "layout", "flexbox": "grid", "flex-alignment": "move", "grid": "grid", "positioning": "move",
+    "units": "ruler", "media-queries": "phone", "mobile-first": "phone", "responsive-images": "image",
+    "transitions": "clock", "transforms": "move", "animations": "sparkle", "css-variables": "box",
+    // JavaScript
+    "console-log": "terminal", "variables": "box", "data-types": "grid", "operators": "plus", "strings": "text",
+    "functions": "code", "parameters": "sliders", "scope": "target", "arrow-functions": "code", "closures": "target",
+    "if-else": "branch", "comparisons": "scale", "boolean-logic": "bolt", "for-loops": "repeat", "while-loops": "cycle",
+    "arrays": "list", "array-methods": "list", "objects": "braces", "json": "braces",
+    "selecting-elements": "pointer", "changing-content": "text", "styles-classes": "palette", "events": "bolt", "creating-elements": "plus",
+    "template-literals": "quote", "destructuring": "braces", "promises": "clock", "fetch": "cloud",
+    "final-exam": "check"
   };
   var KIND_ICON = { lesson: "code", quest: "code", quiz: "medal", exam: "check" };
-  // The winding of the Python path in index.html, repeated for longer courses.
+  // The winding of the path, repeated for longer courses.
   var POSITIONS = ["left", "right", "left-far", "center", "right-far", "left", "right", "center",
     "left-far", "right", "left", "right-far", "center", "left-far",
     "right", "left", "right-far", "center", "left-far", "right", "left-far", "right-far", "center"];
@@ -246,14 +320,14 @@
 
   function renderPath(path) {
     var host = $("path-nodes");
-    if (!host) return;
+    if (!host || !path) return;
     var n = 0;
     var html = '<div id="course-view-' + esc(path.course.slug) + '" class="course-view active">';
     path.units.forEach(function (u) {
-      html += '<div class="chapter-group"><div class="path-nodes" style="gap:64px;">' +
-        '<div class="path-node" data-pos="center" data-is-waypoint><div class="path-section-header liquid-glass">' +
+      html += '<div class="chapter-group"><div class="path-nodes">' +
+        '<div class="path-node path-unit-head" data-pos="center" data-is-waypoint><div class="path-section-header liquid-glass">' +
         "<h3>Unit " + u.position + " · " + esc(u.title) + "</h3>" +
-        "<p>" + (u.total ? u.completed + " / " + u.total + " lessons complete" : "No lessons yet") + "</p></div></div>";
+        "<p>" + (u.total ? u.completed + " / " + u.total + '<span class="unit-count-label"> lessons complete</span>' : "No lessons yet") + "</p></div></div>";
       u.lessons.forEach(function (l) {
         var tip = "";
         if (l.state !== "locked") {
@@ -261,7 +335,7 @@
           tip = '<div class="milestone-tooltip liquid-glass"><div class="tip-title">' + esc(l.title) + '</div><div class="tip-sub">' + sub + "</div></div>";
         }
         html += '<div class="path-node" data-pos="' + POSITIONS[n++ % POSITIONS.length] + '" data-is-waypoint>' +
-          '<div class="milestone ' + l.state + '" id="ms-' + l.id + '" role="button" tabindex="0" data-lesson="' + l.id + '"' + (l.playable ? ' data-playable="1"' : "") + ">" +
+          '<div class="milestone ' + l.state + '" id="ms-' + l.id + '" role="button" tabindex="0" data-lesson="' + l.id + '" data-kind="' + esc(l.kind) + '"' + (l.playable ? ' data-playable="1"' : "") + ">" +
           tip + '<div class="milestone-circle liquid-glass">' + lessonIcon(l) + "</div>" +
           '<div class="milestone-label">' + esc(l.title) + "</div></div></div>";
       });
@@ -380,14 +454,17 @@
   }
 
   /** Opens a lesson in the editor. Offline, every open lesson shows the sample quest. */
+  /** Quizzes and exams open in quiz.html, everything else in the editor. */
+  function lessonPage(kind) { return kind === "quiz" || kind === "exam" ? "quiz.html" : "editor.html"; }
+
   function openLesson(ms) {
-    if (!online) { window.location.href = "editor.html"; return; }
+    if (!online) { window.location.href = lessonPage(ms.dataset.kind); return; } // static demo: sample quest / sample quiz
     if (!ms.dataset.playable) {
       if (mascot) mascot.say("This lesson isn't ready yet. Keep going on the current one and I'll let you know.", { mood: "sad" });
       else toast("This lesson isn't ready yet");
       return;
     }
-    window.location.href = "editor.html?lesson=" + encodeURIComponent(ms.dataset.lesson);
+    window.location.href = lessonPage(ms.dataset.kind) + "?lesson=" + encodeURIComponent(ms.dataset.lesson);
   }
 
   /* ===============================================================
@@ -542,6 +619,8 @@
     var firstLockedIdx = -1;
     var unitColors = [];
 
+    // On phones the unit headers stick to the top while scrolling; measure them where they live.
+    container.classList.add("measuring");
     allWaypoints.forEach(function (node) {
       var target = node.querySelector(".milestone-circle") || node.querySelector(".path-section-header");
       if (!target) return;
@@ -561,6 +640,7 @@
         }
       }
     });
+    container.classList.remove("measuring");
 
     if (points.length < 2) return;
     while (svg.firstChild) svg.removeChild(svg.firstChild);
@@ -724,12 +804,7 @@
         return;
       }
       if (window.CodleData) window.CodleData.activeCourse = courseId;
-
-      document.querySelectorAll(".course-view").forEach(function (el) {
-        var isActive = el.id === "course-view-" + courseId;
-        el.classList.toggle("active", isActive);
-        el.style.display = isActive ? "" : "none";
-      });
+      renderPath(demoPath(courseId));
 
       var container = $("path-container");
       if (container) delete container.dataset.animated;
@@ -737,6 +812,73 @@
       hydrateApp();
       drawAndAnimate();
       updateUnitAccent();
+    });
+  }
+
+  /* Phones: the chip in the top bar opens a sheet with the same courses as the dropdown.
+     Picking one just changes the dropdown, so both paths above stay the only switch logic. */
+  var COURSE_ABBR = { html: "HTML", css: "CSS", javascript: "JS", php: "PHP" };
+  var courseSheet = $("course-sheet");
+  var courseChip = $("course-chip");
+
+  function courseRows() {
+    var data = window.CodleData || {};
+    var activeLabel = ($("ui-course-label") || {}).textContent || "";
+    if (online && data.courses) {
+      return data.courses.map(function (c) {
+        return { slug: c.slug, name: c.name, sub: c.slug === data.activeCourse ? activeLabel : c.enrolled ? "Enrolled" : "Not started yet" };
+      });
+    }
+    var cur = window.CodleCurriculum || {};
+    return Object.keys(cur).map(function (slug) {
+      var p = data.progress && data.progress[slug];
+      var unit = p && cur[slug].units[p.currentUnit - 1];
+      return { slug: slug, name: cur[slug].name, sub: unit ? "Unit " + p.currentUnit + " — " + unit.title : "Not started yet" };
+    });
+  }
+
+  function openCourseSheet() {
+    var list = $("course-sheet-list");
+    if (!courseSheet || !list) return;
+    var active = (window.CodleData && window.CodleData.activeCourse) || (courseSelector && courseSelector.value);
+    list.innerHTML = courseRows().map(function (c) {
+      return '<button type="button" class="sheet-row' + (c.slug === active ? " is-active" : "") + '" data-course="' + esc(c.slug) + '"' +
+        (c.slug === active ? ' aria-current="true"' : "") + ">" +
+        '<span class="sheet-row-mark" aria-hidden="true">' + esc(COURSE_ABBR[c.slug] || c.name.slice(0, 2).toUpperCase()) + "</span>" +
+        '<span class="sheet-row-body"><b>' + esc(c.name) + "</b><small>" + esc(c.sub) + "</small></span>" +
+        '<svg class="sheet-row-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>' +
+        "</button>";
+    }).join("");
+    courseSheet.classList.remove("closing");
+    courseSheet.hidden = false;
+    var card = courseSheet.querySelector(".sheet-card");
+    if (card) card.focus({ preventScroll: true });
+  }
+
+  function closeCourseSheet() {
+    if (!courseSheet || courseSheet.hidden) return;
+    if (calmMotion()) { courseSheet.hidden = true; }
+    else {
+      courseSheet.classList.add("closing");
+      setTimeout(function () { courseSheet.hidden = true; courseSheet.classList.remove("closing"); }, 260);
+    }
+    if (courseChip) courseChip.focus();
+  }
+
+  if (courseChip && courseSheet) {
+    courseChip.addEventListener("click", openCourseSheet);
+    courseSheet.addEventListener("click", function (e) {
+      if (e.target.closest("[data-sheet-close]")) { closeCourseSheet(); return; }
+      var row = e.target.closest(".sheet-row");
+      if (!row || !courseSelector) return;
+      if (courseSelector.value !== row.getAttribute("data-course")) {
+        courseSelector.value = row.getAttribute("data-course");
+        courseSelector.dispatchEvent(new Event("change", { bubbles: true }));
+      }
+      closeCourseSheet();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !courseSheet.hidden) closeCourseSheet();
     });
   }
 
@@ -938,7 +1080,14 @@
   var session = api ? api.ready : Promise.resolve({ online: false });
 
   session.then(function (s) {
-    if (!s.online) { pageLoaded.then(start); return; } // static demo
+    if (!s.online) { // static demo
+      pageLoaded.then(function () {
+        var demo = window.CodleData;
+        if (demo) renderPath(demoPath(demo.activeCourse));
+        start();
+      });
+      return;
+    }
     if (!s.user) { window.location.replace("register.html"); return; }
     online = true;
     Promise.all([api.get("app"), pageLoaded]).then(function (res) {

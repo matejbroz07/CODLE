@@ -64,6 +64,8 @@ $ROUTES = [
     'GET lessons/{id}'           => 'route_lesson_get',
     'PUT lessons/{id}/save'      => 'route_lesson_save',
     'POST lessons/{id}/check'    => 'route_lesson_check',
+    'GET lessons/{id}/quiz'      => 'route_quiz_get',
+    'POST lessons/{id}/quiz'     => 'route_quiz_submit',
 
     'GET wordle'                 => 'route_wordle_get',
     'POST wordle/guess'          => 'route_wordle_guess',
