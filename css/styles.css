@@ -606,6 +606,100 @@
 /* ===== MOBILE HEADER (only on small screens) ===== */
 .mobile-header { display: none; }
 
+/* ===== BOTTOM SHEET (course switcher on phones, opened from the course chip) =====
+   The page is not given overflow: hidden while the sheet is open: that would turn <html>
+   into the scroll container and unstick the top bar and unit headers behind the scrim.
+   The sheet swallows touches instead, so the page cannot scroll under it. */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 75; /* above the bottom nav (50), under the toast (80) */
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  touch-action: none;
+}
+.sheet[hidden] { display: none; }
+.sheet-scrim { position: absolute; inset: 0; background: rgba(0,0,0,.55); animation: sheet-fade .25s ease both; }
+.sheet-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 8px calc(env(safe-area-inset-bottom, 0px) + 8px);
+  padding: 10px 10px 10px;
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(40,43,52,.97), rgba(22,24,30,.97));
+  box-shadow: var(--lg-shadow), inset 0 0 0 1px rgba(255,255,255,.08);
+  animation: sheet-up .5s var(--lg-spring) both;
+}
+.sheet.closing .sheet-scrim { animation: sheet-fade .2s ease reverse both; }
+.sheet.closing .sheet-card { animation: sheet-down .25s ease both; }
+@keyframes sheet-fade { from { opacity: 0; } }
+@keyframes sheet-up { from { transform: translateY(110%); } }
+@keyframes sheet-down { to { transform: translateY(110%); } }
+.sheet-card:focus { outline: none; } /* focus lands on the card when it opens; rows and the scrim take it from there */
+.sheet-handle { width: 36px; height: 5px; margin: 0 auto 10px; border-radius: 999px; background: rgba(255,255,255,.22); }
+.sheet-card h3 {
+  margin: 4px 14px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: var(--ink-dim);
+}
+.sheet-list { display: flex; flex-direction: column; }
+.sheet-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 62px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 18px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.sheet-row:active { background: rgba(255,255,255,.08); }
+/* iOS-style hairline between rows, starting after the tile */
+.sheet-row + .sheet-row::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 68px;
+  right: 14px;
+  height: 1px;
+  background: rgba(255,255,255,.07);
+}
+.sheet-row-mark {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(255,255,255,.09);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: var(--ink);
+  transition: background .6s ease;
+}
+.sheet-row.is-active .sheet-row-mark { background: var(--unit-accent, var(--accent)); color: #fff; }
+.sheet-row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.sheet-row-body b { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
+.sheet-row-body small { font-size: 13px; color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet-row-check { flex: none; width: 22px; height: 22px; color: var(--unit-accent, var(--accent)); opacity: 0; }
+.sheet-row.is-active .sheet-row-check { opacity: 1; }
+html.lite .sheet-card { background: #1f2127; }
+
 /* ===== RESPONSIVE — TABLET ===== */
 @media (max-width: 1100px) {
   .app-layout { grid-template-columns: minmax(0, 1fr); }
@@ -626,36 +720,81 @@
   }
   .navbar-top { display: none; }
   .navbar-bottom { display: block; }
-  .app-layout { padding: 12px 16px 110px; gap: 0; }
+  /* Status bar sits on top of the page when Codle runs from the home screen */
+  .app-layout { padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 110px; gap: 0; }
   .milestone-tooltip { display: none; }
 
   .mobile-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     position: sticky;
-    top: 10px;
+    top: calc(env(safe-area-inset-top, 0px) + 10px);
     z-index: 45;
-    margin: 0 0 20px;
-    padding: 8px 10px 8px 16px;
+    margin: 0 0 16px;
+    padding: 8px 10px;
     border-radius: var(--lg-radius-pill);
     min-height: 56px;
   }
-  .mobile-header img { height: 32px; width: auto; flex-shrink: 0; }
-  .mobile-stats { display: flex; gap: 10px; align-items: center; min-width: 0; }
+  /* Course chip: the name of the course on screen, tinted like the unit on screen; opens the course sheet */
+  .course-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    min-height: 40px;
+    padding: 0 8px 0 14px;
+    border: none;
+    border-radius: var(--lg-radius-pill);
+    background: color-mix(in srgb, var(--unit-accent, var(--accent)) 24%, rgba(255,255,255,.04));
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unit-accent, var(--accent)) 35%, transparent);
+    color: #fff;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    cursor: pointer;
+    transition: background .6s ease, box-shadow .6s ease, transform .3s var(--lg-spring);
+  }
+  .course-chip svg { width: 16px; height: 16px; opacity: .75; }
+  .course-chip:active { transform: scale(.95); }
+  .mobile-stats { display: flex; gap: 8px; align-items: center; min-width: 0; }
   .mobile-stat { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; min-width: 0; font-variant-numeric: tabular-nums; }
   .mobile-stat svg { width: 18px; height: 18px; flex-shrink: 0; }
   .mobile-stat span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .mobile-stat.inactive { color: var(--ink-dim); }
   .mobile-stat.inactive svg { filter: grayscale(1) opacity(.5); }
-  .mobile-header .nav-profile { width: 32px; height: 32px; }
+  .mobile-header .nav-profile { width: 34px; height: 34px; margin-left: 2px; }
 
   .path-nodes { gap: 44px; }
   .path-node[data-pos="left-far"] > *  { transform: translateX(-90px); }
   .path-node[data-pos="left"] > *      { transform: translateX(-50px); }
   .path-node[data-pos="right"] > *     { transform: translateX(50px); }
   .path-node[data-pos="right-far"] > * { transform: translateX(90px); }
+
+  /* Unit header becomes a full-width bar that sticks under the top bar while its
+     lessons scroll past, like a section header in a native list. The bar is tinted
+     with the unit colour so the colour of the path is always on screen. */
+  .path-unit-head { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 74px); z-index: 3; }
+  .path-container.measuring .path-unit-head { position: static; } /* app.js measures the trail with the bars unstuck */
+  .path-unit-head .path-section-header {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 11px 16px 11px 18px;
+    text-align: left;
+    border-radius: 20px;
+    --lg-blur: 18px;
+    background: linear-gradient(145deg,
+      color-mix(in srgb, var(--chapter-accent) 36%, rgba(255,255,255,.10)),
+      color-mix(in srgb, var(--chapter-accent) 16%, rgba(255,255,255,.03)) 55%,
+      color-mix(in srgb, var(--chapter-accent) 24%, rgba(255,255,255,.05)));
+  }
+  .path-unit-head .path-section-header h3 { font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .path-unit-head .path-section-header p { margin: 0; flex: none; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .path-unit-head .unit-count-label { display: none; }
 
   /* Centre nodes have no room for a side label on a phone: put it underneath */
   .path-node[data-pos="center"] .milestone-label {
@@ -668,7 +807,23 @@
   .milestone-label { font-size: 14px; }
   .milestone-circle .ms-icon { width: 26px; height: 26px; }
   .milestone.current .milestone-circle .ms-icon { width: 30px; height: 30px; }
-  .empty-view { padding-bottom: 120px; min-height: 70vh; }
+  .milestone-start-btn { min-height: 40px; padding: 10px 24px; }
+  .empty-view { padding-top: calc(env(safe-area-inset-top, 0px) + 60px); padding-bottom: 120px; min-height: 70vh; }
+  .bottom-nav-item svg { transition: transform .3s var(--lg-spring); }
+}
+
+/* ===== TOUCH SCREENS =====
+   No pointer to hover with: a hover state would stick to whatever was tapped last.
+   Pressing shrinks the thing under the finger instead. */
+@media (hover: none) {
+  .milestone:hover .milestone-circle, .nav-profile:hover, .profile-avatar:hover, .milestone-start-btn:hover { transform: none; }
+  .milestone:hover .milestone-circle { box-shadow: var(--lg-shadow); }
+  .navbar-tab:hover { color: var(--ink-dim); }
+  .milestone:not(.locked):active .milestone-circle { transform: scale(.92); transition-duration: .12s; }
+  .milestone-start-btn:active { transform: scale(.95); }
+  .bottom-nav-item:active svg { transform: scale(.82); }
+  .nav-profile:active { transform: scale(.92); }
+  .leaderboard-item[data-user]:active { background: rgba(255,255,255,.08); }
 }
 
 /* ===== LITE MODE (see base.css) =====
@@ -699,4 +854,11 @@ html.lite .view-veil { transition-duration: .15s; }
 
 @media (max-width: 768px) {
   .practice-shell.online-view { padding-bottom: 120px; }
+  .lb-board { padding: 6px 14px; }
+  .lb-board .leaderboard-item { min-height: 58px; padding: 10px 0; gap: 12px; }
+  .lb-board .leaderboard-item .lb-name { font-size: 16px; }
+  .lb-board .leaderboard-item .lb-xp { font-size: 15px; }
+  .lb-board .leaderboard-item .lb-avatar { width: 38px; height: 38px; }
+  .lb-board .leaderboard-item .rank { width: 24px; font-size: 15px; }
+  .lb-board .leaderboard-item.you-row { margin: 0 -6px; padding: 10px 6px; }
 }

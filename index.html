@@ -2,25 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
   <!-- SEO -->
   <title>Codle — Learn to Code Interactively</title>
-  <meta name="description" content="Master Python step by step with Codle's interactive learning path. Track your progress, earn XP, and level up your coding skills.">
-  <meta name="keywords" content="learn to code, python, coding, programming, interactive learning, tutorials">
+  <meta name="description" content="Learn HTML, CSS and JavaScript step by step with Codle's interactive learning path. Track your progress, earn XP, and level up your coding skills.">
+  <meta name="keywords" content="learn to code, html, css, javascript, web development, interactive learning, tutorials">
   <meta name="author" content="Codle">
   <meta name="robots" content="index, follow">
 
   <!-- Open Graph -->
   <meta property="og:title" content="Codle — Learn to Code Interactively">
-  <meta property="og:description" content="Master Python step by step with Codle's interactive learning path. Track your progress, earn XP, and level up your coding skills.">
+  <meta property="og:description" content="Learn HTML, CSS and JavaScript step by step with Codle's interactive learning path. Track your progress, earn XP, and level up your coding skills.">
   <meta property="og:type" content="website">
   <meta property="og:image" content="https://matejbroz07.github.io/CODLE/assets/logo.png">
 
   <!-- Twitter Card -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Codle — Learn to Code Interactively">
-  <meta name="twitter:description" content="Master Python step by step with interactive lessons, XP rewards, and a gamified learning path.">
+  <meta name="twitter:description" content="Learn HTML, CSS and JavaScript step by step with interactive lessons, XP rewards, and a gamified learning path.">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="assets/logo.png">
@@ -28,6 +28,13 @@
 
   <!-- Theme Color -->
   <meta name="theme-color" content="#08090c">
+
+  <!-- Installable: "Add to Home Screen" opens Codle full screen, without the browser chrome -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Codle">
 
   <!-- Stylesheets -->
   <!-- Picks full or lite visual effects before first paint (slow devices) -->
@@ -77,9 +84,12 @@
 <!-- ===== MAIN LAYOUT ===== -->
 <div class="app-layout page-view active" id="view-learn" role="tabpanel" aria-labelledby="tab-learn">
 
-  <!-- Mobile Header -->
+  <!-- Mobile Header: the course chip opens the course sheet (#course-sheet), stats on the right -->
   <div class="mobile-header liquid-glass liquid-glass--bar">
-    <img src="assets/logo.png" alt="Codle" width="57" height="32">
+    <button class="course-chip" type="button" id="course-chip" aria-haspopup="dialog" aria-controls="course-sheet">
+      <span id="ui-course-chip">HTML</span>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+    </button>
     <div class="mobile-stats">
       <div class="mobile-stat" id="ui-streak-stat-mobile">
         <svg id="ui-fire-mobile" viewBox="0 0 100 100" aria-label="Fire streak icon" style="width: 32px; height: 32px; transform: scaleX(1.8) scaleY(1.4); transform-origin: bottom center; margin-top: 0px;">
@@ -178,12 +188,13 @@
       </div>
       <div class="course-select-wrapper">
         <select id="course-selector" class="course-dropdown">
-          <option value="python" selected>Python</option>
+          <option value="html" selected>HTML</option>
+          <option value="css">CSS</option>
           <option value="javascript">JavaScript</option>
         </select>
         <svg class="course-select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
       </div>
-      <div class="stat-label" id="ui-course-label">Unit 2 — Functions</div>
+      <div class="stat-label" id="ui-course-label">Unit 2 — Text &amp; Links</div>
     </div>
   </aside>
 
@@ -191,318 +202,7 @@
   <main class="path-container" id="path-container">
     <svg id="path-svg" aria-hidden="true"></svg>
     <div class="path-nodes" id="path-nodes">
-
-      <!-- ================= PYTHON COURSE ================= -->
-      <div id="course-view-python" class="course-view active">
-
-      <!-- ========== UNIT 1 — CYAN (Fully Completed) ========== -->
-      <div class="chapter-group">
-        <div class="path-nodes" style="gap:64px;">
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="path-section-header liquid-glass">
-              <h3>Unit 1 · Variables &amp; Types</h3>
-              <p>8 / 8 lessons complete</p>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left" data-is-waypoint>
-            <div class="milestone completed" id="ms-hello-world" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Hello World</div><div class="tip-sub">+50 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
-              <div class="milestone-label">Hello World</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right" data-is-waypoint>
-            <div class="milestone completed" id="ms-variables" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Variables</div><div class="tip-sub">+50 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
-              <div class="milestone-label">Variables</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left-far" data-is-waypoint>
-            <div class="milestone completed" id="ms-data-types" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Data Types</div><div class="tip-sub">+75 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
-              <div class="milestone-label">Data Types</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="milestone completed" id="ms-strings" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Strings</div><div class="tip-sub">+75 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 6H3"/><path d="M21 12H8"/><path d="M21 18H8"/><path d="M3 12v6"/></svg></div>
-              <div class="milestone-label">Strings</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right-far" data-is-waypoint>
-            <div class="milestone completed" id="ms-numbers" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Numbers</div><div class="tip-sub">+50 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></div>
-              <div class="milestone-label">Numbers</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left" data-is-waypoint>
-            <div class="milestone completed" id="ms-type-casting" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Type Casting</div><div class="tip-sub">+50 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></div>
-              <div class="milestone-label">Type Casting</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right" data-is-waypoint>
-            <div class="milestone completed" id="ms-boolean" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Boolean Logic</div><div class="tip-sub">+50 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
-              <div class="milestone-label">Boolean Logic</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="milestone completed" id="ms-unit1-quiz" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Unit 1 Quiz</div><div class="tip-sub">+100 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></div>
-              <div class="milestone-label">Unit 1 Quiz</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ========== UNIT 2 — PURPLE (Active) ========== -->
-      <div class="chapter-group">
-        <div class="path-nodes" style="gap:64px;">
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="path-section-header liquid-glass">
-              <h3>Unit 2 · Functions</h3>
-              <p>3 / 6 lessons complete</p>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left-far" data-is-waypoint>
-            <div class="milestone completed" id="ms-defining-functions" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Defining Functions</div><div class="tip-sub">+50 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
-              <div class="milestone-label">Defining Functions</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right" data-is-waypoint>
-            <div class="milestone completed" id="ms-parameters" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Parameters</div><div class="tip-sub">+50 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
-              <div class="milestone-label">Parameters</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left" data-is-waypoint>
-            <div class="milestone completed" id="ms-return-values" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Return Values</div><div class="tip-sub">+75 XP</div></div>
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/></svg></div>
-              <div class="milestone-label">Return Values</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right-far" data-is-waypoint>
-            <div class="milestone current" id="ms-scope" role="button" tabindex="0">
-              <div class="milestone-tooltip liquid-glass"><div class="tip-title">Scope</div><div class="tip-sub">40% complete</div></div>
-              <div class="milestone-circle liquid-glass">
-
-                <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-              </div>
-              <div class="milestone-label">Scope</div>
-
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="milestone locked" id="ms-lambda" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-              <div class="milestone-label">Lambda Functions</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left-far" data-is-waypoint>
-            <div class="milestone locked" id="ms-unit2-quiz" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></div>
-              <div class="milestone-label">Unit 2 Quiz</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ========== UNIT 3 — PINK (Locked) ========== -->
-      <div class="chapter-group">
-        <div class="path-nodes" style="gap:64px;">
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="path-section-header liquid-glass">
-              <h3>Unit 3 · Data Structures</h3>
-              <p>0 / 5 lessons complete</p>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right" data-is-waypoint>
-            <div class="milestone locked" id="ms-lists" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></div>
-              <div class="milestone-label">Lists</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left" data-is-waypoint>
-            <div class="milestone locked" id="ms-dicts" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
-              <div class="milestone-label">Dictionaries</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right-far" data-is-waypoint>
-            <div class="milestone locked" id="ms-sets" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg></div>
-              <div class="milestone-label">Sets</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="milestone locked" id="ms-tuples" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="14" width="18" height="4" rx="2" ry="2"/><rect x="3" y="6" width="18" height="4" rx="2" ry="2"/></svg></div>
-              <div class="milestone-label">Tuples</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left-far" data-is-waypoint>
-            <div class="milestone locked" id="ms-unit3-quiz" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg></div>
-              <div class="milestone-label">Unit 3 Quiz</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <!-- ========== UNIT 4 — GOLD (Locked) ========== -->
-      <div class="chapter-group">
-        <div class="path-nodes" style="gap:64px;">
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="path-section-header liquid-glass">
-              <h3>Unit 4 · Algorithms</h3>
-              <p>0 / 4 lessons complete</p>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right" data-is-waypoint>
-            <div class="milestone locked" id="ms-sorting" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></div>
-              <div class="milestone-label">Sorting</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="left-far" data-is-waypoint>
-            <div class="milestone locked" id="ms-searching" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
-              <div class="milestone-label">Searching</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="right-far" data-is-waypoint>
-            <div class="milestone locked" id="ms-recursion" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/><path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/></svg></div>
-              <div class="milestone-label">Recursion</div>
-            </div>
-          </div>
-
-          <div class="path-node" data-pos="center" data-is-waypoint>
-            <div class="milestone locked" id="ms-final-exam" role="button" tabindex="0">
-              <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
-              <div class="milestone-label">Final Exam</div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      </div> <!-- /course-view-python -->
-
-      <!-- ================= JAVASCRIPT COURSE ================= -->
-      <div id="course-view-javascript" class="course-view" style="display:none;">
-        
-        <!-- ========== UNIT 1 — CYAN (JS Basics) ========== -->
-        <div class="chapter-group">
-          <div class="path-nodes" style="gap:64px;">
-
-            <div class="path-node" data-pos="center" data-is-waypoint>
-              <div class="path-section-header liquid-glass">
-                <h3>Unit 1 · JS Basics</h3>
-                <p>2 / 3 lessons complete</p>
-              </div>
-            </div>
-
-            <div class="path-node" data-pos="left" data-is-waypoint>
-              <div class="milestone" role="button" tabindex="0">
-                <div class="milestone-tooltip liquid-glass"><div class="tip-title">Console Log</div><div class="tip-sub">+50 XP</div></div>
-                <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg></div>
-                <div class="milestone-label">Console Log</div>
-              </div>
-            </div>
-
-            <div class="path-node" data-pos="right" data-is-waypoint>
-              <div class="milestone" role="button" tabindex="0">
-                <div class="milestone-tooltip liquid-glass"><div class="tip-title">Variables (let/const)</div><div class="tip-sub">+50 XP</div></div>
-                <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
-                <div class="milestone-label">Variables</div>
-              </div>
-            </div>
-
-            <div class="path-node" data-pos="center" data-is-waypoint>
-              <div class="milestone" role="button" tabindex="0">
-                <div class="milestone-tooltip liquid-glass"><div class="tip-title">Data Types</div><div class="tip-sub">20% complete</div></div>
-                <div class="milestone-circle liquid-glass">
-                  <svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                </div>
-                <div class="milestone-label">Data Types</div>
-              </div>
-            </div>
-            
-          </div>
-        </div>
-
-        <!-- ========== UNIT 2 — PURPLE (Locked) ========== -->
-        <div class="chapter-group">
-          <div class="path-nodes" style="gap:64px;">
-
-            <div class="path-node" data-pos="center" data-is-waypoint>
-              <div class="path-section-header liquid-glass">
-                <h3>Unit 2 · Functions & Scope</h3>
-                <p>0 / 2 lessons complete</p>
-              </div>
-            </div>
-
-            <div class="path-node" data-pos="left-far" data-is-waypoint>
-              <div class="milestone" role="button" tabindex="0">
-                <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></div>
-                <div class="milestone-label">Arrow Functions</div>
-              </div>
-            </div>
-
-            <div class="path-node" data-pos="center" data-is-waypoint>
-              <div class="milestone" role="button" tabindex="0">
-                <div class="milestone-circle liquid-glass"><svg class="ms-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div>
-                <div class="milestone-label">Closures</div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-      </div> <!-- /course-view-javascript -->
-
+      <!-- Filled in by js/app.js: from the API when logged in, otherwise from js/curriculum.js + js/data.js. -->
     </div>
   </main>
 
@@ -558,7 +258,7 @@
         <svg class="badge-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
         <span>Next Badge</span>
       </div>
-      <div class="stat-value" id="ui-badge-name" style="font-size:16px">Pythonista I</div>
+      <div class="stat-value" id="ui-badge-name" style="font-size:16px">Markup Rookie</div>
       <div class="stat-label" id="ui-badge-label">Complete Unit 2</div>
       <div class="stat-bar-track"><div id="ui-badge-progress" class="stat-bar-fill" style="width:50%"></div></div>
     </div>
@@ -774,6 +474,16 @@
   </div>
 </nav>
 
+<!-- Course sheet (phones): slides up from the bottom when the course chip in the mobile header is tapped -->
+<div class="sheet" id="course-sheet" hidden>
+  <div class="sheet-scrim" data-sheet-close></div>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="course-sheet-title" tabindex="-1">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <h3 id="course-sheet-title">Course</h3>
+    <div class="sheet-list" id="course-sheet-list"></div>
+  </div>
+</div>
+
 <!-- Fades views in and out (see .view-veil) -->
 <div class="view-veil" id="view-veil" aria-hidden="true"></div>
 
@@ -784,6 +494,7 @@
 <script src="js/api.js"></script>
 <script src="js/mascot.js"></script>
 <script src="js/avatar.js"></script>
+<script src="js/curriculum.js"></script>
 <script src="js/data.js"></script>
 <script src="js/app.js"></script>
 <script src="js/profile.js"></script>

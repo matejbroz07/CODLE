@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>RUNNING</title>
+<style>body{font:13px monospace;background:#111;color:#eee}iframe{width:700px;height:500px;border:1px solid #444;display:block}</style>
+</head><body>
+<pre id="out"></pre>
+<div id="frames"></div>
+<script>
+// Runs every quest's checks twice: against the starter (must NOT all pass) and the solution (must all pass).
+// Same prelude as js/editor.js, so what passes here passes in the editor. Each line is also posted to save.php.
+function prelude() {
+  var runId = window.__CODLE_RUN__;
+  var logs = window.__codleLogs = [];
+  var send = function (type, extra) { try { parent.postMessage(Object.assign({ __codle: 1, run: runId, type: type }, extra || {}), "*"); } catch (e) {} };
+  var fmt = function (v) {
+    if (typeof v === "string") return v;
+    if (v instanceof Error) return v.name + ": " + v.message;
+    try { return JSON.stringify(v); } catch (e) { return String(v); }
+  };
+  ["log", "info", "warn", "error"].forEach(function (m) {
+    var orig = console[m];
+    console[m] = function () {
+      var args = Array.prototype.map.call(arguments, fmt);
+      if (m === "log" || m === "info") logs.push(args.join(" "));
+      if (orig) orig.apply(console, arguments);
+    };
+  });
+  window.addEventListener("error", function (e) { send("error", { msg: e.message }); });
+  window.addEventListener("load", function () { send("ready"); });
+  window.addEventListener("message", function (e) {
+    if (!e.data || e.data.__codle !== "check") return;
+    var results = window.__CODLE_CHECKS__.map(function (src) {
+      try { return !!new Function("doc", src)(document); } catch (err) { return "ERR " + err.message; }
+    });
+    send("check", { results: results });
+  });
+}
+var runId = 0;
+function build(files, checks, id) {
+  var pre = "window.__CODLE_RUN__=" + id + ";window.__CODLE_CHECKS__=" + JSON.stringify(checks).replace(/</g, "\\u003c") + ";(" + prelude.toString() + ")();";
+  return "<!DOCTYPE html><html><head><meta charset=\"utf-8\"><script>" + pre + "<\/script>" +
+    "<style>" + files.css.replace(/<\/style/gi, "<\\/style") + "</style></head><body>" + files.html +
+    "<script>" + files.js.replace(/<\/script/gi, "<\\/script") + "\n<\/script></body></html>";
+}
+function runOne(files, checks) {
+  return new Promise(function (resolve) {
+    var id = ++runId;
+    var f = document.createElement("iframe");
+    f.sandbox = "allow-scripts allow-modals";
+    var errors = [], done = false;
+    function finish(r) { if (done) return; done = true; window.removeEventListener("message", onMsg); f.remove(); resolve({ results: r, errors: errors }); }
+    function onMsg(e) {
+      if (!e.data || e.data.__codle !== 1 || e.data.run !== id) return;
+      if (e.data.type === "error") errors.push(e.data.msg);
+      if (e.data.type === "ready") setTimeout(function () { f.contentWindow.postMessage({ __codle: "check" }, "*"); }, 700);
+      if (e.data.type === "check") finish(e.data.results);
+    }
+    window.addEventListener("message", onMsg);
+    setTimeout(function () { finish(["TIMEOUT"]); }, 5000);
+    document.getElementById("frames").appendChild(f);
+    f.srcdoc = build(files, checks, id);
+  });
+}
+var outEl = document.getElementById("out");
+function save(line) { outEl.textContent += line + "\n"; return fetch("save.php", { method: "POST", body: line }).catch(function () {}); }
+window.addEventListener("error", function (e) { save("PAGE ERROR " + e.message); });
+window.addEventListener("unhandledrejection", function (e) { save("REJECTION " + (e.reason && e.reason.message)); });
+(async function () {
+  var data = await (await fetch("../content.json")).json();
+  await save("START " + data.quests.length);
+  var bad = 0;
+  for (var q of data.quests) {
+    var s = await runOne(q.starter, q.checks);
+    var sol = await runOne(q.solution, q.checks);
+    var starterAllPass = s.results.every(function (r) { return r === true; });
+    var solutionAllPass = sol.results.every(function (r) { return r === true; });
+    var ok = !starterAllPass && solutionAllPass;
+    if (!ok) bad++;
+    await save((ok ? "ok   " : "FAIL ") + q.id + "  starter=" + JSON.stringify(s.results) + "  solution=" + JSON.stringify(sol.results) +
+      (s.errors.length ? "  starterErrors=" + JSON.stringify(s.errors) : "") + (sol.errors.length ? "  solutionErrors=" + JSON.stringify(sol.errors) : ""));
+  }
+  await save("DONE " + data.quests.length + " quests, " + bad + " failing");
+  document.title = "DONE";
+})();
+</script>
+</body></html>
+
+

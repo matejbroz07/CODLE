@@ -1,6 +1,6 @@
 -- =============================================================
 --  Codle — development seed data
---  Generated from index.html (learning path) and js/wordle-words.js.
+--  Generated from js/curriculum.js (learning path) and js/wordle-words.js.
 --  Run after schema.sql. Contains no personal data.
 -- =============================================================
 
@@ -8,66 +8,194 @@ SET NAMES utf8mb4;
 USE codle;
 
 INSERT INTO courses (slug, name, is_published, sort_order) VALUES
-  ('python', 'Python', 1, 1),
-  ('javascript', 'JavaScript', 1, 2),
-  ('html', 'HTML', 0, 3),
-  ('css', 'CSS', 0, 4),
-  ('php', 'PHP', 0, 5);
+  ('html', 'HTML', 1, 1),
+  ('css', 'CSS', 1, 2),
+  ('javascript', 'JavaScript', 1, 3),
+  ('php', 'PHP', 0, 4);
 
-INSERT INTO units (course_id, position, title) SELECT id, 1, 'Variables & Types' FROM courses WHERE slug = 'python';
+-- HTML
+INSERT INTO units (course_id, position, title) SELECT id, 1, 'First Page' FROM courses WHERE slug = 'html';
 SET @unit = LAST_INSERT_ID();
 INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
-  (@unit, 1, 'hello-world', 'Hello World', 'lesson', 20),
-  (@unit, 2, 'variables', 'Variables', 'lesson', 20),
-  (@unit, 3, 'data-types', 'Data Types', 'lesson', 20),
-  (@unit, 4, 'strings', 'Strings', 'lesson', 20),
-  (@unit, 5, 'numbers', 'Numbers', 'lesson', 20),
-  (@unit, 6, 'type-casting', 'Type Casting', 'lesson', 20),
-  (@unit, 7, 'boolean-logic', 'Boolean Logic', 'lesson', 20),
-  (@unit, 8, 'unit-1-quiz', 'Unit 1 Quiz', 'quiz', 50);
+  (@unit, 1, 'hello-html', 'Your First Page', 'lesson', 20),
+  (@unit, 2, 'headings', 'Headings', 'lesson', 20),
+  (@unit, 3, 'paragraphs', 'Paragraphs', 'lesson', 20),
+  (@unit, 4, 'comments', 'Comments', 'lesson', 20),
+  (@unit, 5, 'unit-1-quiz', 'Unit 1 Quiz', 'quiz', 50);
 
-INSERT INTO units (course_id, position, title) SELECT id, 2, 'Functions' FROM courses WHERE slug = 'python';
+INSERT INTO units (course_id, position, title) SELECT id, 2, 'Text & Links' FROM courses WHERE slug = 'html';
 SET @unit = LAST_INSERT_ID();
 INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
-  (@unit, 1, 'defining-functions', 'Defining Functions', 'lesson', 20),
-  (@unit, 2, 'parameters', 'Parameters', 'lesson', 20),
-  (@unit, 3, 'return-values', 'Return Values', 'lesson', 20),
-  (@unit, 4, 'scope', 'Scope', 'lesson', 20),
-  (@unit, 5, 'lambda-functions', 'Lambda Functions', 'lesson', 20),
-  (@unit, 6, 'unit-2-quiz', 'Unit 2 Quiz', 'quiz', 50);
+  (@unit, 1, 'links', 'Links', 'lesson', 20),
+  (@unit, 2, 'lists', 'Lists', 'lesson', 20),
+  (@unit, 3, 'emphasis', 'Bold & Italic', 'lesson', 20),
+  (@unit, 4, 'line-breaks', 'Line Breaks & Rules', 'lesson', 20),
+  (@unit, 5, 'unit-2-quiz', 'Unit 2 Quiz', 'quiz', 50);
 
-INSERT INTO units (course_id, position, title) SELECT id, 3, 'Data Structures' FROM courses WHERE slug = 'python';
+INSERT INTO units (course_id, position, title) SELECT id, 3, 'Images & Media' FROM courses WHERE slug = 'html';
 SET @unit = LAST_INSERT_ID();
 INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
-  (@unit, 1, 'lists', 'Lists', 'lesson', 20),
-  (@unit, 2, 'dictionaries', 'Dictionaries', 'lesson', 20),
-  (@unit, 3, 'sets', 'Sets', 'lesson', 20),
-  (@unit, 4, 'tuples', 'Tuples', 'lesson', 20),
+  (@unit, 1, 'images', 'Images', 'lesson', 20),
+  (@unit, 2, 'alt-text', 'Alt Text', 'lesson', 20),
+  (@unit, 3, 'figures', 'Figures & Captions', 'lesson', 20),
+  (@unit, 4, 'audio-video', 'Audio & Video', 'lesson', 20),
   (@unit, 5, 'unit-3-quiz', 'Unit 3 Quiz', 'quiz', 50);
 
-INSERT INTO units (course_id, position, title) SELECT id, 4, 'Algorithms' FROM courses WHERE slug = 'python';
+INSERT INTO units (course_id, position, title) SELECT id, 4, 'Page Structure' FROM courses WHERE slug = 'html';
 SET @unit = LAST_INSERT_ID();
 INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
-  (@unit, 1, 'sorting', 'Sorting', 'lesson', 20),
-  (@unit, 2, 'searching', 'Searching', 'lesson', 20),
-  (@unit, 3, 'recursion', 'Recursion', 'lesson', 20),
-  (@unit, 4, 'final-exam', 'Final Exam', 'exam', 100);
+  (@unit, 1, 'document-structure', 'Head & Body', 'lesson', 20),
+  (@unit, 2, 'semantic-tags', 'Semantic Tags', 'lesson', 20),
+  (@unit, 3, 'header-footer', 'Header & Footer', 'lesson', 20),
+  (@unit, 4, 'navigation', 'Navigation', 'lesson', 20),
+  (@unit, 5, 'sections', 'Sections & Articles', 'lesson', 20),
+  (@unit, 6, 'unit-4-quiz', 'Unit 4 Quiz', 'quiz', 50);
 
+INSERT INTO units (course_id, position, title) SELECT id, 5, 'Tables & Forms' FROM courses WHERE slug = 'html';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'tables', 'Tables', 'lesson', 20),
+  (@unit, 2, 'table-headers', 'Table Headers', 'lesson', 20),
+  (@unit, 3, 'forms', 'Forms', 'lesson', 20),
+  (@unit, 4, 'inputs', 'Inputs', 'lesson', 20),
+  (@unit, 5, 'buttons-labels', 'Buttons & Labels', 'lesson', 20),
+  (@unit, 6, 'unit-5-quiz', 'Unit 5 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 6, 'Putting It Together' FROM courses WHERE slug = 'html';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'attributes', 'Attributes & IDs', 'lesson', 20),
+  (@unit, 2, 'classes', 'Classes', 'lesson', 20),
+  (@unit, 3, 'meta-tags', 'Meta Tags', 'lesson', 20),
+  (@unit, 4, 'accessibility', 'Accessibility', 'lesson', 20),
+  (@unit, 5, 'final-exam', 'Final Exam', 'exam', 100);
+
+-- CSS
+INSERT INTO units (course_id, position, title) SELECT id, 1, 'Selectors & Colors' FROM courses WHERE slug = 'css';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'hello-css', 'Your First Style', 'lesson', 20),
+  (@unit, 2, 'selectors', 'Selectors', 'lesson', 20),
+  (@unit, 3, 'colors', 'Colors', 'lesson', 20),
+  (@unit, 4, 'classes-ids', 'Classes & IDs', 'lesson', 20),
+  (@unit, 5, 'unit-1-quiz', 'Unit 1 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 2, 'Text & Fonts' FROM courses WHERE slug = 'css';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'fonts', 'Fonts', 'lesson', 20),
+  (@unit, 2, 'text-styling', 'Text Styling', 'lesson', 20),
+  (@unit, 3, 'text-spacing', 'Alignment & Spacing', 'lesson', 20),
+  (@unit, 4, 'web-fonts', 'Web Fonts', 'lesson', 20),
+  (@unit, 5, 'unit-2-quiz', 'Unit 2 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 3, 'The Box Model' FROM courses WHERE slug = 'css';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'box-model', 'The Box Model', 'lesson', 20),
+  (@unit, 2, 'padding-margin', 'Padding & Margin', 'lesson', 20),
+  (@unit, 3, 'borders', 'Borders', 'lesson', 20),
+  (@unit, 4, 'width-height', 'Width & Height', 'lesson', 20),
+  (@unit, 5, 'unit-3-quiz', 'Unit 3 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 4, 'Layout' FROM courses WHERE slug = 'css';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'display', 'Display', 'lesson', 20),
+  (@unit, 2, 'flexbox', 'Flexbox', 'lesson', 20),
+  (@unit, 3, 'flex-alignment', 'Flex Alignment', 'lesson', 20),
+  (@unit, 4, 'grid', 'Grid', 'lesson', 20),
+  (@unit, 5, 'positioning', 'Positioning', 'lesson', 20),
+  (@unit, 6, 'unit-4-quiz', 'Unit 4 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 5, 'Responsive Design' FROM courses WHERE slug = 'css';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'units', 'Units', 'lesson', 20),
+  (@unit, 2, 'media-queries', 'Media Queries', 'lesson', 20),
+  (@unit, 3, 'mobile-first', 'Mobile First', 'lesson', 20),
+  (@unit, 4, 'responsive-images', 'Responsive Images', 'lesson', 20),
+  (@unit, 5, 'unit-5-quiz', 'Unit 5 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 6, 'Effects & Polish' FROM courses WHERE slug = 'css';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'transitions', 'Transitions', 'lesson', 20),
+  (@unit, 2, 'transforms', 'Transforms', 'lesson', 20),
+  (@unit, 3, 'animations', 'Animations', 'lesson', 20),
+  (@unit, 4, 'css-variables', 'CSS Variables', 'lesson', 20),
+  (@unit, 5, 'final-exam', 'Final Exam', 'exam', 100);
+
+-- JavaScript
 INSERT INTO units (course_id, position, title) SELECT id, 1, 'JS Basics' FROM courses WHERE slug = 'javascript';
 SET @unit = LAST_INSERT_ID();
 INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
   (@unit, 1, 'console-log', 'Console Log', 'lesson', 20),
   (@unit, 2, 'variables', 'Variables', 'lesson', 20),
-  (@unit, 3, 'data-types', 'Data Types', 'lesson', 20);
+  (@unit, 3, 'data-types', 'Data Types', 'lesson', 20),
+  (@unit, 4, 'operators', 'Operators', 'lesson', 20),
+  (@unit, 5, 'strings', 'Strings', 'lesson', 20),
+  (@unit, 6, 'unit-1-quiz', 'Unit 1 Quiz', 'quiz', 50);
 
 INSERT INTO units (course_id, position, title) SELECT id, 2, 'Functions & Scope' FROM courses WHERE slug = 'javascript';
 SET @unit = LAST_INSERT_ID();
 INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
-  (@unit, 1, 'arrow-functions', 'Arrow Functions', 'lesson', 20),
-  (@unit, 2, 'closures', 'Closures', 'lesson', 20);
+  (@unit, 1, 'functions', 'Functions', 'lesson', 20),
+  (@unit, 2, 'parameters', 'Parameters & Returns', 'lesson', 20),
+  (@unit, 3, 'scope', 'Scope', 'lesson', 20),
+  (@unit, 4, 'arrow-functions', 'Arrow Functions', 'lesson', 20),
+  (@unit, 5, 'closures', 'Closures', 'lesson', 20),
+  (@unit, 6, 'unit-2-quiz', 'Unit 2 Quiz', 'quiz', 50);
 
+INSERT INTO units (course_id, position, title) SELECT id, 3, 'Control Flow' FROM courses WHERE slug = 'javascript';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'if-else', 'If & Else', 'lesson', 20),
+  (@unit, 2, 'comparisons', 'Comparisons', 'lesson', 20),
+  (@unit, 3, 'boolean-logic', 'Boolean Logic', 'lesson', 20),
+  (@unit, 4, 'for-loops', 'For Loops', 'lesson', 20),
+  (@unit, 5, 'while-loops', 'While Loops', 'lesson', 20),
+  (@unit, 6, 'unit-3-quiz', 'Unit 3 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 4, 'Arrays & Objects' FROM courses WHERE slug = 'javascript';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'arrays', 'Arrays', 'lesson', 20),
+  (@unit, 2, 'array-methods', 'Array Methods', 'lesson', 20),
+  (@unit, 3, 'objects', 'Objects', 'lesson', 20),
+  (@unit, 4, 'json', 'JSON', 'lesson', 20),
+  (@unit, 5, 'unit-4-quiz', 'Unit 4 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 5, 'The DOM' FROM courses WHERE slug = 'javascript';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'selecting-elements', 'Selecting Elements', 'lesson', 20),
+  (@unit, 2, 'changing-content', 'Changing Content', 'lesson', 20),
+  (@unit, 3, 'styles-classes', 'Styles & Classes', 'lesson', 20),
+  (@unit, 4, 'events', 'Events', 'lesson', 20),
+  (@unit, 5, 'creating-elements', 'Creating Elements', 'lesson', 20),
+  (@unit, 6, 'unit-5-quiz', 'Unit 5 Quiz', 'quiz', 50);
+
+INSERT INTO units (course_id, position, title) SELECT id, 6, 'Modern JS' FROM courses WHERE slug = 'javascript';
+SET @unit = LAST_INSERT_ID();
+INSERT INTO lessons (unit_id, position, slug, title, kind, xp_reward) VALUES
+  (@unit, 1, 'template-literals', 'Template Literals', 'lesson', 20),
+  (@unit, 2, 'destructuring', 'Destructuring', 'lesson', 20),
+  (@unit, 3, 'promises', 'Promises', 'lesson', 20),
+  (@unit, 4, 'fetch', 'Fetch', 'lesson', 20),
+  (@unit, 5, 'final-exam', 'Final Exam', 'exam', 100);
+
+-- Badges: one after units 2, 4 and 6 of every course
 INSERT INTO badges (slug, name, description, unit_id)
-SELECT 'pythonista-1', 'Pythonista I', 'Complete Unit 2', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'python' AND u.position = 2;
+SELECT 'html-1', 'Markup Rookie', 'Complete Unit 2', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'html' AND u.position = 2
+UNION ALL SELECT 'html-2', 'Page Builder', 'Complete Unit 4', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'html' AND u.position = 4
+UNION ALL SELECT 'html-3', 'HTML Master', 'Complete Unit 6', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'html' AND u.position = 6
+UNION ALL SELECT 'css-1', 'Stylist I', 'Complete Unit 2', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'css' AND u.position = 2
+UNION ALL SELECT 'css-2', 'Layout Pro', 'Complete Unit 4', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'css' AND u.position = 4
+UNION ALL SELECT 'css-3', 'CSS Master', 'Complete Unit 6', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'css' AND u.position = 6
+UNION ALL SELECT 'js-1', 'Scripter I', 'Complete Unit 2', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'javascript' AND u.position = 2
+UNION ALL SELECT 'js-2', 'DOM Wrangler', 'Complete Unit 4', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'javascript' AND u.position = 4
+UNION ALL SELECT 'js-3', 'JS Master', 'Complete Unit 6', u.id FROM units u JOIN courses c ON c.id = u.course_id WHERE c.slug = 'javascript' AND u.position = 6;
 
 INSERT INTO wordle_words (word, hint) VALUES
   ('ARRAY', 'An ordered collection of items stored at numbered positions.'),

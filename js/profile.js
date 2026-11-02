@@ -2,8 +2,10 @@
  * Codle — Profile tab
  *
  * Fills #view-profile when the API is on (offline the static "Coming soon" stays):
- *   Overview  — level, stats, courses, badges
- *   Activity  — 26-week heatmap, XP by source, game stats, recent XP
+ *   Overview  — daily goal ring + last 7 days with the streak, courses (one segment
+ *               per lesson), badge shelf
+ *   Activity  — 26-week heatmap, XP by source, games (win-rate rings, Wordle
+ *               guesses), recent XP as a timeline grouped by day
  *   Settings  — picture (with a crop step), bio, visibility, username (password +
  *               cooldown), e-mail (code to the new address), password, daily goal,
  *               time zone, visual effects, devices, data export, delete account
@@ -57,7 +59,19 @@
     upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
     zoomOut: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>',
     zoomIn: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>',
-    flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>'
+    flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+    bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+    book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+    code: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
+    check: '<polyline points="20 6 9 17 4 12"/>',
+    grid: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    updown: '<polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/>',
+    story: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>'
+  };
+  var SOURCE_ICON = {
+    lesson: "book", quest: "code", quiz: "check", exam: "check", wordle: "grid",
+    older_younger: "updown", daily_story: "story", streak_bonus: "flame", badge: "medal", admin: "star"
   };
   function icon(name, cls) {
     return '<svg class="' + (cls || "pf-ic") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + I[name] + "</svg>";
@@ -219,7 +233,7 @@
     renderHero();
     $("pf-panel-overview").innerHTML = overviewHtml(state.profile);
     $("pf-panel-activity").innerHTML = activityHtml(state.profile);
-    animateBars($("pf-panel-overview"));
+    animateIn($("pf-panel-overview"));
     if (state.tab === "activity") revealHeatmap();
     if (!state.settingsBuilt) {
       if (state.tab === "settings") renderSettings();
@@ -247,14 +261,17 @@
       : own ? '<p class="pf-bio pf-bio-empty"><button type="button" class="pf-link" data-act="edit-bio">Add a short bio</button> so others know what you are learning.</p>' : "";
     var meta = ['<li>' + icon("calendar") + "Joined " + esc(longDate(p.joinedAt)) + "</li>"];
     if (!p.private) {
+      if (p.xp != null) meta.push('<li>' + icon("bolt") + fmt(p.xp) + " XP</li>");
+      if (p.stats) meta.push('<li>' + icon("book") + fmt(p.stats.lessonsCompleted) + " lesson" + (p.stats.lessonsCompleted === 1 ? "" : "s") + "</li>");
       if (p.stats) meta.push('<li>' + icon("trophy") + "#" + fmt(p.stats.weeklyRank) + " this week</li>");
-      if (p.streak) meta.push('<li class="pf-meta-hot">' + icon("flame") + p.streak + "-day streak</li>");
       if (own && p.timezone) meta.push('<li>' + icon("globe") + esc(p.timezone.replace(/_/g, " ")) + "</li>");
     }
     var chips = '<span class="pf-chip">Level ' + p.level + "</span>";
     if (own && p.account && !p.account.profilePublic) chips += '<span class="pf-chip pf-chip-muted">' + icon("lock") + "Private</span>";
-    return '<section class="pf-hero liquid-glass">' +
-      '<div class="pf-hero-avatar">' + ringHtml(p) +
+    var needed = p.levelXpNeeded || 0;
+    var levelTip = needed ? "Level " + p.level + ": " + fmt(Math.min(p.levelXp || 0, needed)) + " / " + fmt(needed) + " XP, " + fmt(Math.max(0, needed - (p.levelXp || 0))) + " XP to level " + (p.level + 1) : "";
+    return '<section class="pf-hero">' +
+      '<div class="pf-hero-avatar"' + (levelTip ? ' title="' + esc(levelTip) + '"' : "") + ">" + ringHtml(p) +
         Avatar.html(p, "pf-avatar-lg", p.username + "'s profile picture") +
         (own ? '<button type="button" class="pf-avatar-edit" data-act="pick-avatar" aria-label="Change profile picture">' + icon("camera") + "</button>" : "") +
       "</div>" +
@@ -273,123 +290,150 @@
     var p = state.profile;
     if (!p && state.user) {
       var u = state.user;
-      p = { username: u.username, avatarUrl: u.avatarUrl, bio: u.bio, joinedAt: u.joinedAt, level: u.level,
+      p = { username: u.username, avatarUrl: u.avatarUrl, bio: u.bio, joinedAt: u.joinedAt, level: u.level, xp: u.gems,
             levelXp: u.levelXp, levelXpNeeded: u.levelXpNeeded, streak: u.streakCount, timezone: u.timezone,
             account: { profilePublic: u.profilePublic } };
     }
     if (!p) return;
     host.innerHTML = heroHtml(p, true);
-    animateRing(host);
+    animateIn(host);
   }
 
-  function animateRing(root) {
-    var ring = root.querySelector(".pf-ring-fill");
-    if (!ring) return;
-    requestAnimationFrame(function () {
-      requestAnimationFrame(function () { ring.style.strokeDashoffset = ring.getAttribute("data-offset"); });
-    });
-  }
-
-  /** Progress bars start empty and grow in, like the rest of the app. */
-  function animateBars(root) {
+  /** Bars, columns and rings start empty and grow in, like the rest of the app. */
+  function animateIn(root) {
     if (!root) return;
-    var bars = root.querySelectorAll("[data-w]");
+    var els = root.querySelectorAll("[data-w], [data-h], [data-offset]");
     requestAnimationFrame(function () {
       requestAnimationFrame(function () {
-        bars.forEach(function (b) { b.style.width = b.getAttribute("data-w") + "%"; });
+        els.forEach(function (el) {
+          if (el.hasAttribute("data-w")) el.style.width = el.getAttribute("data-w") + "%";
+          if (el.hasAttribute("data-h")) el.style.height = el.getAttribute("data-h") + "%";
+          if (el.hasAttribute("data-offset")) el.style.strokeDashoffset = el.getAttribute("data-offset");
+        });
       });
     });
+  }
+
+  var DONUT = 2 * Math.PI * 42;
+
+  /** Ring for a 0–1 share with a label in the middle (daily goal, win rate, badge progress). */
+  function donut(ratio, inner, cls) {
+    ratio = Math.max(0, Math.min(1, ratio || 0));
+    return '<div class="pf-donut' + (cls ? " " + cls : "") + '">' +
+      '<svg viewBox="0 0 100 100" aria-hidden="true"><circle class="pf-donut-track" cx="50" cy="50" r="42"/>' +
+        '<circle class="pf-donut-fill" cx="50" cy="50" r="42" stroke-dasharray="' + DONUT.toFixed(1) + '" stroke-dashoffset="' + DONUT.toFixed(1) +
+        '" data-offset="' + (DONUT * (1 - ratio)).toFixed(1) + '"/></svg>' +
+      '<div class="pf-donut-inner">' + inner + "</div></div>";
+  }
+
+  function section(title, body, cls) {
+    return '<section class="pf-section' + (cls ? " " + cls : "") + '"><h3>' + title + "</h3>" + body + "</section>";
   }
 
   /* ===============================================================
      Overview
   ================================================================*/
 
-  function tile(value, label, cls) {
-    return '<div class="pf-stat liquid-glass' + (cls ? " " + cls : "") + '"><b>' + value + "</b><span>" + label + "</span></div>";
-  }
-
-  function bar(pct, cls) {
-    return '<div class="pf-bar"><div class="pf-bar-fill' + (cls ? " " + cls : "") + '" data-w="' + Math.max(0, Math.min(100, pct)) + '"></div></div>';
-  }
-
-  function statsHtml(p) {
-    var s = p.stats;
-    return '<div class="pf-stats">' +
-      tile(fmt(p.xp), "Total XP") +
-      tile(p.level, "Level") +
-      tile(p.streak, "Day streak", p.streak ? "is-hot" : "") +
-      tile(p.streakBest, "Best streak") +
-      tile(fmt(s.lessonsCompleted), "Lessons done") +
-      tile(p.badges.length, "Badges") +
-      tile(fmt(s.activeDays), "Active days") +
-      tile("#" + fmt(s.weeklyRank), "Rank this week") +
+  /** Daily goal as a ring; only on your own profile (others have no account block). */
+  function todayHtml(p) {
+    if (!p.account) return "";
+    var a = p.account;
+    var done = a.xpToday >= a.dailyGoal;
+    return '<div class="pf-today">' +
+      donut(a.dailyGoal ? a.xpToday / a.dailyGoal : 0,
+        (done ? icon("check", "pf-donut-check") : "<b>" + fmt(a.xpToday) + "</b><span>/ " + fmt(a.dailyGoal) + " XP</span>"),
+        done ? "is-done" : "") +
+      '<p class="pf-today-label">' + (done ? "Goal reached" : "Today") + "</p>" +
+      '<p class="pf-today-sub">Goal hit on ' + fmt(p.stats.goalDays) + " day" + (p.stats.goalDays === 1 ? "" : "s") + "</p>" +
     "</div>";
   }
 
-  function levelHtml(p) {
-    var needed = p.levelXpNeeded || 1;
-    var have = Math.min(p.levelXp || 0, needed);
-    return '<section class="pf-card liquid-glass"><h3>Level progress</h3>' +
-      '<div class="pf-level-row"><b>Level ' + p.level + "</b><span>" + fmt(have) + " / " + fmt(needed) + " XP</span><b>Level " + (p.level + 1) + "</b></div>" +
-      bar(100 * have / needed) +
-      '<p class="pf-note">' + fmt(needed - have) + " XP to go. Each level needs 100 XP more than the one before.</p>" +
-    "</section>";
+  /** XP per day for the last 7 days (from the heatmap), with the streak on top. */
+  function weekHtml(p) {
+    var days = (p.heatmap && p.heatmap.days) || {};
+    var end = p.heatmap ? parseDay(p.heatmap.to) : new Date();
+    var goal = p.account ? p.account.dailyGoal : 0;
+    var week = [];
+    for (var i = 6; i >= 0; i--) {
+      var d = new Date(end);
+      d.setDate(d.getDate() - i);
+      week.push({ date: d, xp: days[dayKey(d)] || 0, today: i === 0 });
+    }
+    var top = Math.max.apply(null, week.map(function (w) { return w.xp; }).concat([1]));
+    // The goal line only shows when it fits near the bars; a far-off goal would flatten them.
+    if (goal > top * 1.5) goal = 0;
+    else top = Math.max(top, goal);
+    var cols = week.map(function (w) {
+      var label = w.date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }) + ": " + (w.xp ? fmt(w.xp) + " XP" : "no activity");
+      return '<li' + (w.today ? ' class="is-today"' : "") + ' title="' + esc(label) + '">' +
+        '<div class="pf-col-track"><div class="pf-col' + (goal && w.xp >= goal ? " is-done" : "") + '" data-h="' + (w.xp ? Math.max(4, 100 * w.xp / top) : 0).toFixed(1) + '"></div></div>' +
+        "<span>" + w.date.toLocaleDateString("en-GB", { weekday: "narrow" }) + "</span></li>";
+    }).join("");
+    var quiet = !week.some(function (w) { return w.xp; });
+    return '<div class="pf-week">' +
+      '<div class="pf-streak' + (p.streak ? " is-hot" : "") + '">' + icon("flame", "pf-streak-ic") +
+        "<b>" + fmt(p.streak) + '</b><span>day streak<small>Best ' + fmt(p.streakBest) + "</small></span></div>" +
+      (quiet ? '<p class="pf-muted pf-small">No XP in the last 7 days.</p>'
+        : '<ol class="pf-cols pf-week-cols" style="--goal:' + (goal ? (goal / top).toFixed(3) : 0) + '" role="img" aria-label="XP per day over the last 7 days">' +
+          (goal ? '<li class="pf-goal-line" aria-hidden="true"></li>' : "") + cols + "</ol>") +
+    "</div>";
   }
 
-  function goalHtml(p) {
-    if (!p.account) return "";
-    var a = p.account;
-    var pct = a.dailyGoal ? 100 * a.xpToday / a.dailyGoal : 0;
-    var done = a.xpToday >= a.dailyGoal;
-    return '<section class="pf-card liquid-glass"><h3>Today</h3>' +
-      '<div class="pf-level-row"><b>' + fmt(a.xpToday) + " XP</b><span>" + (done ? "Daily goal reached" : fmt(a.dailyGoal - a.xpToday) + " XP to your daily goal") + "</span><b>" + fmt(a.dailyGoal) + " XP</b></div>" +
-      bar(pct, done ? "is-done" : "") +
-      '<p class="pf-note">Goal reached on ' + fmt(p.stats.goalDays) + " day" + (p.stats.goalDays === 1 ? "" : "s") + " so far.</p>" +
-    "</section>";
+  function highlightsHtml(p) {
+    return '<section class="pf-highlights">' + todayHtml(p) + weekHtml(p) + "</section>";
+  }
+
+  /** One segment per lesson; filled ones are done. */
+  function stepsHtml(c) {
+    var done = c.total && c.completed >= c.total;
+    var steps = "";
+    for (var i = 0; i < c.total; i++) steps += '<span class="' + (i < c.completed ? "is-done" : "") + '"></span>';
+    return '<div class="pf-steps' + (done ? " is-complete" : "") + '" role="img" aria-label="' + c.completed + " of " + c.total + ' lessons done">' + steps + "</div>";
+  }
+
+  function pipsHtml(level) {
+    var name = PLACEMENT[level] || "level " + level;
+    var pips = "";
+    for (var i = 1; i <= 5; i++) pips += '<span class="' + (i <= level ? "is-on" : "") + '"></span>';
+    return '<span class="pf-pips" title="Placed at ' + esc(name) + '" role="img" aria-label="Placed at ' + esc(name) + '">' + pips + "</span>";
   }
 
   function coursesHtml(p) {
     if (!p.courses || !p.courses.length) return "";
-    return '<section class="pf-card liquid-glass"><h3>Courses</h3><ul class="pf-courses">' +
+    return section("Courses", '<ul class="pf-courses">' +
       p.courses.map(function (c) {
-        var sub = [];
-        if (c.currentLesson && c.completed < c.total) sub.push("Next: " + esc(c.currentLesson));
-        else if (c.total && c.completed >= c.total) sub.push("Course complete");
-        if (c.placementLevel) sub.push("Placed at " + esc(PLACEMENT[c.placementLevel] || "level " + c.placementLevel));
-        return "<li>" +
+        var complete = c.total && c.completed >= c.total;
+        var next = complete ? '<span class="pf-course-next is-done">' + icon("check") + "Course complete</span>"
+          : c.currentLesson ? '<span class="pf-course-next">Next: ' + esc(c.currentLesson) + "</span>" : "";
+        return '<li class="pf-course">' +
           '<div class="pf-course-head"><b>' + esc(c.name) + "</b>" + (c.active ? '<span class="pf-chip">Active</span>' : "") +
-          '<span class="pf-course-num">' + c.completed + " / " + c.total + " lessons</span></div>" +
-          bar(c.percent, c.percent >= 100 ? "is-done" : "") +
-          (sub.length ? '<p class="pf-note">' + sub.join(" · ") + "</p>" : "") +
+            (c.placementLevel ? pipsHtml(c.placementLevel) : "") +
+            '<span class="pf-course-num">' + c.completed + "/" + c.total + "</span></div>" +
+          stepsHtml(c) +
+          next +
         "</li>";
       }).join("") +
-    "</ul></section>";
+    "</ul>");
   }
 
+  /** A shelf of medals: earned ones in gold, the next ones with a progress ring. */
   function badgesHtml(p) {
     var earned = p.badges.map(function (b) {
-      return '<li class="pf-badge is-earned">' + icon("medal", "pf-badge-ic") + "<div><b>" + esc(b.name) + "</b><span>" + esc(b.label) +
-        (b.earnedAt ? " · " + esc(longDate(b.earnedAt)) : "") + "</span></div></li>";
-    }).join("");
+      return '<li class="pf-medal is-earned" title="' + esc(b.label + (b.earnedAt ? " · earned " + longDate(b.earnedAt) : "")) + '">' +
+        '<div class="pf-medal-disc">' + icon("medal", "pf-medal-ic") + "</div><b>" + esc(b.name) + "</b><span>" + esc(b.label) + "</span></li>";
+    });
     var next = (p.nextBadges || []).map(function (b) {
-      return '<li class="pf-badge">' + icon("medal", "pf-badge-ic") + '<div class="pf-badge-body"><b>' + esc(b.name) + "</b><span>" + esc(b.label) + " · " + esc(b.course) + "</span>" +
-        bar(b.progressPercent) + "</div></li>";
-    }).join("");
-    if (!earned && !next) {
-      return '<section class="pf-card liquid-glass"><h3>Badges</h3><p class="pf-muted">No badges yet. Finish a unit to earn one.</p></section>';
-    }
-    return '<section class="pf-card liquid-glass"><h3>Badges</h3>' +
-      (earned ? '<ul class="pf-badges">' + earned + "</ul>" : '<p class="pf-muted">No badges yet. Finish a unit to earn one.</p>') +
-      (next ? '<h4 class="pf-sub">Up next</h4><ul class="pf-badges">' + next + "</ul>" : "") +
-    "</section>";
+      return '<li class="pf-medal" title="' + esc(b.label + " · " + b.course + " · " + b.progressPercent + "% done") + '">' +
+        donut(b.progressPercent / 100, icon("medal", "pf-medal-ic"), "pf-medal-ring") + "<b>" + esc(b.name) + "</b><span>" + esc(b.label) + "</span></li>";
+    });
+    var body = earned.length || next.length
+      ? '<ul class="pf-shelf">' + earned.join("") + next.join("") + "</ul>"
+      : '<p class="pf-muted">No badges yet. Finish a unit to earn one.</p>';
+    return section("Badges", body);
   }
 
   function overviewHtml(p) {
-    return statsHtml(p) +
-      '<div class="pf-grid">' + levelHtml(p) + goalHtml(p) + "</div>" +
-      coursesHtml(p) +
-      badgesHtml(p);
+    return highlightsHtml(p) + coursesHtml(p) + badgesHtml(p);
   }
 
   /* ===============================================================
@@ -459,13 +503,17 @@
     if (!rows.length) return "";
     var max = rows[0].xp || 1;
     var total = rows.reduce(function (a, r) { return a + r.xp; }, 0) || 1;
-    return '<section class="pf-card liquid-glass"><h3>Where your XP comes from</h3><ul class="pf-hbars">' +
+    return section("Where your XP comes from", '<ul class="pf-hbars">' +
       rows.map(function (r) {
-        return '<li><span class="pf-hbar-label">' + esc(SOURCES[r.source] || r.source) + "</span>" +
+        return '<li title="' + Math.round(100 * r.xp / total) + '% of your XP"><span class="pf-hbar-label">' + icon(SOURCE_ICON[r.source] || "star") + esc(SOURCES[r.source] || r.source) + "</span>" +
           '<div class="pf-hbar-track"><div class="pf-bar-fill" data-w="' + (100 * r.xp / max).toFixed(1) + '"></div></div>' +
-          '<span class="pf-hbar-val">' + fmt(r.xp) + " XP <small>" + Math.round(100 * r.xp / total) + "%</small></span></li>";
+          '<span class="pf-hbar-val">' + fmt(r.xp) + "</span></li>";
       }).join("") +
-    "</ul></section>";
+    "</ul>");
+  }
+
+  function streakBit(now, best) {
+    return '<span class="pf-game-streak' + (now ? " is-hot" : "") + '" title="Current streak ' + now + ", best " + best + '">' + icon("flame") + now + "<small>/ best " + best + "</small></span>";
   }
 
   function gamesHtml(p) {
@@ -475,22 +523,27 @@
     // "–" instead of a misleading 0 % before the first game
     var winPct = w.played ? Math.round(100 * w.won / w.played) + "%" : "–";
     var storyPct = g.story.played ? Math.round(100 * g.story.correct / g.story.played) + "%" : "–";
-    function mini(v, l) { return '<div class="pf-mini"><b>' + v + "</b><span>" + l + "</span></div>"; }
-    return '<section class="pf-card liquid-glass"><h3>Practice games</h3><div class="pf-games">' +
-      '<div class="pf-game"><h4>Wordle</h4><div class="pf-minis">' +
-        mini(w.played, "Played") + mini(winPct, "Won") + mini(w.streak, "Streak") + mini(w.maxStreak, "Best") +
+    function head(ic, title, sub) {
+      return '<div class="pf-game-head">' + icon(ic, "pf-game-ic") + "<h4>" + title + "<small>" + sub + "</small></h4></div>";
+    }
+    var dist = w.won
+      ? '<ol class="pf-cols pf-dist" role="img" aria-label="Wins by number of guesses: ' + w.dist.join(", ") + '">' + w.dist.map(function (n, i) {
+          return '<li title="' + n + " win" + (n === 1 ? "" : "s") + " in " + (i + 1) + '"><div class="pf-col-track"><div class="pf-col" data-h="' + (n ? Math.max(6, 100 * n / maxDist) : 0).toFixed(1) + '"></div></div><span>' + (i + 1) + "</span></li>";
+        }).join("") + "</ol>"
+      : '<p class="pf-muted pf-small">No wins yet. Today\'s word is waiting in Practice.</p>';
+    return section("Practice games", '<div class="pf-games">' +
+      '<div class="pf-game">' + head("grid", "Wordle", w.played + " played") +
+        '<div class="pf-game-body">' + donut(w.played ? w.won / w.played : 0, "<b>" + winPct + "</b><span>won</span>", "is-ok") + dist + "</div>" +
+        streakBit(w.streak, w.maxStreak) +
       "</div>" +
-      (w.won ? '<ol class="pf-dist" aria-label="Wins by number of guesses">' + w.dist.map(function (n, i) {
-        return '<li><span>' + (i + 1) + '</span><div class="pf-hbar-track"><div class="pf-bar-fill" data-w="' + (100 * n / maxDist).toFixed(1) + '"></div></div><b>' + n + "</b></li>";
-      }).join("") + "</ol>" : '<p class="pf-muted pf-small">No wins yet. Today\'s word is waiting in Practice.</p>') +
+      '<div class="pf-game">' + head("updown", "Older or Younger", g.older.runs + " run" + (g.older.runs === 1 ? "" : "s")) +
+        '<div class="pf-game-body"><div class="pf-best">' + icon("star") + "<b>" + fmt(g.older.best) + "</b><span>best run</span></div></div>" +
       "</div>" +
-      '<div class="pf-game"><h4>Older or Younger</h4><div class="pf-minis">' +
-        mini(g.older.best, "Best run") + mini(g.older.runs, "Runs") +
-      "</div></div>" +
-      '<div class="pf-game"><h4>Daily Story</h4><div class="pf-minis">' +
-        mini(g.story.played, "Answered") + mini(storyPct, "Correct") + mini(g.story.streak, "Streak") + mini(g.story.best, "Best") +
-      "</div></div>" +
-    "</div></section>";
+      '<div class="pf-game">' + head("story", "Daily Story", g.story.played + " answered") +
+        '<div class="pf-game-body">' + donut(g.story.played ? g.story.correct / g.story.played : 0, "<b>" + storyPct + "</b><span>correct</span>", "is-ok") + "</div>" +
+        streakBit(g.story.streak, g.story.best) +
+      "</div>" +
+    "</div>");
   }
 
   function recentLabel(r) {
@@ -505,14 +558,35 @@
     }
   }
 
+  function dayHeading(iso) {
+    var d = new Date(iso);
+    d.setHours(0, 0, 0, 0);
+    var today = new Date();
+    today.setHours(0, 0, 0, 0);
+    var diff = Math.round((today - d) / 86400000);
+    if (diff === 0) return "Today";
+    if (diff === 1) return "Yesterday";
+    return d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" });
+  }
+
+  /** Timeline grouped by day, one icon per kind of XP. */
   function recentHtml(p) {
     if (!p.recent) return "";
-    return '<section class="pf-card liquid-glass"><h3>Recent activity</h3>' +
-      (p.recent.length ? '<ul class="pf-feed">' + p.recent.map(function (r) {
-        return '<li><span class="pf-feed-text">' + recentLabel(r) + '</span><time datetime="' + esc(r.at) + '" title="' + esc(new Date(r.at).toLocaleString("en-GB")) + '">' + esc(ago(r.at)) + "</time>" +
-          '<b class="pf-feed-xp">' + (r.xp >= 0 ? "+" : "") + fmt(r.xp) + " XP</b></li>";
-      }).join("") + "</ul>" : '<p class="pf-muted">Nothing yet. Finish a lesson or play today\'s Wordle to get started.</p>') +
-    "</section>";
+    if (!p.recent.length) return section("Recent activity", '<p class="pf-muted">Nothing yet. Finish a lesson or play today\'s Wordle to get started.</p>');
+    var groups = [];
+    p.recent.forEach(function (r) {
+      var day = dayHeading(r.at);
+      if (!groups.length || groups[groups.length - 1].day !== day) groups.push({ day: day, items: [] });
+      groups[groups.length - 1].items.push(r);
+    });
+    return section("Recent activity", '<div class="pf-timeline">' + groups.map(function (g) {
+      return '<h4 class="pf-tl-day">' + esc(g.day) + '</h4><ul class="pf-tl">' + g.items.map(function (r) {
+        var at = new Date(r.at);
+        return '<li><span class="pf-tl-ic">' + icon(SOURCE_ICON[r.source] || "star") + '</span><span class="pf-tl-text">' + recentLabel(r) + "</span>" +
+          '<time datetime="' + esc(r.at) + '" title="' + esc(at.toLocaleString("en-GB")) + '">' + esc(at.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })) + "</time>" +
+          '<b class="pf-tl-xp">' + (r.xp >= 0 ? "+" : "") + fmt(r.xp) + "</b></li>";
+      }).join("") + "</ul>";
+    }).join("") + "</div>");
   }
 
   function activityHtml(p) {
@@ -521,7 +595,7 @@
 
   function revealHeatmap() {
     var panel = $("pf-panel-activity");
-    if (panel && !panel.hidden) animateBars(panel);
+    if (panel && !panel.hidden) animateIn(panel);
   }
 
   /* Heatmap tooltip: one floating element per card, follows the hovered cell. */
@@ -1064,9 +1138,8 @@
       body.innerHTML = heroHtml(p, false).replace("<h2>", '<h2 id="pf-user-title">') +
         (p.private
           ? '<div class="pf-card liquid-glass pf-empty">' + icon("lock", "pf-big-ic") + "<p><b>" + esc(p.username) + "</b> keeps their profile private.</p></div>"
-          : statsHtml(p) + heatCardHtml(p) + coursesHtml(p) + badgesHtml(p) + gamesHtml(p));
-      animateRing(body);
-      animateBars(body);
+          : highlightsHtml(p) + heatCardHtml(p) + coursesHtml(p) + badgesHtml(p) + gamesHtml(p));
+      animateIn(body);
     }, function (err) {
       body.innerHTML = '<div class="pf-card liquid-glass pf-empty"><p>' + esc(err.message) + "</p></div>";
     });

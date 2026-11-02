@@ -169,6 +169,7 @@ function course_lessons(array $user, int $courseId): array
     return q("SELECT l.id, l.unit_id, l.position, l.slug, l.title, l.kind, l.xp_reward,
                      u.position AS unit_position, u.title AS unit_title,
                      q.id AS quest_id,
+                     EXISTS(SELECT 1 FROM questions qq WHERE qq.lesson_id = l.id AND qq.is_active = 1) AS has_quiz,
                      lp.status, COALESCE(lp.progress_pct, 0) AS progress_pct
               FROM lessons l
               JOIN units u ON u.id = l.unit_id
@@ -176,6 +177,12 @@ function course_lessons(array $user, int $courseId): array
               LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = ?
               WHERE u.course_id = ?
               ORDER BY u.position, l.position", [$user['id'], $courseId])->fetchAll();
+}
+
+/** A lesson can be opened when it has an editor quest or quiz questions (quiz.html). */
+function lesson_playable(array $lesson): bool
+{
+    return $lesson['quest_id'] !== null || (int) $lesson['has_quiz'] === 1;
 }
 
 /** The first lesson that is not completed yet (the "Continue" node), or null when all are done. */
@@ -231,7 +238,7 @@ function course_path(array $user, array $course): array
                 'xp'       => (int) $l['xp_reward'],
                 'state'    => $state,
                 'progress' => (int) $l['progress_pct'],
-                'playable' => $l['quest_id'] !== null,
+                'playable' => lesson_playable($l),
             ];
         }
         $outUnits[] = ['id' => (int) $u['id'], 'position' => (int) $u['position'], 'title' => $u['title'],

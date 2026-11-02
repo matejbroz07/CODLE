@@ -168,7 +168,7 @@ CREATE TABLE user_settings (
 
 CREATE TABLE courses (
   id           SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  slug         VARCHAR(32)     NOT NULL,                     -- python, javascript, html, css, php
+  slug         VARCHAR(32)     NOT NULL,                     -- html, css, javascript, php
   name         VARCHAR(64)     NOT NULL,
   description  VARCHAR(500)    NULL,
   is_published TINYINT(1)      NOT NULL DEFAULT 0,
@@ -267,8 +267,8 @@ CREATE TABLE question_answers (
 
 CREATE TABLE badges (
   id           SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  slug         VARCHAR(64)     NOT NULL,                     -- pythonista-1
-  name         VARCHAR(80)     NOT NULL,                     -- "Pythonista I"
+  slug         VARCHAR(64)     NOT NULL,                     -- html-1
+  name         VARCHAR(80)     NOT NULL,                     -- "Markup Rookie"
   description  VARCHAR(255)    NOT NULL,                     -- "Complete Unit 2"
   unit_id      INT UNSIGNED    NULL,                         -- awarded for finishing this unit, if any
   PRIMARY KEY (id),

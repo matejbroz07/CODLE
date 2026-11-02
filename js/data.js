@@ -10,17 +10,23 @@ window.CodleData = {
     levelXp: 340,        // XP earned inside the current level (demo value)
     levelXpNeeded: 500,  // XP required to reach the next level (demo value)
     nextBadge: {
-      name: "Pythonista I",
+      name: "Markup Rookie",
       label: "Complete Unit 2",
       progressPercent: 50
     }
   },
-  activeCourse: "python",
+  // Courses and lessons come from js/curriculum.js; this is only how far the demo learner got.
+  activeCourse: "html",
   progress: {
-    python: {
+    html: {
       currentUnit: 2,
-      currentMilestone: 4,
+      currentMilestone: 3,
       currentMilestoneProgress: 40
+    },
+    css: {
+      currentUnit: 1,
+      currentMilestone: 2,
+      currentMilestoneProgress: 0
     },
     javascript: {
       currentUnit: 1,

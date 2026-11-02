@@ -12,6 +12,7 @@ Když API není dostupné (GitHub Pages, otevření souboru z disku), stránky b
    ```bash
    /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/migrations/001_api.sql
    /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/migrations/002_profile.sql
+   /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/migrations/003_courses.sql
    /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/seed-placement.sql
    /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/seed-quests.sql
    ```
@@ -77,6 +78,8 @@ Všechny odpovědi jsou JSON. Chyba: `{"error": "kód", "message": "text"}` s od
 | `GET lessons/{id}` | Úloha lekce pro editor, uložený kód, další lekce |
 | `PUT lessons/{id}/save` | Automatické uložení kódu |
 | `POST lessons/{id}/check` | Výsledek kontroly cílů; když prošly všechny, lekce se dokončí a připíše XP |
+| `GET lessons/{id}/quiz` | Otázky kvízu nebo zkoušky pro `quiz.html` (včetně správných odpovědí, stránka je ukazuje průběžně), nejlepší skóre, počet pokusů |
+| `POST lessons/{id}/quiz` | `{answers: [{questionId, answerId}]}`, server oznámkuje; od 70 % se lekce dokončí a připíše XP |
 | `GET wordle`, `POST wordle/guess`, `POST wordle/hint` | Denní Wordle |
 | `GET history/cards`, `POST history/older` | Starší, nebo mladší |
 | `GET history/story`, `POST history/story` | Denní historka |
@@ -105,7 +108,6 @@ Všechny odpovědi jsou JSON. Chyba: `{"error": "kód", "message": "text"}` s od
 
 ## Omezení (stav k 23. 10. 2026)
 
-- Obsah mají zatím jen tři lekce: JavaScript, Unit 1 (`database/seed-quests.sql`). Ostatní lekce hlásí „This lesson isn't ready yet“. Úlohy se přidávají v adminu.
-- Lekce typu kvíz a závěrečná zkouška nemají v aplikaci obrazovku. Kvízové otázky (`questions` s `purpose = 'lesson'`) zatím nikdo nevytváří.
+- Každá lekce má obsah: úlohu v editoru (`database/seed-quests.sql`) nebo otázky kvízu (`database/seed-quiz.sql`). Lekce bez obou hlásí „This lesson isn't ready yet“. Úlohy se upravují v adminu nebo ve zdrojových souborech `database/content/`; kvízové otázky zatím jen tam.
 - Výsledek rozřazovacího kvízu se ukládá (`placement_attempts`, `enrollments.placement_level`), ale zatím nic neodemyká. Všichni začínají první lekcí.
 - Přihlášení přes Google a GitHub není napojené.

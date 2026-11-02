@@ -458,9 +458,17 @@
   :root {
     --w-tile: clamp(42px, calc((100vw - 32px - 24px - 4 * var(--w-gap)) / 5), 52px);
   }
-  .practice-shell { padding: 16px 16px 120px; }
-  .practice-head h2 { font-size: 24px; }
-  .practice-grid { grid-template-columns: 1fr; gap: 14px; }
+  /* Large title under the status bar, like a native tab screen */
+  .practice-shell { padding: calc(env(safe-area-inset-top, 0px) + 20px) 16px 120px; }
+  .practice-head { margin-bottom: 18px; }
+  .practice-head h2 { font-size: 32px; letter-spacing: -0.035em; }
+  .practice-head p { font-size: 14px; }
+  .practice-grid { grid-template-columns: 1fr; gap: 12px; }
+  .game-card { padding: 18px 18px 16px; gap: 16px; }
+  .game-card-icon { width: 54px; height: 54px; border-radius: 15px; }
+  .game-card h3 { font-size: 17px; }
+  .game-card p { margin-bottom: 10px; font-size: 13.5px; }
+  .game-card.is-soon { display: none; }
   .game-topbar { margin-bottom: 12px; }
   .game-back { padding: 8px 12px 8px 10px; }
   .game-back span { display: none; }
@@ -479,6 +487,14 @@
 @media (max-width: 380px) {
   .wordle-kb-row { gap: 3px; }
   .wordle-key { height: 44px; font-size: 12px; }
+}
+/* Touch screens: press feedback instead of hover lift (see styles.css) */
+@media (hover: none) {
+  .game-card:hover, .game-back:hover, .icon-btn:hover, .wordle-btn:hover, .oy-btn:hover:not(:disabled), .story-option:hover:not(:disabled) { transform: none; }
+  .game-card:hover { box-shadow: var(--lg-shadow); }
+  .game-card:active { transform: scale(.975); transition-duration: .15s; }
+  .game-back:active, .icon-btn:active:not(:disabled), .wordle-btn:active { transform: scale(.94); }
+  .oy-btn:active:not(:disabled), .story-option:active:not(:disabled) { transform: scale(.97); }
 }
 
 /* ===== LITE MODE (see base.css) ===== */

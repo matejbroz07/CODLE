@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Codle — Quiz</title>
+  <meta name="description" content="Unit quizzes and final exams of the Codle courses.">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <meta name="theme-color" content="#08090c">
+  <!-- Picks full or lite visual effects before first paint (slow devices) -->
+  <script src="js/perf.js"></script>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/quiz.css">
+  <link rel="stylesheet" href="css/mascot.css">
+</head>
+<body class="quiz-page">
+
+<div class="bg" aria-hidden="true"></div>
+
+<!-- ===== TOP BAR ===== -->
+<header class="qz-topbar liquid-glass liquid-glass--bar">
+  <a class="qz-back" href="index.html" aria-label="Back to the learning path">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  </a>
+  <div class="qz-lesson">
+    <span class="qz-crumb" id="qz-crumb">Quiz</span>
+    <span class="qz-title" id="qz-title">Loading…</span>
+  </div>
+  <div class="qz-progress" aria-label="Quiz progress">
+    <div class="qz-progress-track"><div class="qz-progress-fill" id="qz-progress-fill"></div></div>
+    <span class="qz-progress-label" id="qz-progress-label"></span>
+  </div>
+  <span class="qz-xp-pill" id="qz-xp" title="Reward for passing">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+    <span id="qz-xp-value">+0 XP</span>
+  </span>
+</header>
+
+<main class="qz-main" id="qz-main">
+
+  <!-- Intro -->
+  <section class="qz-card liquid-glass qz-intro" id="qz-intro" hidden aria-labelledby="qz-intro-title">
+    <div class="qz-intro-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.5 13l1.5 8-5-3-5 3 1.5-8"/></svg>
+    </div>
+    <h1 id="qz-intro-title">Unit quiz</h1>
+    <p class="qz-intro-sub" id="qz-intro-sub"></p>
+    <ul class="qz-facts" id="qz-facts"></ul>
+    <div class="qz-actions">
+      <button class="qz-btn primary block" type="button" id="qz-start">Start</button>
+    </div>
+  </section>
+
+  <!-- One question -->
+  <section class="qz-card liquid-glass" id="qz-question" hidden>
+    <p class="qz-meta" id="qz-meta"></p>
+    <h1 class="qz-prompt" id="qz-prompt"></h1>
+    <pre class="qz-code" id="qz-code" hidden><code id="qz-code-text"></code></pre>
+    <div class="qz-answers" id="qz-answers" role="radiogroup" aria-labelledby="qz-prompt"></div>
+    <p class="qz-feedback" id="qz-feedback" aria-live="polite"></p>
+    <div class="qz-actions">
+      <button class="qz-btn primary block" type="button" id="qz-next" disabled>Check</button>
+    </div>
+  </section>
+
+  <!-- Result -->
+  <section class="qz-card liquid-glass qz-result" id="qz-result" hidden aria-labelledby="qz-result-title">
+    <div class="qz-donut" aria-hidden="true">
+      <svg viewBox="0 0 100 100"><circle class="track" cx="50" cy="50" r="42"/><circle class="fill" cx="50" cy="50" r="42" id="qz-ring"/></svg>
+      <div class="qz-donut-inner"><b id="qz-score">0%</b></div>
+    </div>
+    <h1 id="qz-result-title">Passed!</h1>
+    <p class="qz-result-sub" id="qz-result-sub"></p>
+    <div class="qz-reward" id="qz-reward" hidden>
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <span id="qz-reward-xp">+0 XP</span>
+    </div>
+    <div class="qz-actions qz-result-actions" id="qz-result-actions"></div>
+  </section>
+
+</main>
+
+<div class="qz-toast" id="qz-toast" role="status" aria-live="polite"></div>
+
+<script src="js/api.js"></script>
+<script src="js/mascot.js"></script>
+<script src="js/quiz.js"></script>
+</body>
+</html>

@@ -1173,7 +1173,7 @@ function codleEditor(lesson) {
         : "Every objective passed. You already earned the XP for this lesson.";
       var next = $("ed-modal-next");
       if (res.next && res.next.playable) {
-        next.href = "editor.html?lesson=" + res.next.id;
+        next.href = (res.next.kind === "quiz" || res.next.kind === "exam" ? "quiz.html" : "editor.html") + "?lesson=" + res.next.id;
         next.textContent = "Next: " + res.next.title;
       } else {
         next.href = "index.html";
