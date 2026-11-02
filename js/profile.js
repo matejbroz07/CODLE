@@ -7,6 +7,9 @@
  *   Settings  — picture (with a crop step), bio, visibility, username (password +
  *               cooldown), e-mail (code to the new address), password, daily goal,
  *               time zone, visual effects, devices, data export, delete account
+ *   Curly     — the mascot: live preview, name, "Surprise me", and collapsed sections for
+ *               glass color, eyes, hats, face, neck, effects, size (many items unlock
+ *               with level or best streak) and behavior switches
  *
  * Other learners' profiles open in a dialog from the leaderboard rows.
  * Talks to the API through js/api.js; app.js calls CodleProfile.update(user)
@@ -57,6 +60,7 @@
     upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>',
     zoomOut: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/>',
     zoomIn: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/>',
+    dice: '<rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.3" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.3" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.3" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/>',
     flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>'
   };
   function icon(name, cls) {
@@ -131,6 +135,8 @@
   function update(user) {
     if (!user) return;
     state.user = user;
+    syncCurly();
+    if (cy.built && cy.locks !== lockKey()) refreshCurly(); // a new level or streak unlocked something
     if (!state.profile) {
       // First call on page load: fetch the full profile once the path is drawn.
       if (!state.prefetch) state.prefetch = setTimeout(function () { load().catch(function () {}); }, 1200);
@@ -165,7 +171,9 @@
      Shell
   ================================================================*/
 
-  var TABS = [["overview", "Overview"], ["activity", "Activity"], ["settings", "Settings"]];
+  // "curly" is labelled with the mascot's current name (it can be renamed there)
+  var TABS = [["overview", "Overview"], ["activity", "Activity"], ["settings", "Settings"], ["curly", "Curly"]];
+  function tabLabel(t) { return t[0] === "curly" ? esc(curlyName()) : t[1]; }
 
   function buildShell() {
     var view = $("view-profile");
@@ -176,7 +184,7 @@
         '<div class="pf-tabs liquid-glass" role="tablist" aria-label="Profile sections" id="pf-tabs">' +
           TABS.map(function (t) {
             var on = t[0] === state.tab;
-            return '<button type="button" role="tab" class="pf-tab" id="pf-tab-' + t[0] + '" aria-controls="pf-panel-' + t[0] + '" aria-selected="' + on + '" tabindex="' + (on ? 0 : -1) + '" data-tab="' + t[0] + '">' + t[1] + "</button>";
+            return '<button type="button" role="tab" class="pf-tab" id="pf-tab-' + t[0] + '" aria-controls="pf-panel-' + t[0] + '" aria-selected="' + on + '" tabindex="' + (on ? 0 : -1) + '" data-tab="' + t[0] + '"' + (t[0] === "curly" && !mascot() ? " hidden" : "") + ">" + tabLabel(t) + "</button>";
           }).join("") +
         "</div>" +
         TABS.map(function (t) {
@@ -186,6 +194,9 @@
       "</div>";
     state.built = true;
     state.settingsBuilt = false;
+    // the Curly tab needs no profile data: draw it right away
+    cy.built = false;
+    renderCurly();
   }
 
   function selectTab(name, focus) {
@@ -202,6 +213,7 @@
       loadSessions();
     }
     if (name === "activity") revealHeatmap();
+    if (name === "curly") openCurly();
   }
 
   function renderError(err) {
@@ -1381,6 +1393,311 @@
     load().catch(function () {});
     if (state.tab === "settings") loadSessions();
     if (state.settingsBuilt) { renderEffects(); renderTzDetect(); }
+  });
+
+  /* ===============================================================
+     Curly — the mascot's wardrobe and behaviour (js/mascot.js does the drawing).
+     Every change applies at once to the preview and to the floating mascot, is kept
+     in this browser, and is saved to the account (me/settings → mascot) shortly after.
+  ================================================================*/
+
+  var cy = { built: false, preview: null, saveTimer: null, fetched: false, account: null, locks: "", open: null };
+  var CY_MOODS = [["happy", "Happy"], ["sad", "Sad"], ["think", "Thinking"], ["surprised", "Surprised"], ["sleep", "Sleepy"]];
+
+  function mascot() { return window.CodleMascot || null; }
+  function curlyName() { var m = mascot(); return m ? m.name : "Curly"; }
+  function bestStreak() { var u = state.user || {}; return Math.max(u.streakBest || 0, u.streakCount || 0); }
+  function isUnlocked(item) {
+    var r = item.unlock;
+    if (!r) return true;
+    if (r.level && ((state.user && state.user.level) || 1) < r.level) return false;
+    if (r.streak && bestStreak() < r.streak) return false;
+    return true;
+  }
+  function lockShort(r) { return r.level ? "Level " + r.level : "Streak " + r.streak; }
+  function lockLong(r) { return r.level ? "Reach level " + r.level + " to unlock" : "Keep a " + r.streak + "-day streak to unlock"; }
+  /** A fingerprint of what is unlocked, so the pickers only redraw when it changes. */
+  function lockKey() { return ((state.user && state.user.level) || 1) + ":" + bestStreak(); }
+
+  function cyOptions(group, items, current, visual) {
+    return Object.keys(items).map(function (id) {
+      var it = items[id], open = isUnlocked(it), on = id === current;
+      return '<label class="cy-opt cy-opt--' + group + (on ? " is-on" : "") + (open ? "" : " is-locked") + '" title="' + esc(it.label + (open ? "" : " · " + lockLong(it.unlock))) + '">' +
+          '<input type="radio" name="cy-' + group + '" value="' + id + '"' + (on ? " checked" : "") + (open ? "" : ' disabled aria-describedby="cy-lock-' + group + "-" + id + '"') + ">" +
+          visual(id, it) +
+          '<span class="cy-opt-label">' + esc(it.label) + "</span>" +
+          (open ? "" : '<span class="cy-lock" id="cy-lock-' + group + "-" + id + '">' + icon("lock", "cy-lock-ic") + lockShort(it.unlock) + "</span>") +
+        "</label>";
+    }).join("");
+  }
+  function gradVars(c) { return "--s1:" + c[0] + ";--s2:" + c[1] + ";--s3:" + c[2]; }
+
+  /* The pickers are collapsed sections (one open at a time). Each header shows what is
+     picked now and how many options are unlocked; a click opens it. */
+  var CY_SECTIONS = [
+    { id: "color", title: "Glass color", table: "colors", kind: "round" },
+    { id: "eyes", title: "Eyes", table: "eyes", kind: "round" },
+    { id: "hat", title: "Hats", table: "hats", kind: "tiles" },
+    { id: "face", title: "Face", table: "faces", kind: "tiles" },
+    { id: "neck", title: "Neck", table: "necks", kind: "tiles" },
+    { id: "fx", title: "Effects", table: "fx", kind: "tiles" },
+    { id: "size", title: "Size", table: "sizes", kind: "seg" }
+  ];
+  var CHEVRON = '<svg class="cy-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>';
+  var GEAR = '<svg class="cy-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="7" x2="20" y2="7"/><line x1="4" y1="17" x2="20" y2="17"/><circle cx="9" cy="7" r="2.6" fill="currentColor"/><circle cx="15" cy="17" r="2.6" fill="currentColor"/></svg>';
+
+  function cyTable(sec) { return mascot().catalog[sec.table]; }
+  function cyVisual(sec, id, it) {
+    var cat = mascot().catalog, parts = {};
+    if (sec.id === "color") return '<span class="cy-swatch" style="' + gradVars(it.tube) + (it.glow ? ";--glow:" + it.glow : "") + '" aria-hidden="true"></span>';
+    if (sec.id === "eyes") return '<span class="cy-eye" style="' + gradVars(it.iris) + '" aria-hidden="true"></span>';
+    if (sec.id === "size") return '<span class="cy-size cy-size--' + id + '" aria-hidden="true">{ }</span>';
+    parts[sec.id] = id;
+    return '<span class="cy-art" aria-hidden="true">' + cat.mini(parts) + "</span>";
+  }
+  function cyCount(sec) {
+    var t = cyTable(sec), ids = Object.keys(t);
+    return ids.filter(function (id) { return isUnlocked(t[id]); }).length + " of " + ids.length + " unlocked";
+  }
+  function cyHeadHtml(sec, s) {
+    var it = cyTable(sec)[s[sec.id]];
+    return '<span class="cy-sec-pic" aria-hidden="true">' + cyVisual(sec, s[sec.id], it) + "</span>" +
+      '<span class="cy-sec-text"><b>' + sec.title + "</b><small>" + esc(it.label) + " · " + cyCount(sec) + "</small></span>" + CHEVRON;
+  }
+  function behaviorSummary(s) {
+    var on = [];
+    if (!s.visible) return "Hidden on every page";
+    on.push(s.tips ? "Tips on" : "Tips off");
+    on.push(s.autohide ? "smart hiding" : "always out");
+    if (!s.follow) on.push("eyes still");
+    return on.join(" · ");
+  }
+  function cySection(id, head, body) {
+    var open = cy.open === id;
+    return '<section class="pf-card liquid-glass cy-sec' + (open ? " is-open" : "") + '" data-sec="' + id + '">' +
+        '<h3 class="cy-sec-h"><button type="button" class="cy-sec-btn" id="cy-btn-' + id + '" aria-expanded="' + open + '" aria-controls="cy-body-' + id + '" data-act="cy-toggle" data-sec="' + id + '">' + head + "</button></h3>" +
+        '<div class="cy-sec-body" id="cy-body-' + id + '" role="region" aria-labelledby="cy-btn-' + id + '"' + (open ? "" : " inert") + '><div class="cy-sec-inner">' + body + "</div></div>" +
+      "</section>";
+  }
+
+  function curlyOptionsHtml() {
+    var m = mascot(), s = m.settings(), n = esc(s.name);
+    function sw2(id, label, sub, on) {
+      return '<label class="pf-switch"><input type="checkbox" id="cy-' + id + '"' + (on ? " checked" : "") + '><span class="pf-switch-ui" aria-hidden="true"></span>' +
+        "<span><b>" + label + "</b><small>" + sub + "</small></span></label>";
+    }
+    return CY_SECTIONS.map(function (sec) {
+      return cySection(sec.id, cyHeadHtml(sec, s),
+        '<div class="cy-grid cy-grid--' + sec.kind + '" role="radiogroup" aria-label="' + sec.title + '">' +
+          cyOptions(sec.id, cyTable(sec), s[sec.id], function (id, it) { return cyVisual(sec, id, it); }) +
+        "</div>");
+    }).join("") +
+    cySection("behavior",
+      '<span class="cy-sec-pic" aria-hidden="true">' + GEAR + '</span><span class="cy-sec-text"><b>Behavior</b><small id="cy-behavior-sum">' + behaviorSummary(s) + "</small></span>" + CHEVRON,
+      '<div class="cy-sec-pad">' +
+        sw2("visible", "Show " + n + " on every page", "Turn off to keep " + n + " hidden everywhere. Your look stays saved.", s.visible) +
+        sw2("tips", "Tips", n + " points out what to do next and cheers when you get things right.", s.tips) +
+        sw2("autohide", "Smart hiding", "Ducks to the screen edge when it would cover a button, and on phones while you type or scroll.", s.autohide) +
+        sw2("follow", "Follow my pointer", "Eyes and head turn toward your cursor or finger.", s.follow) +
+        '<div class="pf-actions cy-actions">' +
+          '<button type="button" class="wordle-btn ghost" data-act="cy-reset-pos">Move back to the corner</button>' +
+          '<button type="button" class="wordle-btn ghost" data-act="cy-reset-look">Reset look</button>' +
+        "</div>" +
+      "</div>");
+  }
+  /** After a pick: only that section's header changes (the open/closed state stays). */
+  function cyRefreshHead(id) {
+    var btn = $("cy-btn-" + id), s = mascot().settings();
+    if (!btn) return;
+    if (id === "behavior") { var sum = $("cy-behavior-sum"); if (sum) sum.textContent = behaviorSummary(s); return; }
+    var sec = CY_SECTIONS.filter(function (x) { return x.id === id; })[0];
+    if (sec) btn.innerHTML = cyHeadHtml(sec, s);
+  }
+  function cyToggle(id) {
+    cy.open = cy.open === id ? null : id;
+    document.querySelectorAll("#cy-options .cy-sec").forEach(function (el) {
+      var open = el.getAttribute("data-sec") === cy.open;
+      el.classList.toggle("is-open", open);
+      var btn = el.querySelector(".cy-sec-btn"), body = el.querySelector(".cy-sec-body");
+      btn.setAttribute("aria-expanded", open);
+      if (open) body.removeAttribute("inert"); else body.setAttribute("inert", "");
+      if (open) setTimeout(function () { el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }, 380);
+    });
+  }
+  /** A random look from what is unlocked (the name and the size stay). */
+  function cyRandom() {
+    var patch = {};
+    CY_SECTIONS.forEach(function (sec) {
+      if (sec.id === "size") return;
+      var t = cyTable(sec), ids = Object.keys(t).filter(function (id) { return isUnlocked(t[id]); });
+      patch[sec.id] = ids[Math.floor(Math.random() * ids.length)];
+    });
+    return patch;
+  }
+
+  function renderCurly() {
+    var panel = $("pf-panel-curly"), m = mascot();
+    if (!panel || !m) return;
+    var s = m.settings();
+    panel.innerHTML =
+      '<div class="cy-layout">' +
+        '<section class="pf-card liquid-glass cy-stage-card" aria-label="Preview">' +
+          '<div class="cy-stage" id="cy-stage"><span class="cy-floor" aria-hidden="true"></span></div>' +
+          '<div class="cy-moods" role="group" aria-label="Try a mood">' +
+            CY_MOODS.map(function (md) { return '<button type="button" class="cy-chip" data-act="cy-mood" data-mood="' + md[0] + '">' + md[1] + "</button>"; }).join("") +
+          "</div>" +
+          '<button type="button" class="wordle-btn ghost cy-random" data-act="cy-random">' + icon("dice") + "Surprise me</button>" +
+          '<div class="pf-field cy-name">' +
+            '<label for="cy-name">Name</label>' +
+            '<input class="pf-input" id="cy-name" maxlength="' + m.catalog.nameMax + '" autocomplete="off" spellcheck="false" placeholder="' + esc(m.catalog.defaults.name) + '" value="' + esc(s.name) + '">' +
+            '<p class="pf-hint" id="cy-name-hint" aria-live="polite">Up to ' + m.catalog.nameMax + " letters or numbers.</p>" +
+          "</div>" +
+          '<p class="cy-status" id="cy-status" aria-live="polite"></p>' +
+        "</section>" +
+        '<div class="cy-options" id="cy-options">' + curlyOptionsHtml() + "</div>" +
+      "</div>";
+    if (cy.preview) cy.preview.destroy();
+    cy.preview = m.preview($("cy-stage"));
+    cy.locks = lockKey();
+    cy.built = true;
+  }
+  /** Redraws the pickers (after a sync, a reset or a new unlock) without touching the preview or the name field. */
+  function refreshCurly() {
+    if (!cy.built || !$("cy-options")) return;
+    $("cy-options").innerHTML = curlyOptionsHtml();
+    cy.locks = lockKey();
+    var input = $("cy-name");
+    if (input && document.activeElement !== input) input.value = mascot().settings().name;
+    var tab = $("pf-tab-curly");
+    if (tab) tab.textContent = curlyName();
+  }
+
+  function cyStatus(text) { var el = $("cy-status"); if (el) el.textContent = text; }
+  /** Saves to the account a moment after the last change. */
+  function saveCurly() {
+    clearTimeout(cy.saveTimer);
+    cyStatus("Saving…");
+    cy.saveTimer = setTimeout(function () {
+      var m = mascot();
+      if (!m || !online()) { cyStatus("Saved on this device"); return; }
+      api.put("me/settings", { mascot: m.settings() }).then(function (res) {
+        cy.account = !!(res && res.settings && res.settings.hasOwnProperty("mascot"));
+        cyStatus(cy.account ? "Saved to your account" : "Saved on this device");
+      }, function () {
+        cyStatus("Saved on this device. Couldn't reach the server.");
+      });
+    }, 600);
+  }
+  /** On the first page load: take the look saved with the account, or upload this device's look the first time. */
+  function syncCurly() {
+    var m = mascot();
+    if (cy.fetched || !m || !online()) return;
+    cy.fetched = true;
+    api.get("me/settings").then(function (res) {
+      var st = res && res.settings;
+      if (!st || !st.hasOwnProperty("mascot")) { cy.account = false; return; } // migration 003 not run yet
+      cy.account = true;
+      if (st.mascot) { m.configure(st.mascot); refreshCurly(); if (cy.preview) cy.preview.refresh(); }
+      else {
+        // a new account on a browser someone else used: keep this device's look, minus what this learner has not unlocked
+        var fix = {}, d = m.catalog.defaults, s = m.settings();
+        CY_SECTIONS.forEach(function (sec) { if (!isUnlocked(cyTable(sec)[s[sec.id]])) fix[sec.id] = d[sec.id]; });
+        if (Object.keys(fix).length) { m.configure(fix); refreshCurly(); }
+        if (JSON.stringify(m.settings()) !== JSON.stringify(defaultsWithSwitches())) saveCurly();
+      }
+    }, function () { /* offline for now: the browser copy is used */ });
+  }
+  function defaultsWithSwitches() {
+    var d = mascot().catalog.defaults, out = {};
+    Object.keys(d).forEach(function (k) { out[k] = d[k]; });
+    out.tips = true; out.autohide = true; out.follow = true; out.visible = true;
+    return out;
+  }
+  /** One change from the tab: apply, react in the preview, save. */
+  function curlyChange(patch, reaction) {
+    var m = mascot();
+    if (!m) return;
+    m.configure(patch);
+    if (cy.preview && reaction) cy.preview.mood(reaction, 1300);
+    var tab = $("pf-tab-curly");
+    if (tab) tab.textContent = curlyName();
+    saveCurly();
+  }
+  function openCurly() {
+    if (!cy.built) renderCurly();
+    var m = mascot();
+    // on narrow screens the bubble would sit right on top of the preview
+    if (m && window.innerWidth > 860) m.tip("This is my wardrobe. Pick a color or a hat and I'll try it on right away.", { key: "wardrobe", mood: "happy", ms: 6000 });
+  }
+
+  ACTIONS["cy-mood"] = function (btn) {
+    var md = btn.getAttribute("data-mood");
+    if (cy.preview) cy.preview.mood(md, md === "sleep" ? 4000 : 2400);
+  };
+  ACTIONS["cy-toggle"] = function (btn) { cyToggle(btn.getAttribute("data-sec")); };
+  ACTIONS["cy-random"] = function () {
+    var m = mascot();
+    if (!m) return;
+    m.configure(cyRandom());
+    refreshCurly();
+    if (cy.preview) cy.preview.mood("surprised", 1400);
+    saveCurly();
+  };
+  ACTIONS["cy-reset-pos"] = function () {
+    var m = mascot();
+    if (!m) return;
+    m.resetPosition();
+    toast(curlyName() + " is back in the corner.", 2200);
+  };
+  ACTIONS["cy-reset-look"] = function () {
+    var m = mascot();
+    if (!m) return;
+    m.configure(m.catalog.defaults);
+    refreshCurly();
+    var input = $("cy-name");
+    if (input) input.value = m.settings().name;
+    if (cy.preview) cy.preview.mood("surprised", 1200);
+    saveCurly();
+  };
+
+  document.addEventListener("change", function (e) {
+    var t = e.target;
+    if (!t.closest || !t.closest("#pf-panel-curly")) return;
+    if (t.type === "radio" && t.name.indexOf("cy-") === 0) {
+      var group = t.name.slice(3), patch = {};
+      patch[group] = t.value;
+      // move the highlight to the picked option
+      var grid = t.closest(".cy-grid");
+      if (grid) grid.querySelectorAll(".cy-opt").forEach(function (o) { o.classList.toggle("is-on", o.contains(t)); });
+      curlyChange(patch, group === "color" || group === "eyes" || group === "size" ? "happy" : "surprised");
+      cyRefreshHead(group);
+      return;
+    }
+    if (t.type === "checkbox" && t.id.indexOf("cy-") === 0) {
+      var p = {};
+      p[t.id.slice(3)] = t.checked;
+      curlyChange(p, t.checked ? "happy" : null);
+      cyRefreshHead("behavior");
+    }
+  });
+  document.addEventListener("input", function (e) {
+    var t = e.target;
+    if (t.id !== "cy-name") return;
+    var m = mascot();
+    if (!m) return;
+    curlyChange({ name: t.value }, null);
+    var clean = m.settings().name, typed = t.value.trim();
+    var hint = $("cy-name-hint");
+    var bad = typed && clean !== typed.replace(/\s+/g, " ");
+    hint.textContent = bad ? "Only letters, numbers, spaces and . _ - are kept: " + clean : "Up to " + m.catalog.nameMax + " letters or numbers.";
+    hint.classList.toggle("is-bad", !!bad);
+  });
+  document.addEventListener("focusout", function (e) {
+    if (e.target.id !== "cy-name" || !mascot()) return;
+    e.target.value = mascot().settings().name;
+    var hint = $("cy-name-hint");
+    if (hint) { hint.textContent = "Up to " + mascot().catalog.nameMax + " letters or numbers."; hint.classList.remove("is-bad"); }
+    if (cy.preview) cy.preview.mood("happy", 1200);
   });
 
   window.CodleProfile = {

@@ -10,6 +10,7 @@ Návrh databáze pro MariaDB 10.4+ (verze v XAMPP) a MySQL 8.0+.
 | `seed-quests.sql` | Úlohy do editoru pro JavaScript, Unit 1: Console Log, Variables, Data Types. |
 | `migrations/001_api.sql` | Úpravy pro API na databázi vytvořené před 23. 10. 2026: tabulka `auth_throttle` a klíč odpovědí na Denní historku. `schema.sql` je už obsahuje. |
 | `migrations/002_profile.sql` | Záložka Profile, pro databázi vytvořenou před 26. 10. 2026: bio, profilová fotka, viditelnost profilu a data změn v `users`, tabulka `username_history`. `schema.sql` je už obsahuje. |
+| `migrations/003_mascot.sql` | Záložka Curly v profilu, pro databázi vytvořenou před 2. 11. 2026: sloupec `mascot` v `user_settings` (vzhled a chování maskota jako JSON). `schema.sql` ho už obsahuje. Bez migrace API funguje dál, vzhled se jen neukládá k účtu. |
 
 ## Import
 
@@ -28,7 +29,7 @@ Z terminálu:
 
 ## Oblasti
 
-- **Účty:** `users` (včetně bia, profilové fotky a viditelnosti profilu), `username_history` (dřívější jména), `oauth_accounts` (Google, GitHub), `email_verifications` (6místné kódy), `sessions`, `user_settings` (nastavení editoru a efektů), `auth_throttle` (limity pokusů o přihlášení a kódy).
+- **Účty:** `users` (včetně bia, profilové fotky a viditelnosti profilu), `username_history` (dřívější jména), `oauth_accounts` (Google, GitHub), `email_verifications` (6místné kódy), `sessions`, `user_settings` (nastavení editoru, efektů a maskota Curlyho), `auth_throttle` (limity pokusů o přihlášení a kódy).
 - **Obsah:** `courses`, `units`, `lessons`, `quests` + `quest_files` + `quest_objectives` (úlohy v editoru), `questions` + `question_answers` (rozřazovací a jednotkové kvízy), `badges`.
 - **Postup:** `enrollments`, `placement_attempts` + `placement_answers`, `lesson_progress`, `quest_saves`, `xp_events` (každý zisk XP jako řádek), `daily_activity` (série a denní cíl), `user_badges`.
 - **Procvičování:** `wordle_words`, `wordle_puzzles` (které slovo je který den), `wordle_plays`.

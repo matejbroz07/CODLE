@@ -154,6 +154,7 @@ CREATE TABLE user_settings (
   autorun          TINYINT(1)      NOT NULL DEFAULT 1,
   editor_theme     ENUM('codle','ember','paper') NOT NULL DEFAULT 'codle',
   effects_mode     ENUM('auto','full','lite') NOT NULL DEFAULT 'auto',   -- visual effects / low-end devices
+  mascot           TEXT            NULL,                     -- JSON, Curly's look and behaviour (Profile → Curly); NULL = defaults
   updated_at       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id),
   CONSTRAINT fk_settings_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,

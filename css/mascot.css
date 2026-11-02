@@ -11,7 +11,7 @@
   right: 18px;
   bottom: var(--mascot-bottom, 22px);
   z-index: 60; /* above the nav bars (40–50), below modals and toasts (70+) */
-  width: var(--mascot-size, 76px);
+  width: calc(var(--mascot-size, 76px) * var(--mascot-scale, 1)); /* --mascot-scale: Profile → Curly → Size */
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -64,7 +64,8 @@
 .mascot-glass-l, .mascot-glass-r {
   position: absolute;
   inset: 0;
-  background: linear-gradient(150deg, rgba(255,255,255,.55), rgba(240,245,255,.35) 55%, rgba(205,218,240,.45));
+  /* tinted by the chosen glass color (js/mascot.js applyLook sets --mg1..3) */
+  background: linear-gradient(150deg, var(--mg1, rgba(255,255,255,.55)), var(--mg2, rgba(240,245,255,.35)) 55%, var(--mg3, rgba(205,218,240,.45)));
   -webkit-backdrop-filter: blur(10px) saturate(160%) brightness(1.2);
   backdrop-filter: blur(10px) saturate(160%) brightness(1.2);
   -webkit-mask: var(--mascot-mask) center / 100% 100% no-repeat;
@@ -88,13 +89,14 @@
   transition: transform .45s var(--lg-spring);
   transform-box: fill-box;
   transform-origin: center;
-  filter: drop-shadow(0 5px 6px rgba(0,0,0,.5));
+  /* the second shadow is the glow of colors like Neon or Lava (--mascot-glow, else transparent) */
+  filter: drop-shadow(0 5px 6px rgba(0,0,0,.5)) drop-shadow(0 0 3.5px var(--mascot-glow, transparent));
 }
 .mascot-brace-l { transform: var(--brace-l, none); }
 .mascot-brace-r { transform: var(--brace-r, none); }
+/* the stroke gradient is an attribute (url(#<uid>-tube)) so every copy of the figure uses its own */
 .mascot-tube {
   fill: none;
-  stroke: url(#mascot-g-tube);
   stroke-width: 7.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -110,6 +112,22 @@
   transform: translate(-1.2px, -1.2px);
 }
 
+/* ----- what it wears (Profile → Curly): hats and extras drawn over the face ----- */
+.mascot-wear { filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+/* moving parts of some items, and the effects (each piece is a .mascot-p with --d delay, --x drift) */
+.mascot-p, .mascot-prop { transform-box: fill-box; transform-origin: center; }
+.mascot-prop { animation: mascot-prop .45s linear infinite; }
+.mascot-hover { animation: mascot-hover 2.6s ease-in-out infinite; }
+.mascot-fx-sparkles .mascot-p, .mascot-fx-stars .mascot-p { animation: mascot-twinkle 2.8s ease-in-out var(--d) infinite both; }
+.mascot-fx-hearts .mascot-p, .mascot-fx-notes .mascot-p,
+.mascot-fx-code .mascot-p, .mascot-fx-bubbles .mascot-p { animation: mascot-rise 3.6s ease-out var(--d) infinite both; }
+.mascot-fx-snow .mascot-p { animation: mascot-fall 4.5s linear var(--d) infinite both; }
+.mascot-fx-confetti .mascot-p { animation: mascot-confetti 3.6s linear var(--d) infinite both; }
+.mascot-fx-fire .mascot-p { transform-origin: 50% 100%; animation: mascot-flicker .8s ease-in-out var(--d) infinite alternate both; }
+
+/* a hat sticks out above the figure, so the bubble and its tail sit higher */
+.mascot:not(.bubble-below):not([data-hat="none"]) .mascot-bubble { bottom: calc(100% + 30px); }
+
 /* ----- face ----- */
 .mascot-eye {
   transform-box: fill-box;
@@ -121,11 +139,9 @@
   clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
   transition: opacity .15s, clip-path .28s var(--lg-spring);
 }
-.mascot-socket { fill: #0b1526; opacity: .45; filter: url(#mascot-f-soft); }
-.mascot-sclera { fill: url(#mascot-g-sclera); }
+.mascot-socket { fill: #0b1526; opacity: .45; }
 .mascot-pupil { transition: transform .14s ease-out; }
 .mascot-iris { transform-box: fill-box; transform-origin: center; transition: transform .2s var(--lg-spring); }
-.mascot-pupil circle { fill: url(#mascot-g-iris); }
 .mascot-pupil .mascot-glint { fill: #fff; }
 .mascot-pupil .mascot-glint-sm { opacity: .85; }
 .mascot-eye-happy {
@@ -436,6 +452,20 @@ pre.mascot-word { display: block; }
 .mascot.is-docked .mascot-figure, .mascot.is-tucked .mascot-figure { animation: mascot-peek 6s ease-in-out infinite; }
 .mascot.has-pending.is-docked .mascot-figure, .mascot.has-pending.is-tucked .mascot-figure { animation-duration: 2.4s; }
 
+/* ----- preview: a copy of the figure inside the Profile → Curly tab ----- */
+.mascot.mascot--preview {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  width: calc(150px * var(--mascot-scale, 1));
+  margin: 0 auto;
+  transform: none;
+  transition: width .45s var(--lg-spring);
+}
+.mascot--preview .mascot-body { cursor: pointer; }
+.mascot--preview .mascot-body:focus-visible { outline: none; }
+.mascot--preview .mascot-body:focus-visible svg { outline: 2px solid rgba(255,255,255,.7); outline-offset: 6px; border-radius: 24px; }
+
 /* ----- keyframes ----- */
 @keyframes mascot-bob {
   0%, 100% { transform: translateY(0); }
@@ -523,6 +553,37 @@ pre.mascot-word { display: block; }
   0%, 80%, 100% { transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) rotate(var(--mascot-peek-lean)) translateX(0); }
   88% { transform: rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) rotate(var(--mascot-peek-lean)) translateX(var(--mascot-peek-nudge)); }
 }
+@keyframes mascot-twinkle {
+  0%, 100% { opacity: 0; transform: scale(.3) rotate(0deg); }
+  50% { opacity: 1; transform: scale(1) rotate(45deg); }
+}
+@keyframes mascot-rise {
+  0% { opacity: 0; transform: translate(0, 0) scale(.6); }
+  15% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x, 0px), -46px) scale(1); }
+}
+@keyframes mascot-fall {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15%, 85% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x, 0px), 130px); }
+}
+@keyframes mascot-confetti {
+  0% { opacity: 0; transform: translate(0, 0) rotate(0deg); }
+  10%, 90% { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x, 0px), 140px) rotate(540deg); }
+}
+@keyframes mascot-flicker {
+  from { opacity: .85; transform: scale(.9, .8); }
+  to { opacity: 1; transform: scale(1.05, 1.15); }
+}
+@keyframes mascot-prop {
+  0%, 100% { transform: scaleX(1); }
+  50% { transform: scaleX(-1); }
+}
+@keyframes mascot-hover {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
 @keyframes mascot-zz {
   0% { opacity: 0; transform: translate(0, 0); }
   30% { opacity: .9; }
@@ -546,8 +607,11 @@ body.editor-page .mascot { --mascot-size: 64px; bottom: var(--mascot-bottom, 72p
 html.lite .mascot-body { animation: none !important; }
 html.lite .mascot-figure { transform: none; transition: none; }
 html.lite .mascot-glass { display: none; }
-html.lite .mascot-tube { stroke: #e9eff8; }
+html.lite .mascot-tube { stroke: var(--mt2, #e9eff8); }
 html.lite .mascot-brace, html.lite .mascot-glass-l, html.lite .mascot-glass-r { transition: none; filter: none; }
+html.lite .mascot-wear-fx { display: none; }                         /* no particles on the floating mascot */
+html.lite .mascot-p { animation: none; opacity: 1; }                  /* still drawn, unmoving, in the pickers */
+html.lite .mascot-prop, html.lite .mascot-hover { animation: none; }
 html.lite .mascot[data-mood="sleep"] .mascot-zz { animation: none; opacity: .8; }
 html.lite .mascot.bubble-open .mascot-bubble { animation: mascot-bubble-pop .45s ease-out both; }
 html.lite .mascot.bubble-open.bubble-below .mascot-bubble { animation-name: mascot-bubble-pop-down; }

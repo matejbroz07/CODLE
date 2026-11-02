@@ -99,7 +99,8 @@ function route_leaderboard(): array
 }
 
 /* ---------------------------------------------------------------
-   Editor workspace settings (user_settings) — same keys as js/editor.js
+   Workspace settings (user_settings) — the editor keys as in js/editor.js,
+   the effects mode, and Curly's look (mascot, see below)
 --------------------------------------------------------------- */
 
 function settings_out(array $s): array
@@ -116,7 +117,50 @@ function settings_out(array $s): array
         'autorun'  => (bool) $s['autorun'],
         'theme'    => $s['editor_theme'],
         'effects'  => $s['effects_mode'],
-    ];
+    ] + (array_key_exists('mascot', $s)   // the column exists once migration 003 ran
+        ? ['mascot' => $s['mascot'] !== null ? mascot_clean(json_decode($s['mascot'], true)) : null]
+        : []);
+}
+
+/* ---------------------------------------------------------------
+   Curly's look and behaviour (Profile → Curly) — same ids as js/mascot.js.
+   The first id of each list is the default. Unlocks (level, streak) are only
+   cosmetic, so they are checked in the browser, not here.
+--------------------------------------------------------------- */
+
+const MASCOT_CHOICES = [
+    'color' => ['frost', 'ocean', 'mint', 'rose', 'grape', 'lemon', 'sky', 'peach', 'lime', 'coral', 'lavender', 'teal',
+                'gold', 'ruby', 'emerald', 'ghost', 'prism', 'obsidian', 'neon', 'lava'],
+    'eyes'  => ['ink', 'blue', 'green', 'amber', 'hazel', 'gray', 'violet', 'teal', 'ruby', 'gold', 'galaxy', 'ice', 'ember'],
+    'hat'   => ['none', 'beanie', 'cap', 'headphones', 'propeller', 'graduation', 'party', 'tophat', 'crown', 'cowboy', 'chef',
+                'viking', 'pirate', 'wizard', 'bunny', 'flowers', 'santa', 'halo'],
+    'face'  => ['none', 'glasses', 'freckles', 'hipster', 'mustache', 'bandaid', 'star', 'shades', 'monocle', 'pixel', 'eyepatch', 'nose'],
+    'neck'  => ['none', 'necktie', 'bowtie', 'scarf', 'bandana', 'medal', 'badge', 'chain'],
+    'fx'    => ['none', 'sparkles', 'hearts', 'notes', 'code', 'bubbles', 'stars', 'confetti', 'snow', 'fire'],
+    'size'  => ['m', 'xs', 's', 'l', 'xl'],
+];
+const MASCOT_SWITCHES = ['tips', 'autohide', 'follow', 'visible'];
+const MASCOT_NAME_MAX = 12;
+
+/** A look from the browser or the database, made safe. Null when it is not an object at all. */
+function mascot_clean($m): ?array
+{
+    if (!is_array($m)) return null;
+    // the first version had one "extra" slot: glasses/shades are face items now, the bow tie a neck item
+    if (isset($m['extra']) && !isset($m['face']) && !isset($m['neck'])) {
+        $m[$m['extra'] === 'bowtie' ? 'neck' : 'face'] = $m['extra'];
+    }
+    $name = is_string($m['name'] ?? null) ? $m['name'] : '';
+    $name = preg_replace('/[^\p{L}\p{N} ._-]/u', '', $name) ?? '';
+    $name = trim(mb_substr(trim(preg_replace('/\s+/u', ' ', $name) ?? ''), 0, MASCOT_NAME_MAX));
+    $out = ['name' => $name !== '' ? $name : 'Curly'];
+    foreach (MASCOT_CHOICES as $key => $ids) {
+        $out[$key] = in_array($m[$key] ?? null, $ids, true) ? $m[$key] : $ids[0];
+    }
+    foreach (MASCOT_SWITCHES as $key) {
+        $out[$key] = is_bool($m[$key] ?? null) ? $m[$key] : true;
+    }
+    return $out;
 }
 
 function user_settings(array $user): array
@@ -137,6 +181,11 @@ function route_settings_get(): array
 function route_settings_put(): array
 {
     $user = require_user();
+    $mascot = null;
+    if (array_key_exists('mascot', body())) {
+        $mascot = mascot_clean(body()['mascot']);
+        if ($mascot === null) fail(422, 'invalid_mascot', 'mascot must be an object.');
+    }
     $s = array_merge(user_settings($user), body());
     $layout = in_array($s['layout'], ['split', 'swap', 'stacked'], true) ? $s['layout'] : 'split';
     $theme = in_array($s['theme'], ['codle', 'ember', 'paper'], true) ? $s['theme'] : 'codle';
@@ -157,5 +206,9 @@ function route_settings_put(): array
         $effects,
         $user['id'],
     ]);
+    // Curly: only once migration 003 added the column; until then the browser keeps it
+    if ($mascot !== null && array_key_exists('mascot', user_settings($user))) {
+        q('UPDATE user_settings SET mascot = ? WHERE user_id = ?', [json_encode($mascot, JSON_UNESCAPED_UNICODE), $user['id']]);
+    }
     return ['settings' => user_settings($user)];
 }

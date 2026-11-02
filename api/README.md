@@ -12,6 +12,7 @@ Když API není dostupné (GitHub Pages, otevření souboru z disku), stránky b
    ```bash
    /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/migrations/001_api.sql
    /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/migrations/002_profile.sql
+   /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/migrations/003_mascot.sql
    /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/seed-placement.sql
    /Applications/XAMPP/xamppfiles/bin/mysql -u root codle < database/seed-quests.sql
    ```
