@@ -473,7 +473,7 @@
 
   var mascot = window.CodleMascot || null;
   var VIEW_TIPS = {
-    "view-learn": "This is your path. The glowing lesson is the one to do next.",
+    "view-learn": "This is your path. The big highlighted lesson is the one to do next.",
     "view-practice": "Practice games earn XP too. Wordle changes every day, so come back tomorrow for a new word.",
     "view-leaderboard": "The leaderboard ranks everyone by XP. Finish lessons and games to climb.",
     "view-profile": "Your profile: level, streak and badges. Keep the streak alive by learning every day."
@@ -495,7 +495,7 @@
       var days = user ? (user.streak || user.streakCount || 0) : 0;
       var streak = days ? "You're on a " + days + "-day streak, keep it going. " : "";
       return {
-        text: streak + (title ? "Your next lesson is <b>" + esc(title) + "</b>. Click the glowing circle on the path to open it." : "Pick the glowing lesson on the path to continue."),
+        text: streak + (title ? "Your next lesson is <b>" + esc(title) + "</b>. Click the big highlighted circle on the path to open it." : "Pick the highlighted lesson on the path to continue."),
         html: true,
         mood: "happy"
       };
@@ -514,7 +514,7 @@
     var hour = new Date().getHours();
     var when = hour < 5 ? "Still up" : hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
     var title = currentLessonTitle();
-    mascot.tip(when + (name ? ", " + name : "") + ". " + (title ? "Ready for " + title + "? It's the glowing lesson on your path." : "Click me any time you need a hand."), { key: "greet", mood: "happy", ms: 6000 });
+    mascot.tip(when + (name ? ", " + name : "") + ". " + (title ? "Ready for " + title + "? It's the highlighted lesson on your path." : "Click me any time you need a hand."), { key: "greet", mood: "happy", ms: 6000 });
   }
 
   window.CodleApp = {
@@ -998,7 +998,7 @@
   }, { passive: true });
 
   var rippleHost = $("lg-ripple-host");
-  var RIPPLE_TARGETS = ".milestone:not(.locked) .milestone-circle, .milestone-start-btn, .bottom-nav-item, .navbar-tab, .nav-profile, .game-card:not(.is-soon), .game-back, .icon-btn, .wordle-btn";
+  var RIPPLE_TARGETS = ".milestone:not(.locked) .milestone-circle, .milestone-start-btn, .bottom-nav-item, .navbar-tab, .nav-profile, .game-card, .game-back, .icon-btn, .wordle-btn";
 
   function ripple(el, cx, cy) {
     var r = el.getBoundingClientRect();

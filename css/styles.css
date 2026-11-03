@@ -176,7 +176,6 @@
 /* ===== SIDEBAR CARDS ===== */
 .stat-card { padding: 22px 24px; margin-bottom: 16px; }
 .stat-card .stat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.stat-card .stat-header svg { width: 18px; height: 18px; }
 .stat-card .stat-header span {
   font-size: 12px;
   font-weight: 600;
@@ -295,7 +294,6 @@
 }
 .leaderboard-item.you-row + .leaderboard-item { border-top: none; }
 .leaderboard-item.you-row .lb-xp { color: var(--unit-accent, var(--accent)); transition: color .6s ease; }
-.badge-icon { color: var(--unit-accent, var(--accent)); transition: color .6s ease; }
 
 /* ===== PROFILE (right sidebar) ===== */
 .profile-card { padding: 4px 4px 16px; }

@@ -2,3 +2,4 @@
 exclude:
   - admin
   - api
+  - 404.php

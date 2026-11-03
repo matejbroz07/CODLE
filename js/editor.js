@@ -26,19 +26,11 @@ function codleEditor(lesson) {
      1. LANGUAGE LOGOS
   ================================================================*/
 
-  var LOGO_FONT = 'font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif" font-weight="800"';
-  function shield(dark, light, digit) {
-    return '<svg class="ed-logo" viewBox="0 0 24 24" aria-hidden="true">' +
-      '<path fill="' + dark + '" d="M3.5 1.5h17l-1.55 17.4L12 21.5l-6.95-2.6z"/>' +
-      '<path fill="' + light + '" d="M12 3.1v16.8l5.62-2.07 1.33-14.73z"/>' +
-      '<text x="12" y="15.3" text-anchor="middle" font-size="10.5" fill="#fff" ' + LOGO_FONT + '>' + digit + '</text></svg>';
-  }
+  // The official logos, as Devicon 2.18.0 draws them (MIT; the same ones register.html shows).
   var LOGOS = {
-    html: shield("#E44D26", "#F16529", "5"),
-    css: shield("#1572B6", "#33A9DC", "3"),
-    js: '<svg class="ed-logo" viewBox="0 0 24 24" aria-hidden="true">' +
-      '<rect x="1.5" y="1.5" width="21" height="21" rx="3.5" fill="#F7DF1E"/>' +
-      '<text x="20.2" y="19.8" text-anchor="end" font-size="10" fill="#1c1c1c" ' + LOGO_FONT + '>JS</text></svg>'
+    html: '<svg class="ed-logo" viewBox="0 0 128 128" aria-hidden="true"><path fill="#E44D26" d="M19.037 113.876L9.032 1.661h109.936l-10.016 112.198-45.019 12.48z"/><path fill="#F16529" d="M64 116.8l36.378-10.086 8.559-95.878H64z"/><path fill="#EBEBEB" d="M64 52.455H45.788L44.53 38.361H64V24.599H29.489l.33 3.692 3.382 37.927H64zm0 35.743l-.061.017-15.327-4.14-.979-10.975H33.816l1.928 21.609 28.193 7.826.063-.017z"/><path fill="#fff" d="M63.952 52.455v13.763h16.947l-1.597 17.849-15.35 4.143v14.319l28.215-7.82.207-2.325 3.234-36.233.335-3.696h-3.708zm0-27.856v13.762h33.244l.276-3.092.628-6.978.329-3.692z"/></svg>',
+    css: '<svg class="ed-logo" viewBox="0 0 128 128" aria-hidden="true"><path fill="#1572B6" d="M18.814 114.123L8.76 1.352h110.48l-10.064 112.754-45.243 12.543-45.119-12.526z"/><path fill="#33A9DC" d="M64.001 117.062l36.559-10.136 8.601-96.354h-45.16v106.49z"/><path fill="#fff" d="M64.001 51.429h18.302l1.264-14.163H64.001V23.435h34.682l-.332 3.711-3.4 38.114h-30.95V51.429z"/><path fill="#EBEBEB" d="M64.083 87.349l-.061.018-15.403-4.159-.985-11.031H33.752l1.937 21.717 28.331 7.863.063-.018v-14.39z"/><path fill="#fff" d="M81.127 64.675l-1.666 18.522-15.426 4.164v14.39l28.354-7.858.208-2.337 2.406-26.881H81.127z"/><path fill="#EBEBEB" d="M64.048 23.435v13.831H30.64l-.277-3.108-.63-7.012-.331-3.711h34.646zm-.047 27.996v13.831H48.792l-.277-3.108-.631-7.012-.33-3.711h16.447z"/></svg>',
+    js: '<svg class="ed-logo" viewBox="0 0 128 128" aria-hidden="true"><path fill="#F0DB4F" d="M1.408 1.408h125.184v125.185H1.408z"/><path fill="#323330" d="M116.347 96.736c-.917-5.711-4.641-10.508-15.672-14.981-3.832-1.761-8.104-3.022-9.377-5.926-.452-1.69-.512-2.642-.226-3.665.821-3.32 4.784-4.355 7.925-3.403 2.023.678 3.938 2.237 5.093 4.724 5.402-3.498 5.391-3.475 9.163-5.879-1.381-2.141-2.118-3.129-3.022-4.045-3.249-3.629-7.676-5.498-14.756-5.355l-3.688.477c-3.534.893-6.902 2.748-8.877 5.235-5.926 6.724-4.236 18.492 2.975 23.335 7.104 5.332 17.54 6.545 18.873 11.531 1.297 6.104-4.486 8.08-10.234 7.378-4.236-.881-6.592-3.034-9.139-6.949-4.688 2.713-4.688 2.713-9.508 5.485 1.143 2.499 2.344 3.63 4.26 5.795 9.068 9.198 31.76 8.746 35.83-5.176.165-.478 1.261-3.666.38-8.581zM69.462 58.943H57.753l-.048 30.272c0 6.438.333 12.34-.714 14.149-1.713 3.558-6.152 3.117-8.175 2.427-2.059-1.012-3.106-2.451-4.319-4.485-.333-.584-.583-1.036-.667-1.071l-9.52 5.83c1.583 3.249 3.915 6.069 6.902 7.901 4.462 2.678 10.459 3.499 16.731 2.059 4.082-1.189 7.604-3.652 9.448-7.401 2.666-4.915 2.094-10.864 2.07-17.444.06-10.735.001-21.468.001-32.237z"/></svg>'
   };
   var LANG_LABEL = { html: "HTML", css: "CSS", js: "JavaScript" };
 
@@ -461,13 +453,27 @@ function codleEditor(lesson) {
   }
 
   // Insert text through execCommand so the browser's undo stack keeps working.
+  // "editing" tells the input handler that the editor typed this, not the user.
+  var editing = false;
   function insertText(text) {
     var ok = false;
-    try { ok = document.execCommand("insertText", false, text); } catch (e) { ok = false; }
-    if (!ok) {
-      input.setRangeText(text, input.selectionStart, input.selectionEnd, "end");
-      input.dispatchEvent(new Event("input", { bubbles: true }));
+    editing = true;
+    try {
+      try { ok = document.execCommand(text ? "insertText" : "delete", false, text); } catch (e) { ok = false; }
+      if (!ok) {
+        input.setRangeText(text, input.selectionStart, input.selectionEnd, "end");
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    } finally {
+      editing = false;
     }
+  }
+  /** Replaces [from, to) through the undo stack, then selects [selFrom, selTo) (a caret when selTo is left out). */
+  function replaceRange(from, to, text, selFrom, selTo) {
+    input.setSelectionRange(from, to);
+    if (text || from !== to) insertText(text);
+    if (selFrom !== undefined) input.setSelectionRange(selFrom, selTo === undefined ? selFrom : selTo);
+    updateCaret();
   }
 
   var VOID_TAGS = /^(?:area|base|br|col|embed|hr|img|input|link|meta|source|track|wbr)$/i;
@@ -502,11 +508,12 @@ function codleEditor(lesson) {
     insertText("\n" + indent);
   }
 
-  function handleTab(outdent) {
+  /** Tab / Shift+Tab; wholeLines (Ctrl+] / Ctrl+[) indents the line even with a plain caret. */
+  function handleTab(outdent, wholeLines) {
     var v = input.value, s = input.selectionStart, e = input.selectionEnd;
     var unit = indentUnit();
     var multi = v.slice(s, e).indexOf("\n") >= 0;
-    if (!outdent && !multi) { insertText(unit); return; }
+    if (!outdent && !multi && !wholeLines) { insertText(unit); return; }
     var blockStart = v.lastIndexOf("\n", s - 1) + 1;
     var blockEnd = v.indexOf("\n", e - (e > s && v[e - 1] === "\n" ? 1 : 0));
     if (blockEnd < 0) blockEnd = v.length;
@@ -536,17 +543,341 @@ function codleEditor(lesson) {
     updateCaret();
   }
 
+  /* ----- snippets: Tab expands, then Tab / Shift+Tab walk the placeholders (js/editor-snippets.js) ----- */
+  var Snippets = window.CodleSnippets || null;
+  var snip = null; // the snippet being filled in: { stops: [[from, to], …], i, len }
+
+  function insertSnippet(start, end, body) {
+    var v = input.value;
+    var lineStart = v.lastIndexOf("\n", start - 1) + 1;
+    var indent = /^[ \t]*/.exec(v.slice(lineStart, start))[0];
+    var p = Snippets.parse(body.replace(/\t/g, indentUnit()).replace(/\n/g, "\n" + indent));
+    replaceRange(start, end, p.text);
+    var stops = p.stops.map(function (st) { return [start + st[0], start + st[1]]; });
+    snip = stops.length > 1 ? { stops: stops, i: 0, len: input.value.length } : null;
+    if (snip) selectStop(); else replaceRange(stops[0][0], stops[0][0], "", stops[0][0]);
+  }
+  function selectStop() {
+    var st = snip.stops[snip.i];
+    input.setSelectionRange(st[0], st[1]);
+    updateCaret();
+    if (snip.i === snip.stops.length - 1) snip = null; // reached $0: done
+  }
+  /** Moves to the next (d = 1) or previous placeholder; false when the caret has left the snippet. */
+  function nextStop(d) {
+    var c = input.selectionStart, from = Infinity, to = -1;
+    snip.stops.forEach(function (st) { from = Math.min(from, st[0]); to = Math.max(to, st[1]); });
+    if (c < from || c > to) { snip = null; return false; }
+    snip.i = Math.max(0, Math.min(snip.stops.length - 1, snip.i + d));
+    selectStop();
+    return true;
+  }
+  /** After an edit: typing inside the current placeholder grows it and moves the later ones. */
+  function trackSnippet() {
+    if (!snip) return;
+    var d = input.value.length - snip.len;
+    snip.len = input.value.length;
+    var cur = snip.stops[snip.i], c = input.selectionEnd;
+    if (c < cur[0] || c > cur[1] + d) { snip = null; return; }
+    var oldEnd = cur[1];
+    cur[1] += d;
+    snip.stops.forEach(function (st, j) { if (j !== snip.i && st[0] >= oldEnd) { st[0] += d; st[1] += d; } });
+  }
+
+  /* ----- the suggestion list (IntelliSense-style): Ctrl+Space, or as you type ----- */
+  var codeArea = input.parentNode;
+  var suggestEl = document.createElement("div");
+  suggestEl.className = "ed-suggest";
+  suggestEl.id = "ed-suggest";
+  suggestEl.setAttribute("role", "listbox");
+  suggestEl.setAttribute("aria-label", "Suggestions");
+  suggestEl.hidden = true;
+  codeArea.appendChild(suggestEl);
+  input.setAttribute("aria-autocomplete", "list");
+  input.setAttribute("aria-controls", "ed-suggest");
+  var sg = null; // { start, items, i }
+
+  function closeSuggest() {
+    if (!sg) return;
+    sg = null;
+    suggestEl.hidden = true;
+    input.removeAttribute("aria-activedescendant");
+  }
+  function updateSuggest(force) {
+    if (!Snippets || input.selectionStart !== input.selectionEnd) { closeSuggest(); return; }
+    var r = Snippets.complete(lang, input.value.slice(0, input.selectionStart), force);
+    if (!r) { closeSuggest(); return; }
+    sg = { start: r.start, items: r.items, i: 0 };
+    suggestEl.innerHTML = r.items.map(function (it, i) {
+      return '<div class="ed-suggest-item" role="option" id="ed-sg-' + i + '" data-i="' + i + '" aria-selected="' + (i === 0) + '">' +
+        '<span class="ed-suggest-key">' + esc(it.prefix) + '</span><span class="ed-suggest-label">' + esc(it.label) + "</span></div>";
+    }).join("");
+    suggestEl.hidden = false;
+    input.setAttribute("aria-activedescendant", "ed-sg-0");
+    placeSuggest();
+  }
+  function pickSuggest(i) {
+    sg.i = (i + sg.items.length) % sg.items.length;
+    suggestEl.querySelectorAll(".ed-suggest-item").forEach(function (el, j) { el.setAttribute("aria-selected", j === sg.i ? "true" : "false"); });
+    input.setAttribute("aria-activedescendant", "ed-sg-" + sg.i);
+  }
+  function acceptSuggest() {
+    var it = sg.items[sg.i], start = sg.start;
+    closeSuggest();
+    insertSnippet(start, input.selectionStart, it.body);
+  }
+  /** Under the word being completed (above it when there is no room below). */
+  function placeSuggest() {
+    if (!sg) return;
+    var v = input.value, lineStart = v.lastIndexOf("\n", sg.start - 1) + 1, col = sg.start - lineStart;
+    var el = lineEls[v.slice(0, sg.start).split("\n").length - 1];
+    if (!el) return;
+    var cs = getComputedStyle(input), lh = parseFloat(cs.lineHeight) || 22, padL = parseFloat(cs.paddingLeft) || 18;
+    var ctx = placeSuggest.ctx || (placeSuggest.ctx = document.createElement("canvas").getContext("2d"));
+    ctx.font = cs.fontSize + " " + cs.fontFamily;
+    var cw = ctx.measureText("0000000000").width / 10;
+    var x = padL + col * cw - (ws.wrap ? 0 : input.scrollLeft), y = el.offsetTop - input.scrollTop;
+    if (ws.wrap) {
+      var perRow = Math.max(1, Math.floor((input.clientWidth - 2 * padL) / cw));
+      x = padL + (col % perRow) * cw;
+      y += Math.floor(col / perRow) * lh;
+    }
+    y += lh + 2;
+    var w = suggestEl.offsetWidth, h = suggestEl.offsetHeight;
+    x = Math.max(4, Math.min(x - 6, codeArea.clientWidth - w - 4));
+    if (y + h > codeArea.clientHeight - 4 && y - lh - h - 4 > 0) y -= lh + h + 4;
+    suggestEl.style.transform = "translate(" + Math.round(x) + "px," + Math.round(y) + "px)";
+  }
+  suggestEl.addEventListener("mousedown", function (e) { e.preventDefault(); }); // keep the focus in the code
+  suggestEl.addEventListener("click", function (e) {
+    var item = e.target.closest(".ed-suggest-item");
+    if (!item || !sg) return;
+    pickSuggest(+item.dataset.i);
+    acceptSuggest();
+  });
+  input.addEventListener("blur", closeSuggest);
+  input.addEventListener("mousedown", closeSuggest);
+
+  /* ----- brackets, quotes and HTML tags close themselves (as in VS Code) ----- */
+  var PAIRS = { "(": ")", "[": "]", "{": "}", '"': '"', "'": "'", "`": "`" };
+  var ATTRS_RE = "(?:\\s(?:[^<>\"']|\"[^\"]*\"|'[^']*')*)?";
+  var OPEN_TAG_END = new RegExp("<([A-Za-z][\\w-]*)" + ATTRS_RE + "$");
+  var ANY_TAG = new RegExp("<(/?)([A-Za-z][\\w-]*)" + ATTRS_RE + "(/?)>", "g");
+
+  function insideTag(before) { return before.lastIndexOf("<") > before.lastIndexOf(">"); }
+  /** The innermost element still open before the caret, for "</" completion. */
+  function unclosedTag(before) {
+    var stack = [], m;
+    before = before.replace(/<!--[\s\S]*?-->/g, "");
+    ANY_TAG.lastIndex = 0;
+    while ((m = ANY_TAG.exec(before))) {
+      var name = m[2].toLowerCase();
+      if (VOID_TAGS.test(name) || m[3]) continue;
+      if (!m[1]) { stack.push(name); continue; }
+      var at = stack.lastIndexOf(name);
+      if (at >= 0) stack.length = at;
+    }
+    return stack.length ? stack[stack.length - 1] : null;
+  }
+
+  input.addEventListener("beforeinput", function (e) {
+    if (editing || e.isComposing || e.inputType !== "insertText" || !e.data || e.data.length !== 1) return;
+    var ch = e.data, v = input.value, s = input.selectionStart, en = input.selectionEnd;
+    var prev = v.charAt(s - 1), next = v.charAt(en), quote = ch === '"' || ch === "'" || ch === "`";
+    // typing the closer that is already there steps over it
+    if (s === en && next === ch && (quote || ")]}".indexOf(ch) >= 0)) {
+      e.preventDefault();
+      replaceRange(s + 1, s + 1, "", s + 1);
+      return;
+    }
+    if (PAIRS[ch] && !(lang === "html" && ch === "`")) {
+      if (s !== en) { // wrap the selection
+        e.preventDefault();
+        replaceRange(s, en, ch + v.slice(s, en) + PAIRS[ch], s + 1, en + 1);
+        return;
+      }
+      var ok = next === "" || /[\s)\]};,>]/.test(next);
+      if (quote) ok = ok && !/[\w"'`]/.test(prev) && (lang !== "html" || insideTag(v.slice(0, s)));
+      if (ok) {
+        e.preventDefault();
+        replaceRange(s, s, ch + PAIRS[ch], s + 1);
+      }
+      return;
+    }
+    if (lang !== "html" || s !== en) return;
+    if (ch === ">") {
+      var m = OPEN_TAG_END.exec(v.slice(0, s));
+      if (!m || VOID_TAGS.test(m[1]) || /\/$/.test(v.slice(0, s))) return;
+      var close = "</" + m[1] + ">";
+      if (v.slice(en, en + close.length) === close) return;
+      e.preventDefault();
+      replaceRange(s, s, ">" + close, s + 1);
+    } else if (ch === "/" && prev === "<") {
+      var open = unclosedTag(v.slice(0, s - 1));
+      if (!open) return;
+      e.preventDefault();
+      replaceRange(s, s, "/" + open + ">", s + open.length + 2);
+    }
+  });
+
+  /* ----- VS Code's line commands ----- */
+  /** The whole lines the selection touches, [start, end) without the last line break. */
+  function lineBlock() {
+    var v = input.value, s = input.selectionStart, e = input.selectionEnd;
+    if (e > s && v[e - 1] === "\n") e--;
+    var end = v.indexOf("\n", e);
+    return [v.lastIndexOf("\n", s - 1) + 1, end < 0 ? v.length : end];
+  }
+  var COMMENT = { html: ["<!--", "-->"], css: ["/*", "*/"], js: ["/*", "*/"] };
+  /** Wraps [from, to) in a block comment, or unwraps it when it already is one. */
+  function toggleBlockComment(from, to) {
+    var c = COMMENT[lang], v = input.value, text = v.slice(from, to), s = input.selectionStart, e = input.selectionEnd;
+    var lead = /^\s*/.exec(text)[0], inner = text.slice(lead.length).replace(/\s+$/, ""), trail = text.slice(lead.length + inner.length);
+    if (!inner) { replaceRange(from, to, lead + c[0] + "  " + c[1] + trail, from + lead.length + c[0].length + 1); return; }
+    var on = inner.indexOf(c[0]) !== 0 || inner.slice(-c[1].length) !== c[1] || inner.length < c[0].length + c[1].length;
+    var body = on ? c[0] + " " + inner + " " + c[1]
+      : inner.slice(c[0].length, inner.length - c[1].length).replace(/^ /, "").replace(/ $/, "");
+    var out = lead + body + trail, d = on ? c[0].length + 1 : -(text.length - out.length) / 2;
+    if (s === e) { var caret = Math.max(from, Math.min(from + out.length, s + d)); replaceRange(from, to, out, caret); }
+    else replaceRange(from, to, out, from + lead.length, from + lead.length + body.length);
+  }
+  /** Ctrl+/: "//" on each line in JavaScript; HTML and CSS have only block comments. */
+  function toggleLineComment() {
+    var b = lineBlock();
+    if (lang !== "js") { toggleBlockComment(b[0], b[1]); return; }
+    var v = input.value, s = input.selectionStart, e = input.selectionEnd;
+    var lines = v.slice(b[0], b[1]).split("\n"), code = lines.filter(function (l) { return l.trim(); });
+    if (!code.length) return;
+    var off = code.every(function (l) { return /^\s*\/\//.test(l); });
+    var col = Math.min.apply(null, code.map(function (l) { return /^\s*/.exec(l)[0].length; }));
+    var out = lines.map(function (l) {
+      if (!l.trim()) return l;
+      return off ? l.replace(/^(\s*)\/\/ ?/, "$1") : l.slice(0, col) + "// " + l.slice(col);
+    });
+    var text = out.join("\n"), first = out[0].length - lines[0].length;
+    if (s === e) replaceRange(b[0], b[1], text, Math.max(b[0], s + first));
+    else replaceRange(b[0], b[1], text, b[0], b[0] + text.length);
+  }
+  /** Alt+↑ / Alt+↓ */
+  function moveLines(dir) {
+    var v = input.value, b = lineBlock(), s = input.selectionStart, e = input.selectionEnd, block = v.slice(b[0], b[1]);
+    if (dir < 0) {
+      if (b[0] === 0) return;
+      var ps = v.lastIndexOf("\n", b[0] - 2) + 1, prev = v.slice(ps, b[0] - 1);
+      replaceRange(ps, b[1], block + "\n" + prev, s - prev.length - 1, e - prev.length - 1);
+    } else {
+      if (b[1] >= v.length) return;
+      var ne = v.indexOf("\n", b[1] + 1);
+      if (ne < 0) ne = v.length;
+      var next = v.slice(b[1] + 1, ne);
+      replaceRange(b[0], ne, next + "\n" + block, s + next.length + 1, e + next.length + 1);
+    }
+  }
+  /** Shift+Alt+↑ / Shift+Alt+↓ */
+  function copyLines(dir) {
+    var v = input.value, b = lineBlock(), s = input.selectionStart, e = input.selectionEnd, block = v.slice(b[0], b[1]);
+    if (dir < 0) replaceRange(b[0], b[0], block + "\n", s, e);
+    else replaceRange(b[1], b[1], "\n" + block, s + block.length + 1, e + block.length + 1);
+  }
+  /** Ctrl+Shift+K (and Ctrl+X with nothing selected) */
+  function deleteLines() {
+    var v = input.value, b = lineBlock(), from = b[0], to = b[1];
+    if (to < v.length) to++;
+    else if (from > 0) from--;
+    replaceRange(from, to, "", to === b[1] + 1 ? from : v.lastIndexOf("\n", from - 1) + 1);
+  }
+  /** Ctrl+L: the whole line; again: one more line */
+  function selectLine() {
+    var v = input.value, s = input.selectionStart, e = input.selectionEnd;
+    var start = v.lastIndexOf("\n", s - 1) + 1;
+    var full = s === start && e > s && v[e - 1] === "\n";
+    var nl = v.indexOf("\n", full ? e : e > s && v[e - 1] === "\n" ? e - 1 : e);
+    input.setSelectionRange(start, nl < 0 ? v.length : nl + 1);
+    updateCaret();
+  }
+  /** Home: to the first character of the line, again: to the very start */
+  function smartHome(extend) {
+    var v = input.value, back = input.selectionDirection === "backward";
+    var head = back ? input.selectionStart : input.selectionEnd, anchor = back ? input.selectionEnd : input.selectionStart;
+    var ls = v.lastIndexOf("\n", head - 1) + 1, first = ls + /^[ \t]*/.exec(v.slice(ls))[0].length;
+    var to = head === first ? ls : first;
+    if (extend) input.setSelectionRange(Math.min(anchor, to), Math.max(anchor, to), to < anchor ? "backward" : "forward");
+    else input.setSelectionRange(to, to);
+    updateCaret();
+  }
+  /** Ctrl+Shift+Enter: a new line above, at the same indent */
+  function insertLineAbove() {
+    var v = input.value, ls = v.lastIndexOf("\n", input.selectionStart - 1) + 1, indent = /^[ \t]*/.exec(v.slice(ls))[0];
+    replaceRange(ls, ls, indent + "\n", ls + indent.length);
+  }
+  // Ctrl+C / Ctrl+X with nothing selected take the whole line, as in VS Code
+  ["copy", "cut"].forEach(function (type) {
+    input.addEventListener(type, function (e) {
+      if (input.selectionStart !== input.selectionEnd || !e.clipboardData) return;
+      var b = lineBlock();
+      e.preventDefault();
+      e.clipboardData.setData("text/plain", input.value.slice(b[0], b[1]) + "\n");
+      if (type === "cut") deleteLines();
+    });
+  });
+
   input.addEventListener("keydown", function (e) {
     if (e.isComposing) return;
-    var mod = e.metaKey || e.ctrlKey;
-    if (e.key === "Tab" && !mod && !e.altKey) {
+    var mod = isMac ? e.metaKey : e.ctrlKey;
+    var key = e.key, code = e.code;
+    if (sg) {
+      if (key === "ArrowDown" || key === "ArrowUp") { e.preventDefault(); pickSuggest(sg.i + (key === "ArrowDown" ? 1 : -1)); return; }
+      if ((key === "Enter" || key === "Tab") && !mod && !e.altKey && !e.shiftKey) { e.preventDefault(); acceptSuggest(); return; }
+      if (key === "Escape") { e.preventDefault(); e.stopPropagation(); closeSuggest(); return; }
+      if (/^(?:ArrowLeft|ArrowRight|Home|End|PageUp|PageDown)$/.test(key)) closeSuggest();
+    }
+    if (key === "Tab" && !mod && !e.altKey) {
       e.preventDefault();
-      handleTab(e.shiftKey);
-    } else if (e.key === "Enter" && !mod && !e.shiftKey && !e.altKey) {
+      if (snip && nextStop(e.shiftKey ? -1 : 1)) return;
+      var x = !e.shiftKey && Snippets && input.selectionStart === input.selectionEnd && Snippets.expand(lang, input.value.slice(0, input.selectionStart));
+      if (x) insertSnippet(x.start, input.selectionStart, x.body);
+      else handleTab(e.shiftKey);
+    } else if (key === "Enter" && mod && e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      e.stopPropagation(); // not "Run"
+      insertLineAbove();
+    } else if (key === "Enter" && !mod && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       handleEnter();
-    } else if (e.key === "Escape") {
+    } else if (key === "Escape") {
+      if (snip) { snip = null; e.stopPropagation(); return; }
       input.blur(); // lets keyboard users Tab out of the editor
+    } else if (mod && !e.altKey && (key === "/" || code === "Slash" || code === "NumpadDivide")) {
+      e.preventDefault();
+      toggleLineComment();
+    } else if (e.altKey && e.shiftKey && !mod && code === "KeyA") {
+      e.preventDefault();
+      toggleBlockComment(input.selectionStart, input.selectionEnd);
+    } else if (e.altKey && !mod && (key === "ArrowUp" || key === "ArrowDown")) {
+      e.preventDefault();
+      (e.shiftKey ? copyLines : moveLines)(key === "ArrowUp" ? -1 : 1);
+    } else if (mod && e.shiftKey && !e.altKey && code === "KeyK") {
+      e.preventDefault();
+      deleteLines();
+    } else if (mod && !e.shiftKey && !e.altKey && code === "KeyL") {
+      e.preventDefault();
+      selectLine();
+    } else if (mod && !e.altKey && (code === "BracketRight" || code === "BracketLeft")) {
+      e.preventDefault();
+      handleTab(code === "BracketLeft", true);
+    } else if (e.ctrlKey && !e.altKey && (code === "Space" || key === " ")) {
+      e.preventDefault();
+      updateSuggest(true);
+    } else if (key === "Home" && !mod && !e.altKey) {
+      e.preventDefault();
+      smartHome(e.shiftKey);
+    } else if (key === "Backspace" && !mod && !e.altKey && input.selectionStart === input.selectionEnd) {
+      // deleting an opener right before its closer removes the pair
+      var v = input.value, s = input.selectionStart;
+      if (s > 0 && PAIRS[v[s - 1]] && v[s] === PAIRS[v[s - 1]]) {
+        e.preventDefault();
+        replaceRange(s - 1, s + 1, "", s - 1);
+      }
     }
   });
 
@@ -563,14 +894,18 @@ function codleEditor(lesson) {
     });
   }
 
-  input.addEventListener("input", function () {
+  input.addEventListener("input", function (e) {
     files[lang] = input.value;
     dirty = true;
     queueRender();
     persistSoon();
     scheduleAutorun();
+    trackSnippet();
+    // the list follows what the user types (and deletes, while it is open); edits made by the editor close it
+    if (!editing && (e.inputType === "insertText" || (sg && /^delete/.test(e.inputType || "")))) updateSuggest(!!sg);
+    else closeSuggest();
   });
-  input.addEventListener("scroll", syncScroll, { passive: true });
+  input.addEventListener("scroll", function () { syncScroll(); placeSuggest(); }, { passive: true });
   ["keyup", "click", "select", "focus"].forEach(function (ev) { input.addEventListener(ev, updateCaret); });
   document.addEventListener("selectionchange", function () { if (document.activeElement === input) updateCaret(); });
 
@@ -593,6 +928,8 @@ function codleEditor(lesson) {
   }
 
   function setLang(next, focus) {
+    closeSuggest();
+    snip = null;
     if (next !== lang) {
       viewState[lang] = { s: input.selectionStart, e: input.selectionEnd, x: input.scrollLeft, y: input.scrollTop };
       lang = next;
@@ -690,10 +1027,6 @@ function codleEditor(lesson) {
     runId++;
     preview.srcdoc = buildDocument();
     dirty = false;
-    var dot = $("ed-live-dot");
-    dot.classList.remove("flash");
-    void dot.offsetWidth;
-    dot.classList.add("flash");
   }
 
   function runFromButton() {
@@ -1248,6 +1581,20 @@ function codleEditor(lesson) {
   ================================================================*/
 
   $("ed-run-kbd").textContent = isMac ? "⌘↵" : "Ctrl ↵";
+
+  // Workspace → Keyboard shortcuts (written for Windows; a Mac shows ⌘ ⌥ ⇧, but Ctrl+Space stays Ctrl)
+  var SHORTCUTS = [
+    ["Ctrl+Enter", "Run"], ["Ctrl+S", "Save"], ["Tab", "Expand a snippet, then the next placeholder"],
+    ["Ctrl+Space", "Show suggestions"], ["Ctrl+/", "Comment line"], ["Shift+Alt+A", "Block comment"],
+    ["Alt+↑ / ↓", "Move line up / down"], ["Shift+Alt+↑ / ↓", "Copy line up / down"], ["Ctrl+Shift+K", "Delete line"],
+    ["Ctrl+L", "Select line"], ["Ctrl+] / [", "Indent / outdent line"], ["Ctrl+Shift+Enter", "New line above"],
+    ["Ctrl+X / C", "Cut / copy the line (nothing selected)"], ["Home", "Start of the code on the line"],
+    ["Ctrl+Z", "Undo"], ["Ctrl+= / −", "Text size"], ["Ctrl+,", "Workspace settings"]
+  ];
+  $("set-keys").innerHTML = SHORTCUTS.map(function (s) {
+    var keys = isMac && s[0] !== "Ctrl+Space" ? s[0].replace(/Ctrl\+/g, "⌘").replace(/Shift\+/g, "⇧").replace(/Alt\+/g, "⌥") : s[0];
+    return "<dt><kbd>" + esc(keys) + "</kbd></dt><dd>" + esc(s[1]) + "</dd>";
+  }).join("");
   renderQuest();
   setLang("html", false);
   applyWorkspace();

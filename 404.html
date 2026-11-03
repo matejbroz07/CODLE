@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // Shown at whatever address was missing, so relative links need the app root as their base.
+    // On Apache 404.php has already put one in; on GitHub Pages the root is the repository folder.
+    (function () {
+      if (document.querySelector("base") || location.protocol === "file:" || /\/404\.html$/.test(location.pathname)) return;
+      var project = /\.github\.io$/.test(location.hostname) && location.pathname.match(/^\/[^/]+\//);
+      var base = document.createElement("base");
+      base.href = project ? project[0] : "/";
+      document.head.appendChild(base);
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Codle — Page not found</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <meta name="theme-color" content="#08090c">
+  <!-- Picks full or lite visual effects before first paint (slow devices) -->
+  <script src="js/perf.js"></script>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/mascot.css">
+  <link rel="stylesheet" href="css/404.css">
+</head>
+<body>
+
+<div class="bg" aria-hidden="true"></div>
+
+<!-- Curly is the 0 and says what happened in his bubble (js/404.js) -->
+<main class="status-screen nf">
+  <div class="nf-box">
+    <div class="nf-row">
+      <button class="nf-digit" type="button" aria-label="Poke the first 4"><span>4</span></button>
+      <div class="nf-stage" data-mascot-stage></div>
+      <button class="nf-digit" type="button" aria-label="Poke the second 4"><span>4</span></button>
+    </div>
+    <h1 class="nf-title">Page not found</h1>
+    <div class="status-actions">
+      <button class="status-btn" type="button" id="nf-back">Go back</button>
+      <a class="status-btn primary" href="index.html">Back to learning</a>
+    </div>
+  </div>
+</main>
+
+<script src="js/mascot.js"></script>
+<script src="js/404.js"></script>
+</body>
+</html>

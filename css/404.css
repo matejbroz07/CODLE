@@ -1,0 +1,88 @@
+/* =============================================
+   Codle — 404 page
+   A giant "4 { } 4" where Curly is the zero and
+   says what happened in his bubble. The 4s can be
+   poked. Built on the .status-screen in base.css.
+   ============================================= */
+
+.nf-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: min(560px, 100%);
+  padding-top: 170px; /* room for Curly's bubble above him */
+  text-align: center;
+}
+
+/* ----- 4 { } 4 ----- */
+.nf-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(2px, 1.5vw, 14px);
+}
+.nf-digit {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: clamp(108px, 27vw, 196px);
+  font-weight: 800;
+  line-height: .9;
+  letter-spacing: -.04em;
+  text-shadow: 0 18px 40px rgba(0,0,0,.55);
+  cursor: pointer;
+  animation: nf-drop .8s var(--lg-spring) both;
+  --nf-tilt: -9deg;
+}
+.nf-digit + .nf-stage + .nf-digit { animation-delay: .14s; --nf-tilt: 9deg; }
+.nf-digit > span { display: inline-block; transition: transform .25s var(--lg-spring); }
+.nf-digit:hover > span { transform: translateY(-4px) rotate(var(--nf-tilt)); }
+.nf-digit > span.is-poked { animation: nf-wobble .65s var(--lg-spring); }
+.nf-digit:focus-visible { border-radius: 24px; }
+
+.nf-stage { animation: nf-pop .7s var(--lg-spring) .3s both; }
+.nf .mascot.is-staged,
+.nf .mascot.is-staged[data-side="left"] { --mascot-size: clamp(96px, 22vw, 164px); }
+
+/* ----- under the number ----- */
+.nf-title {
+  margin: 18px 0 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  animation: nf-rise .5s var(--lg-spring) .5s both;
+}
+.nf-box .status-actions {
+  width: min(380px, 100%);
+  margin-top: 26px;
+  animation: nf-rise .5s var(--lg-spring) .6s both;
+}
+
+@keyframes nf-drop {
+  0% { opacity: 0; transform: translateY(-70px) rotate(var(--nf-tilt)); }
+  55% { opacity: 1; transform: translateY(8px) rotate(calc(var(--nf-tilt) / -4)); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes nf-pop {
+  0% { transform: scale(0) rotate(-25deg); }
+  65% { transform: scale(1.12) rotate(5deg); }
+  100% { transform: none; }
+}
+@keyframes nf-wobble {
+  0%, 100% { transform: none; }
+  20% { transform: rotate(-14deg) scale(1.08); }
+  45% { transform: rotate(10deg) scale(.96); }
+  70% { transform: rotate(-5deg); }
+}
+@keyframes nf-rise {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: none; }
+}
+
+@media (max-width: 768px) {
+  .nf-box { padding-top: 160px; }
+}

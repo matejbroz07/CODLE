@@ -627,7 +627,7 @@ html.pf-modal-open, html.pf-modal-open body { overflow: hidden; }
 .cy-opt:hover { background: rgba(255,255,255,.08); }
 .cy-opt:active { transform: scale(.95); }
 .cy-opt input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
-.cy-opt.is-on { background: rgba(10,132,255,.14); box-shadow: inset 0 0 0 2px var(--accent), 0 8px 20px -12px rgba(10,132,255,.8); }
+.cy-opt.is-on { background: rgba(10,132,255,.14); box-shadow: inset 0 0 0 2px var(--accent); }
 .cy-opt:has(input:focus-visible) { outline: 2px solid rgba(255,255,255,.7); outline-offset: 2px; } /* keyboard only, not after a click */
 .cy-opt.is-locked { cursor: not-allowed; }
 .cy-opt.is-locked:active { transform: none; }

@@ -1,0 +1,16 @@
+# Codle (Apache 2.4 / XAMPP)
+# Anything that does not exist gets the 404 page with Curly (404.php -> 404.html).
+# api/ has its own rewrite rules and answers with JSON errors; GitHub Pages serves 404.html by itself.
+
+# Pages, styles and scripts are revalidated on every load (a cheap 304 when unchanged),
+# so a browser never mixes a new page with a stale stylesheet or script.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|css|js)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^ 404.php [L]

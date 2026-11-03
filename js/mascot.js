@@ -19,7 +19,9 @@
  *   CodleMascot.configure({ color: "mint", hat: "crown", face: "glasses", name: "Bit" })   // look + behaviour, saved locally
  *   CodleMascot.settings()                       // the same keys, current values
  *   CodleMascot.preview(container)               // a live copy of the figure for the profile
+ *   CodleMascot.stage(el)                        // move into el, big and still (404, server down)
  *
+ * A page that has an element with [data-mascot-stage] gets the mascot there from the start.
  * Staying out of the way: "Hide me" in the bubble (or shoving it past a screen edge) docks it
  * until it is tapped again. It also ducks to the edge by itself when it would cover something
  * clickable, and on phones while you type or scroll down. A sliver with one eye always stays
@@ -608,8 +610,64 @@
     root.dataset.mood = name;
     paintMouth(mouth, name);
     movePupils();
+    paintFavicon();
     if (ms) moodTimer = setTimeout(function () { setMood("idle"); }, ms);
   }
+
+  /* ----- favicon: a small Curly in the browser tab, in the current mood and colour -----
+     Bolder than the real figure (thick tubes, big eyes, no wardrobe) and cropped to the figure,
+     so it fills the whole icon. No background: a thin dark outline keeps it readable on light
+     tab strips too. Turned off in the profile: the page's own icon. */
+  var iconLink = document.querySelector('link[rel~="icon"]');
+  var iconDefault = iconLink && { href: iconLink.getAttribute("href"), type: iconLink.getAttribute("type") };
+  var iconLast = "";
+  var FAV_INK = "#11141b"; // the outline
+  // eyelids as the visible part of each eye, top edge from the left to the right side (0 = open)
+  var FAV_LIDS = { sad: [[.5, .12], [.12, .5]], think: [[.4, .4], [.26, .26]] };
+  /** A line drawn twice: the dark outline, then the colour on top. */
+  function favLine(d, width, color) {
+    var common = '" fill="none" stroke-linecap="round" stroke-linejoin="round" d="' + d + '"/>';
+    return '<path stroke="' + FAV_INK + '" stroke-width="' + (width + 6) + common +
+      '<path stroke="' + color + '" stroke-width="' + width + common;
+  }
+  function faviconSvg(name) {
+    var c = COLORS[prefs.look.color] || COLORS.frost;
+    var iris = (EYES[prefs.look.eyes] || EYES.ink).iris;
+    var bias = PUPIL_BIAS[name] || [0, 0];
+    function eye(x, i) {
+      if (name === "happy") return favLine("M" + (x - 12) + " 58 Q" + x + " 40 " + (x + 12) + " 58", 9, "#fff");
+      if (name === "sleep") return favLine("M" + (x - 13) + " 54 Q" + x + " 64 " + (x + 13) + " 54", 8, "#fff");
+      var r = name === "surprised" ? 17 : 15, top = 54 - r, h = 2 * r;
+      var ball = '<circle cx="' + x + '" cy="54" r="' + r + '" fill="#fff" stroke="' + FAV_INK + '" stroke-width="3"/>' +
+        '<circle cx="' + (x + bias[0]) + '" cy="' + (54 + bias[1]) + '" r="' + (name === "surprised" ? 6 : 8.5) + '" fill="' + iris[1] + '"/>';
+      var lid = FAV_LIDS[name] && FAV_LIDS[name][i];
+      if (!lid) return ball;
+      var y0 = top + lid[0] * h, y1 = top + lid[1] * h;
+      return '<clipPath id="l' + i + '"><polygon points="' + (x - r - 3) + "," + y0 + " " + (x + r + 3) + "," + y1 + " " +
+          (x + r + 3) + "," + (top + h + 3) + " " + (x - r - 3) + "," + (top + h + 3) + '"/></clipPath>' +
+        '<g clip-path="url(#l' + i + ')">' + ball + "</g>" +
+        '<path d="M' + (x - r) + " " + y0 + " L" + (x + r) + " " + y1 + '" stroke="' + FAV_INK + '" stroke-width="3.5" stroke-linecap="round"/>';
+    }
+    var mouth = name === "surprised"
+      ? '<circle cx="60" cy="84" r="7" fill="#fff" stroke="' + FAV_INK + '" stroke-width="3"/>'
+      : favLine(MOUTHS[name] || MOUTHS.idle, 8, "#fff");
+    // the outlined braces reach from 6 to 114 on both axes
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="5 5 110 110">' +
+      '<defs><linearGradient id="t" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="' + c.tube[0] + '"/><stop offset="1" stop-color="' + c.tube[2] + '"/></linearGradient></defs>' +
+      favLine(BRACE_L, 12, "url(#t)") + favLine(BRACE_R, 12, "url(#t)") +
+      eye(41, 0) + eye(79, 1) + mouth +
+    "</svg>";
+  }
+  function paintFavicon() {
+    if (!iconLink) return;
+    var href = prefs.off ? iconDefault.href : "data:image/svg+xml," + encodeURIComponent(faviconSvg(mood));
+    if (href === iconLast) return;
+    iconLast = href;
+    var type = prefs.off ? iconDefault.type : "image/svg+xml";
+    if (type) iconLink.setAttribute("type", type); else iconLink.removeAttribute("type");
+    iconLink.setAttribute("href", href);
+  }
+  paintFavicon();
 
   /* ----- eyes follow the pointer ----- */
   var look = [0, 0];
@@ -691,7 +749,8 @@
   function bubbleOpen() { return root.classList.contains("bubble-open"); }
   function placeBubble() {
     var r = body.getBoundingClientRect();
-    root.classList.toggle("bubble-below", r.top < 220);
+    // in its corner it can assume a short bubble; on a stage, measure the real one
+    root.classList.toggle("bubble-below", r.top < (staged() ? bubble.offsetHeight + 24 : 220));
   }
   /** Wraps each word in a span with a staggered delay so the text writes itself in.
       A <pre> block counts as one unit. Returns how long the whole cascade takes (ms). */
@@ -820,7 +879,9 @@
   var tuckReason = null;
   function docked() { return root.classList.contains("is-docked"); }
   function tucked() { return root.classList.contains("is-tucked"); }
+  function staged() { return root.classList.contains("is-staged"); }
   function dock() {
+    if (staged()) return;
     hideBubble();
     tuckReason = null;
     root.classList.add("is-docked");
@@ -837,7 +898,7 @@
     updateLabel();
   }
   function tuck(reason) {
-    if (!autohides() || docked() || root.classList.contains("is-hidden") || (drag && drag.moved)) return;
+    if (!autohides() || docked() || staged() || root.classList.contains("is-hidden") || (drag && drag.moved)) return;
     if (tucked() && RANK[tuckReason] > RANK[reason]) return;
     tuckReason = reason;
     if (tucked()) return;
@@ -906,7 +967,7 @@
   var checkTimer = null;
   function scheduleCheck(ms) { clearTimeout(checkTimer); checkTimer = setTimeout(check, ms || 220); }
   function check() {
-    if (root.classList.contains("is-hidden") || docked() || drag || bubbleOpen()) return;
+    if (root.classList.contains("is-hidden") || docked() || staged() || drag || bubbleOpen()) return;
     if (!autohides()) { if (tucked()) untuck(); return; }
     if (tucked() && tuckReason !== "overlap") return;
     var blocking = inTheWay();
@@ -963,7 +1024,7 @@
     try { body.setPointerCapture(e.pointerId); } catch (err) { /* pointer already gone: the drag still works without capture */ }
   });
   body.addEventListener("pointermove", function (e) {
-    if (!drag || e.pointerId !== drag.id) return;
+    if (!drag || e.pointerId !== drag.id || staged()) return;
     if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < DRAG_THRESHOLD) return;
     if (!drag.moved) { drag.moved = true; root.classList.add("is-dragging"); hideBubble(); tuckReason = null; root.classList.remove("is-docked"); root.classList.remove("is-tucked"); }
     var w = root.offsetWidth, h = root.offsetHeight;
@@ -1097,6 +1158,7 @@
     }
     savePrefs();
     applyLook(root, prefs.look);
+    paintFavicon();
     bubbleName.textContent = nameOf();
     updateLabel();
     previews.forEach(function (p) { p.refresh(); });
@@ -1114,8 +1176,20 @@
   }
 
   /* ----- mount ----- */
+  /** Takes the mascot out of its corner into el: big, not draggable, never ducks away.
+      The docked preference is left alone, so other pages still find it docked. */
+  function stage(el) {
+    hideBubble();
+    tuckReason = null;
+    root.classList.remove("is-docked");
+    root.classList.remove("is-tucked");
+    root.classList.add("is-staged");
+    el.appendChild(root);
+    updateLabel();
+  }
   function mount() {
-    document.body.appendChild(root);
+    var stageEl = document.querySelector("[data-mascot-stage]");
+    if (stageEl) stage(stageEl); else document.body.appendChild(root);
     updateLabel();
     scheduleBlink();
     armSleep();
@@ -1133,6 +1207,7 @@
     dock: dock,                                   // slide away to the edge (remembered)
     undock: undock,
     isDocked: docked,
+    stage: stage,
     close: hideBubble,
     isQuiet: function () { return !!prefs.quiet; },
     // customization (Profile → Curly tab)

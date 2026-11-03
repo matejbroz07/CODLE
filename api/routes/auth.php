@@ -5,6 +5,7 @@
 
 function route_session(): array
 {
+    db(); // connect even without a login cookie, so every page learns up front when the database is down
     $user = current_user();
     return ['user' => $user ? user_summary($user) : null];
 }

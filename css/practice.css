@@ -47,21 +47,6 @@
 }
 .game-card:hover { transform: translateY(-4px); box-shadow: 0 30px 50px -20px rgba(0,0,0,.7), 0 4px 10px rgba(0,0,0,.25); }
 .game-card:active { transform: translateY(-1px) scale(.99); }
-.game-card.is-soon {
-  cursor: default;
-  opacity: .6;
-  background: none;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-  border: 1.5px dashed rgba(255,255,255,.14);
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  min-height: 150px;
-}
-.game-card.is-soon:hover { transform: none; box-shadow: none; }
-.game-card.is-soon p { margin: 0; }
 .game-card-icon {
   flex: none;
   width: 60px;
@@ -468,7 +453,6 @@
   .game-card-icon { width: 54px; height: 54px; border-radius: 15px; }
   .game-card h3 { font-size: 17px; }
   .game-card p { margin-bottom: 10px; font-size: 13.5px; }
-  .game-card.is-soon { display: none; }
   .game-topbar { margin-bottom: 12px; }
   .game-back { padding: 8px 12px 8px 10px; }
   .game-back span { display: none; }
@@ -498,7 +482,6 @@
 }
 
 /* ===== LITE MODE (see base.css) ===== */
-html.lite .game-card.is-soon { background: none; box-shadow: none; }
 html.lite .game-card:hover { box-shadow: 0 16px 26px -16px rgba(0,0,0,.7); }
 
 /* =============================================
@@ -623,8 +606,8 @@ html.lite .game-card:hover { box-shadow: 0 16px 26px -16px rgba(0,0,0,.7); }
 .oy-btn.primary { flex-direction: row; justify-content: center; width: 100%; background: var(--accent); }
 .oy-btn.primary:hover { background: color-mix(in srgb, var(--accent) 85%, #fff); }
 
-.oy-card.is-correct { box-shadow: 0 0 0 2px var(--w-correct), 0 18px 40px -18px rgba(48,209,88,.55); }
-.oy-card.is-wrong { box-shadow: 0 0 0 2px var(--coral), 0 18px 40px -18px rgba(255,69,58,.5); animation: oy-shake .45s ease; }
+.oy-card.is-correct { box-shadow: 0 0 0 2px var(--w-correct); }
+.oy-card.is-wrong { box-shadow: 0 0 0 2px var(--coral); animation: oy-shake .45s ease; }
 .oy-card.is-correct .oy-year { color: var(--w-correct); }
 .oy-card.is-wrong .oy-year { color: var(--coral); }
 @keyframes oy-shake {

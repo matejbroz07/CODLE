@@ -78,10 +78,7 @@
 
     <div class="ed-quest-scroll">
       <div class="ed-quest-top">
-        <span class="ed-quest-badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
-          Quest
-        </span>
+        <span class="ed-quest-badge">Quest</span>
         <button class="ed-icon-btn ed-quest-collapse" type="button" id="ed-quest-collapse" aria-label="Collapse quest panel" title="Collapse">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
         </button>
@@ -160,9 +157,7 @@
 
     <section class="ed-output liquid-glass" id="ed-output" data-pane-id="output" data-console="on" aria-label="Output">
       <div class="ed-panel-head">
-        <div class="ed-browser-dots" aria-hidden="true"><span></span><span></span><span></span></div>
         <div class="ed-address">
-          <span class="ed-live-dot" id="ed-live-dot"></span>
           <span>Output</span>
         </div>
         <button class="ed-icon-btn" type="button" id="ed-refresh" aria-label="Reload output" title="Reload output">
@@ -277,6 +272,12 @@
     </section>
 
     <section class="ed-set-section">
+      <h3>Keyboard shortcuts</h3>
+      <p class="ed-set-note">Snippets work as in VS Code: type <code>log</code>, <code>for</code>, <code>ul&gt;li*3</code> or <code>df</code> and press Tab.</p>
+      <dl class="ed-keys" id="set-keys"></dl>
+    </section>
+
+    <section class="ed-set-section">
       <h3>Performance</h3>
       <div class="ed-set-row">
         <span>Visual effects<small id="set-effects-note">Full effects</small></span>
@@ -318,6 +319,7 @@
 
 <script src="js/api.js"></script>
 <script src="js/mascot.js"></script>
+<script src="js/editor-snippets.js"></script>
 <script src="js/editor.js"></script>
 </body>
 </html>
