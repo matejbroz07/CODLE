@@ -14,6 +14,7 @@ Návrh databáze pro MariaDB 10.4+ (verze v XAMPP) a MySQL 8.0+.
 | `migrations/002_profile.sql` | Záložka Profile, pro databázi vytvořenou před 26. 10. 2026: bio, profilová fotka, viditelnost profilu a data změn v `users`, tabulka `username_history`. `schema.sql` je už obsahuje. |
 | `migrations/003_courses.sql` | Kurzy HTML, CSS a JavaScript po šesti jednotkách a odstranění Pythonu, pro databázi naplněnou před 27. 10. 2026. `seed.sql` je už obsahuje. Spouští se jen jednou. |
 | `migrations/003_mascot.sql` | Záložka Curly v profilu, pro databázi vytvořenou před 2. 11. 2026: sloupec `mascot` v `user_settings` (vzhled a chování maskota jako JSON). `schema.sql` ho už obsahuje. Bez migrace API funguje dál, vzhled se jen neukládá k účtu. |
+| `migrations/004_theme.sql` | Záložka Theme v profilu, pro databázi vytvořenou před 3. 11. 2026: sloupce `app_theme` a `app_theme_custom` v `user_settings` (zvolené téma a vlastní mix tématu Codle jako JSON). `schema.sql` je už obsahuje. Bez migrace API funguje dál, téma se jen neukládá k účtu. |
 
 ## Import
 

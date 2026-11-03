@@ -242,6 +242,8 @@ function codleEditor(lesson) {
     return o;
   }
   var ws = sanitize(remote ? lesson.settings : loadJSON(WS_KEY));
+  // the account's app theme (Profile → Theme) wins over this browser's copy
+  if (remote && lesson.settings && window.CodleTheme) window.CodleTheme.configure(lesson.settings);
   var wsTimer = null;
   function saveWs() {
     saveJSON(WS_KEY, ws);
@@ -1439,6 +1441,17 @@ function codleEditor(lesson) {
     $("set-effects-note").textContent = note;
   }
   if (window.CodlePerf) window.CodlePerf.onChange(renderEffects);
+
+  // App theme (js/theme.js): the same list as Profile → Theme
+  var appThemeSel = $("set-app-theme");
+  if (appThemeSel && window.CodleTheme) {
+    appThemeSel.innerHTML = window.CodleTheme.themes.map(function (t) { return '<option value="' + t.id + '">' + t.name + "</option>"; }).join("");
+    window.CodleTheme.onChange(function (th) { appThemeSel.value = th.id; });
+    appThemeSel.addEventListener("change", function () {
+      window.CodleTheme.set(this.value);
+      if (remote) api.put("me/settings", window.CodleTheme.settings()).catch(function () { /* kept in this browser */ });
+    });
+  } else if (appThemeSel) appThemeSel.closest(".ed-set-section").hidden = true;
 
   // Quest panel: collapse to a rail (desktop) or close the drawer (tablet)
   var questPanel = $("ed-quest");

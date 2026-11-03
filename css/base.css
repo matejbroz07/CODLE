@@ -2,6 +2,15 @@
    Codle — Shared base
    Tokens, reset, background and the Liquid Glass
    material used by every page.
+
+   Themes (css/themes.css, js/theme.js) only change the tokens below —
+   every colour in the stylesheets goes through them:
+     --fg-rgb      the "white" of the interface: hovers, borders, rims,
+                   glass fill. Light themes make it a dark ink.
+     --ink*        text        --accent*   the one brand colour
+     --panel*      opaque surfaces (avatars, crop stage, selects)
+     --lite-*      what glass becomes in lite mode (no blur)
+     --scene       the picture behind everything (.bg::before)
    ============================================= */
 
 /* ===== DESIGN TOKENS ===== */
@@ -11,16 +20,29 @@
   --lg-radius-pill: 999px;
   --lg-spring: cubic-bezier(.32,.72,0,1);
   --lg-blur: 22px;
+  --lg-sat: 170%;
+  --glass-k: 1;                  /* multiplies the glass fill (Codle theme: Clear / Normal / Frosted) */
 
   /* Glass material */
-  --lg-fill: rgba(255,255,255,.07);
-  --lg-fill-strong: rgba(255,255,255,.12);
-  --lg-rim: rgba(255,255,255,.55);
-  --lg-rim-dim: rgba(255,255,255,.10);
+  --lg-fill: rgba(var(--fg-rgb),.07);
+  --lg-fill-strong: rgba(var(--fg-rgb),.12);
+  --lg-rim: rgba(var(--fg-rgb),.55);
+  --lg-rim-dim: rgba(var(--fg-rgb),.10);
   --lg-shadow: 0 24px 48px -20px rgba(0,0,0,.6), 0 2px 6px rgba(0,0,0,.25);
+  --lg-bar-glow: 0 0 0 0 transparent;   /* extra outer glow on floating bars (neon themes) */
+  --lg-sheen: rgba(255,255,255,.13);   /* the light falling on the top edge: white on every theme */
+  --lg-sheen-edge: rgba(255,255,255,.22);
+  --pill-bg: linear-gradient(180deg, rgba(var(--fg-rgb),.30), rgba(var(--fg-rgb),.16));
+  --pill-shadow:
+    inset 0 1px 0 rgba(var(--fg-rgb),.5),
+    inset 0 -1px 0 rgba(var(--fg-rgb),.06),
+    inset 0 0 0 1px rgba(var(--fg-rgb),.10),
+    0 8px 18px -8px rgba(0,0,0,.45);
 
   /* Palette: one accent, everything else is semantic (XP, streak, success, error) */
   --accent: #0a84ff;
+  --accent-rgb: 10,132,255;
+  --accent-ink: #fff;            /* text on top of --accent */
   --accent-2: var(--accent);
   --accent-3: #ff9f0a;
   --green: #30d158;
@@ -29,8 +51,29 @@
   --ink: #eef1f6;
   --ink-dim: rgba(238,241,246,.62);
   --ink-faint: rgba(238,241,246,.38);
+  --ink-strong: #fff;
+  --fg-rgb: 255,255,255;
   --bg: #08090c;
+  --panel: #1c1e24;
+  --panel-2: #3a3d44;
+  --btn-solid: #fff;             /* the solid "primary" buttons (Share, Save…) */
+  --btn-solid-ink: #08090c;
+  --well: rgba(0,0,0,.24);        /* recessed fills: inputs, segmented controls, empty tiles */
 
+  /* Lite mode: opaque stand-ins for the glass (see the LITE block) */
+  --lite-surface: linear-gradient(145deg, #24272e, #1b1d23);
+  --lite-bar: linear-gradient(145deg, #2a2d35, #202229);
+  --lite-panel: #1f2127;
+  --lite-panel-deep: #17191e;
+  --lite-panel-locked: #1a1c21;
+  --lite-rim: rgba(var(--fg-rgb),.10);
+
+  /* Background scene: css/themes.css paints it on .bg::before */
+  --scene: none;
+  --scene-size: auto;
+  --scene-position: 0 0;
+  --scene-repeat: repeat;
+  --scene-opacity: 1;
 }
 
 @property --glare {
@@ -56,15 +99,29 @@ body {
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; }
 button, [role="button"] { -webkit-tap-highlight-color: transparent; }
-:focus-visible { outline: 2px solid rgba(255,255,255,.7); outline-offset: 3px; border-radius: 8px; }
+:focus-visible { outline: 2px solid rgba(var(--fg-rgb),.7); outline-offset: 3px; border-radius: 8px; }
 
-/* ===== BACKGROUND ===== */
+/* ===== BACKGROUND =====
+   Layers: the flat colour, the theme's scene (::before) and film grain (::after). */
 .bg {
   position: fixed;
   inset: 0;
   z-index: -2;
   background-color: var(--bg);
   overflow: hidden;
+}
+.bg::before {
+  /* theme scene: gradients, grids, particles… (css/themes.css) */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: var(--scene);
+  background-size: var(--scene-size);
+  background-position: var(--scene-position);
+  background-repeat: var(--scene-repeat);
+  opacity: var(--scene-opacity);
+  pointer-events: none;
 }
 .bg::after {
   /* film grain */
@@ -77,6 +134,7 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   pointer-events: none;
   mix-blend-mode: overlay;
 }
+html[data-grain="off"] .bg::after { display: none; }
 
 /* ===== LIQUID GLASS =====
    Layers, bottom to top:
@@ -90,9 +148,12 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   isolation: isolate;
   border-radius: var(--lg-radius);
   background:
-    linear-gradient(145deg, rgba(255,255,255,.11), rgba(255,255,255,.035) 40%, rgba(255,255,255,.06));
-  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(170%);
-  backdrop-filter: blur(var(--lg-blur)) saturate(170%);
+    linear-gradient(145deg,
+      rgba(var(--fg-rgb), calc(.11 * var(--glass-k))),
+      rgba(var(--fg-rgb), calc(.035 * var(--glass-k))) 40%,
+      rgba(var(--fg-rgb), calc(.06 * var(--glass-k))));
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
+  backdrop-filter: blur(var(--lg-blur)) saturate(var(--lg-sat));
   box-shadow: var(--lg-shadow);
   --mx: 50%;
   --my: 0%;
@@ -107,10 +168,10 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   pointer-events: none;
   background: linear-gradient(135deg,
     var(--lg-rim) 0%,
-    rgba(255,255,255,.14) 28%,
-    rgba(255,255,255,.05) 52%,
-    rgba(255,255,255,.08) 76%,
-    rgba(255,255,255,.34) 100%);
+    rgba(var(--fg-rgb),.14) 28%,
+    rgba(var(--fg-rgb),.05) 52%,
+    rgba(var(--fg-rgb),.08) 76%,
+    rgba(var(--fg-rgb),.34) 100%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -125,9 +186,9 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
   pointer-events: none;
   background:
     radial-gradient(160px 160px at var(--mx) var(--my), rgba(255,255,255,var(--glare)), transparent 65%),
-    radial-gradient(120% 70% at 50% -10%, rgba(255,255,255,.13), transparent 60%);
+    radial-gradient(120% 70% at 50% -10%, var(--lg-sheen), transparent 60%);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.22),
+    inset 0 1px 0 var(--lg-sheen-edge),
     inset 0 12px 28px -16px rgba(255,255,255,.26),
     inset 0 -14px 28px -18px rgba(0,0,0,.5);
   transition: --glare .45s var(--lg-spring);
@@ -139,19 +200,19 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 /* Stronger, more opaque variant for floating bars */
 .liquid-glass--bar {
   background:
-    linear-gradient(145deg, rgba(255,255,255,.14), rgba(255,255,255,.06) 45%, rgba(255,255,255,.09));
-  --lg-rim: rgba(255,255,255,.6);
+    linear-gradient(145deg,
+      rgba(var(--fg-rgb), calc(.14 * var(--glass-k))),
+      rgba(var(--fg-rgb), calc(.06 * var(--glass-k))) 45%,
+      rgba(var(--fg-rgb), calc(.09 * var(--glass-k))));
+  box-shadow: var(--lg-shadow), var(--lg-bar-glow);
+  --lg-rim: rgba(var(--fg-rgb),.6);
 }
 
 
 /* Glass "pill" used for selected tabs: lighter and more opaque so text stays legible */
 .glass-pill {
-  background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.16));
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.5),
-    inset 0 -1px 0 rgba(255,255,255,.06),
-    inset 0 0 0 1px rgba(255,255,255,.10),
-    0 8px 18px -8px rgba(0,0,0,.45);
+  background: var(--pill-bg);
+  box-shadow: var(--pill-shadow);
 }
 
 /* Ripple */
@@ -160,7 +221,7 @@ button, [role="button"] { -webkit-tap-highlight-color: transparent; }
 .lg-ripple-dot {
   position: absolute;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,.55), rgba(255,255,255,0) 68%);
+  background: radial-gradient(circle, rgba(var(--fg-rgb),.55), rgba(var(--fg-rgb),0) 68%);
   will-change: transform, opacity;
   transform: translateZ(0) scale(0);
 }
@@ -204,7 +265,7 @@ body:has(> .status-screen) { overflow: hidden; }
   font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
   font-size: .9em;
   color: var(--ink);
-  background: rgba(255,255,255,.08);
+  background: rgba(var(--fg-rgb),.08);
 }
 .status-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 22px; }
 .status-btn {
@@ -216,8 +277,8 @@ body:has(> .status-screen) { overflow: hidden; }
   padding: 0 20px;
   border: none;
   border-radius: var(--lg-radius-pill);
-  background: rgba(255,255,255,.09);
-  color: #fff;
+  background: rgba(var(--fg-rgb),.09);
+  color: var(--ink-strong);
   font: inherit;
   font-size: 15px;
   font-weight: 700;
@@ -225,14 +286,14 @@ body:has(> .status-screen) { overflow: hidden; }
   transition: transform .2s var(--lg-spring), background .2s;
 }
 .status-btn[hidden] { display: none; }
-.status-btn:hover { transform: translateY(-1px); background: rgba(255,255,255,.14); }
+.status-btn:hover { transform: translateY(-1px); background: rgba(var(--fg-rgb),.14); }
 .status-btn:active { transform: scale(.97); }
-.status-btn.primary { background: var(--accent); box-shadow: 0 10px 24px -12px rgba(0,0,0,.6); }
+.status-btn.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 0 10px 24px -12px rgba(0,0,0,.6); }
 
 /* ===== SCROLLBAR ===== */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 999px; }
+::-webkit-scrollbar-thumb { background: rgba(var(--fg-rgb),.12); border-radius: 999px; }
 
 /* ===== REDUCED MOTION ===== */
 @media (prefers-reduced-motion: reduce) {
@@ -247,30 +308,32 @@ body:has(> .status-screen) { overflow: hidden; }
    <html class="lite"> is set by js/perf.js on weak devices (or by choice).
    Same layout and colours, minus the effects that cost the most on a slow
    GPU/CPU: backdrop blur, the blended film grain, masked rims, pointer glare
-   and continuous animations. Glass surfaces become opaque instead. */
+   and continuous animations. Glass surfaces become opaque instead — in the
+   colours of the current theme (--lite-* tokens), so every theme has a lite look. */
 html.lite .bg::after { display: none; }
+html.lite .bg::before { animation: none !important; }
 
 html.lite .liquid-glass {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
-  background: linear-gradient(145deg, #24272e, #1b1d23);
+  background: var(--lite-surface);
   box-shadow: 0 10px 22px -14px rgba(0,0,0,.7);
 }
-html.lite .liquid-glass--bar { background: linear-gradient(145deg, #2a2d35, #202229); }
+html.lite .liquid-glass--bar { background: var(--lite-bar); }
 html.lite .liquid-glass::before {
   /* simple 1px rim instead of a masked gradient border */
   padding: 0;
   background: none;
   -webkit-mask: none;
   mask: none;
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,.10);
+  box-shadow: inset 0 0 0 1px var(--lite-rim);
 }
 html.lite .liquid-glass::after {
   background: none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+  box-shadow: inset 0 1px 0 rgba(var(--fg-rgb),.12);
   transition: none;
 }
 html.lite .glass-pill {
-  background: rgba(255,255,255,.2);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
+  background: rgba(var(--fg-rgb),.2);
+  box-shadow: inset 0 1px 0 rgba(var(--fg-rgb),.3);
 }

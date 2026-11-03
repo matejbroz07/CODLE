@@ -41,8 +41,8 @@
   padding: 4px;
   gap: 2px;
   border-radius: var(--lg-radius-pill);
-  background: rgba(0,0,0,.18);
-  box-shadow: inset 0 1px 2px rgba(0,0,0,.35), inset 0 0 0 1px rgba(255,255,255,.04);
+  background: var(--well);
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.35), inset 0 0 0 1px rgba(var(--fg-rgb),.04);
 }
 .navbar-tab-indicator {
   position: absolute;
@@ -85,7 +85,7 @@
   white-space: nowrap;
 }
 .navbar-tab:hover { color: var(--ink); }
-.navbar-tab[aria-selected="true"] { color: #fff; font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.navbar-tab[aria-selected="true"] { color: var(--ink-strong); font-weight: 600; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
 .navbar-tab svg { width: 17px; height: 17px; flex: none; }
 
 /* Profile avatar */
@@ -93,11 +93,11 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #3a3d44;
-  color: #fff;
+  background: var(--panel-2);
+  color: var(--ink-strong);
   font-size: 14px;
   font-weight: 600;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 0 0 1px rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 0 rgba(var(--fg-rgb),.18), 0 0 0 1px rgba(var(--fg-rgb),.08);
   cursor: pointer;
   transition: box-shadow .3s, transform .4s var(--lg-spring);
   flex: none;
@@ -158,7 +158,7 @@
   transition: color .4s var(--lg-spring);
   border-radius: var(--lg-radius-pill);
 }
-.bottom-nav-item[aria-selected="true"] { color: #fff; font-weight: 600; }
+.bottom-nav-item[aria-selected="true"] { color: var(--ink-strong); font-weight: 600; }
 .bottom-nav-item svg { width: 24px; height: 24px; }
 
 /* ===== MAIN LAYOUT ===== */
@@ -189,7 +189,7 @@
   width: 100%;
   height: 6px;
   border-radius: 999px;
-  background: rgba(0,0,0,.3);
+  background: var(--well);
   box-shadow: inset 0 1px 2px rgba(0,0,0,.4);
   margin-top: 12px;
   overflow: hidden;
@@ -224,14 +224,14 @@
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
-  color: #fff;
+  color: var(--ink-strong);
   padding: 0 24px 0 0;
   cursor: pointer;
   outline: none;
   transition: color .3s;
 }
 .course-dropdown:hover, .course-dropdown:focus { color: var(--accent); }
-.course-dropdown option { background: #15171c; color: #fff; font-weight: 500; font-size: 15px; }
+.course-dropdown option { background: var(--panel); color: var(--ink-strong); font-weight: 500; font-size: 15px; }
 .course-select-arrow {
   position: absolute;
   right: 0;
@@ -275,18 +275,18 @@
 
 /* ===== LEADERBOARD ===== */
 .leaderboard-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; }
-.leaderboard-item + .leaderboard-item { border-top: 1px solid rgba(255,255,255,.06); }
+.leaderboard-item + .leaderboard-item { border-top: 1px solid rgba(var(--fg-rgb),.06); }
 .leaderboard-item .rank { font-size: 13px; font-weight: 700; color: var(--ink-dim); width: 20px; text-align: center; }
 .leaderboard-item .lb-avatar {
   width: 28px; height: 28px; border-radius: 50%; flex: none;
   display: flex; align-items: center; justify-content: center;
-  background: #3a3d44; color: var(--ink); font-size: 12px; font-weight: 600;
+  background: var(--panel-2); color: var(--ink); font-size: 12px; font-weight: 600;
 }
 .leaderboard-item .lb-name { font-size: 13px; font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .leaderboard-item .lb-xp { font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .leaderboard-item .gold-rank { color: var(--gold); }
 .leaderboard-item.you-row {
-  background: rgba(255,255,255,.06);
+  background: rgba(var(--fg-rgb),.06);
   border-radius: 10px;
   margin: 0 -8px;
   padding: 8px 8px;
@@ -302,7 +302,7 @@
 /* Ring around the avatar = progress towards the next level */
 .level-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
 .level-ring circle { fill: none; stroke-width: 4; }
-.level-ring-track { stroke: rgba(255,255,255,.1); }
+.level-ring-track { stroke: rgba(var(--fg-rgb),.1); }
 .level-ring-fill {
   stroke: var(--unit-accent, var(--accent)); /* colour of the unit on screen */
   stroke-linecap: round;
@@ -314,16 +314,16 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #3a3d44;
+  background: var(--panel-2);
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 0 0 1px rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 0 rgba(var(--fg-rgb),.18), 0 0 0 1px rgba(var(--fg-rgb),.08);
   transition: transform .5s var(--lg-spring), box-shadow .5s var(--lg-spring);
   cursor: pointer;
 }
 .profile-avatar:hover { transform: scale(1.04); }
-.profile-avatar-icon { width: 32px; height: 32px; color: rgba(255,255,255,.9); }
+.profile-avatar-icon { width: 32px; height: 32px; color: rgba(var(--fg-rgb),.9); }
 .profile-username { font-size: 18px; font-weight: 700; letter-spacing: -0.02em; margin-top: 2px; }
 .profile-level { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .profile-level-title { font-size: 13px; font-weight: 600; color: var(--ink); }
@@ -345,7 +345,7 @@
   z-index: 0;
   overflow: visible;
 }
-#path-svg .trail-bg { fill: none; stroke: rgba(255,255,255,.07); stroke-width: 8; stroke-linecap: round; }
+#path-svg .trail-bg { fill: none; stroke: rgba(var(--fg-rgb),.07); stroke-width: 8; stroke-linecap: round; }
 #path-svg .trail-completed { fill: none; stroke-width: 8; stroke-linecap: round; } /* colour set per unit in app.js */
 
 .path-nodes {
@@ -393,7 +393,7 @@
 .path-section-header.revealed { opacity: 1; transform: scale(1); }
 .chapter-locked .path-section-header.revealed { opacity: .55; }
 .path-section-header h3 { margin: 0; font-size: 16px; font-weight: 600; letter-spacing: -0.01em; }
-.path-section-header p  { margin: 5px 0 0; font-size: 13px; color: rgba(255,255,255,.8); font-weight: 500; }
+.path-section-header p  { margin: 5px 0 0; font-size: 13px; color: rgba(var(--fg-rgb),.8); font-weight: 500; }
 
 /* ===== MILESTONE NODE ===== */
 .milestone {
@@ -417,7 +417,7 @@
 .milestone:not(.revealed) .milestone-label,
 .milestone:not(.revealed) .milestone-start-btn { opacity: 0; }
 .milestone:focus-visible { outline: none; }
-.milestone:focus-visible .milestone-circle { box-shadow: 0 0 0 3px rgba(255,255,255,.7), var(--lg-shadow); }
+.milestone:focus-visible .milestone-circle { box-shadow: 0 0 0 3px rgba(var(--fg-rgb),.7), var(--lg-shadow); }
 
 .milestone-circle {
   width: var(--ms-size);
@@ -456,7 +456,7 @@
   --lg-rim: color-mix(in srgb, var(--chapter-accent) 75%, #fff);
 }
 .milestone.completed .milestone-circle .ms-icon { color: color-mix(in srgb, var(--chapter-accent) 80%, #fff); }
-.milestone.completed .milestone-label { color: rgba(255,255,255,.9); }
+.milestone.completed .milestone-label { color: rgba(var(--fg-rgb),.9); }
 
 /* Current */
 .milestone.current .milestone-circle {
@@ -465,7 +465,7 @@
   background: color-mix(in srgb, var(--chapter-accent) 28%, transparent);
   --lg-rim: color-mix(in srgb, var(--chapter-accent) 85%, #fff);
 }
-.milestone.current .milestone-circle .ms-icon { width: 34px; height: 34px; color: #fff; }
+.milestone.current .milestone-circle .ms-icon { width: 34px; height: 34px; color: var(--ink-strong); }
 
 /* Locked */
 .milestone.locked { cursor: not-allowed; }
@@ -475,14 +475,14 @@
   filter: saturate(.3) brightness(.8);
 }
 .milestone.locked .milestone-circle .ms-icon { width: 24px; height: 24px; color: var(--ink-dim); }
-.milestone.locked .milestone-label { color: rgba(255,255,255,.55); }
+.milestone.locked .milestone-label { color: rgba(var(--fg-rgb),.55); }
 .milestone.locked:hover .milestone-circle { transform: none; box-shadow: var(--lg-shadow); }
 
 /* Labels */
 .milestone-label {
   font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  color: var(--ink-strong);
   white-space: nowrap;
   text-shadow: 0 1px 4px rgba(0,0,0,.8), 0 0 12px rgba(0,0,0,.5);
   letter-spacing: 0.01em;
@@ -503,7 +503,7 @@
   padding: 9px 22px;
   font-size: 13px;
   font-weight: 700;
-  color: #fff;
+  color: #fff; /* chapter colours are all mid-tone */
   background: var(--chapter-accent);
   border: none;
   border-radius: var(--lg-radius-pill);
@@ -518,7 +518,7 @@
 .progress-ring { position: absolute; inset: -8px; border-radius: 50%; pointer-events: none; }
 .progress-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .progress-ring circle { fill: none; stroke-width: 3.5; stroke-linecap: round; }
-.progress-ring .track { stroke: rgba(255,255,255,.08); }
+.progress-ring .track { stroke: rgba(var(--fg-rgb),.08); }
 .progress-ring .fill {
   stroke: var(--chapter-accent);
   stroke-dasharray: 283;
@@ -626,8 +626,8 @@
   margin: 0 8px calc(env(safe-area-inset-bottom, 0px) + 8px);
   padding: 10px 10px 10px;
   border-radius: 30px;
-  background: linear-gradient(145deg, rgba(40,43,52,.97), rgba(22,24,30,.97));
-  box-shadow: var(--lg-shadow), inset 0 0 0 1px rgba(255,255,255,.08);
+  background: var(--lite-bar); /* opaque, in the theme's colours */
+  box-shadow: var(--lg-shadow), inset 0 0 0 1px rgba(var(--fg-rgb),.08);
   animation: sheet-up .5s var(--lg-spring) both;
 }
 .sheet.closing .sheet-scrim { animation: sheet-fade .2s ease reverse both; }
@@ -636,7 +636,7 @@
 @keyframes sheet-up { from { transform: translateY(110%); } }
 @keyframes sheet-down { to { transform: translateY(110%); } }
 .sheet-card:focus { outline: none; } /* focus lands on the card when it opens; rows and the scrim take it from there */
-.sheet-handle { width: 36px; height: 5px; margin: 0 auto 10px; border-radius: 999px; background: rgba(255,255,255,.22); }
+.sheet-handle { width: 36px; height: 5px; margin: 0 auto 10px; border-radius: 999px; background: rgba(var(--fg-rgb),.22); }
 .sheet-card h3 {
   margin: 4px 14px 8px;
   font-size: 12px;
@@ -663,7 +663,7 @@
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
-.sheet-row:active { background: rgba(255,255,255,.08); }
+.sheet-row:active { background: rgba(var(--fg-rgb),.08); }
 /* iOS-style hairline between rows, starting after the tile */
 .sheet-row + .sheet-row::before {
   content: "";
@@ -672,7 +672,7 @@
   left: 68px;
   right: 14px;
   height: 1px;
-  background: rgba(255,255,255,.07);
+  background: rgba(var(--fg-rgb),.07);
 }
 .sheet-row-mark {
   flex: none;
@@ -682,8 +682,8 @@
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  background: rgba(255,255,255,.09);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+  background: rgba(var(--fg-rgb),.09);
+  box-shadow: inset 0 1px 0 rgba(var(--fg-rgb),.12);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: .02em;
@@ -696,7 +696,7 @@
 .sheet-row-body small { font-size: 13px; color: var(--ink-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sheet-row-check { flex: none; width: 22px; height: 22px; color: var(--unit-accent, var(--accent)); opacity: 0; }
 .sheet-row.is-active .sheet-row-check { opacity: 1; }
-html.lite .sheet-card { background: #1f2127; }
+html.lite .sheet-card { background: var(--lite-panel); }
 
 /* ===== RESPONSIVE — TABLET ===== */
 @media (max-width: 1100px) {
@@ -744,9 +744,9 @@ html.lite .sheet-card { background: #1f2127; }
     padding: 0 8px 0 14px;
     border: none;
     border-radius: var(--lg-radius-pill);
-    background: color-mix(in srgb, var(--unit-accent, var(--accent)) 24%, rgba(255,255,255,.04));
+    background: color-mix(in srgb, var(--unit-accent, var(--accent)) 24%, rgba(var(--fg-rgb),.04));
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--unit-accent, var(--accent)) 35%, transparent);
-    color: #fff;
+    color: var(--ink-strong);
     font: inherit;
     font-size: 15px;
     font-weight: 700;
@@ -786,9 +786,9 @@ html.lite .sheet-card { background: #1f2127; }
     border-radius: 20px;
     --lg-blur: 18px;
     background: linear-gradient(145deg,
-      color-mix(in srgb, var(--chapter-accent) 36%, rgba(255,255,255,.10)),
-      color-mix(in srgb, var(--chapter-accent) 16%, rgba(255,255,255,.03)) 55%,
-      color-mix(in srgb, var(--chapter-accent) 24%, rgba(255,255,255,.05)));
+      color-mix(in srgb, var(--chapter-accent) 36%, rgba(var(--fg-rgb),.10)),
+      color-mix(in srgb, var(--chapter-accent) 16%, rgba(var(--fg-rgb),.03)) 55%,
+      color-mix(in srgb, var(--chapter-accent) 24%, rgba(var(--fg-rgb),.05)));
   }
   .path-unit-head .path-section-header h3 { font-size: 15px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .path-unit-head .path-section-header p { margin: 0; flex: none; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
@@ -821,18 +821,18 @@ html.lite .sheet-card { background: #1f2127; }
   .milestone-start-btn:active { transform: scale(.95); }
   .bottom-nav-item:active svg { transform: scale(.82); }
   .nav-profile:active { transform: scale(.92); }
-  .leaderboard-item[data-user]:active { background: rgba(255,255,255,.08); }
+  .leaderboard-item[data-user]:active { background: rgba(var(--fg-rgb),.08); }
 }
 
 /* ===== LITE MODE (see base.css) =====
    Without backdrop blur a translucent circle would let the trail show
    through, so milestone fills are mixed with the page colour instead. */
-html.lite .milestone-circle { background: #1f2127; }
-html.lite .milestone.completed .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 16%, #17191e); }
-html.lite .milestone.current .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 28%, #17191e); }
-html.lite .milestone.locked .milestone-circle { filter: none; background: #1a1c21; }
+html.lite .milestone-circle { background: var(--lite-panel); }
+html.lite .milestone.completed .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 16%, var(--lite-panel-deep)); }
+html.lite .milestone.current .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 28%, var(--lite-panel-deep)); }
+html.lite .milestone.locked .milestone-circle { filter: none; background: var(--lite-panel-locked); }
 html.lite .milestone:hover .milestone-circle { box-shadow: 0 12px 20px -12px rgba(0,0,0,.7); }
-html.lite .path-section-header { background: linear-gradient(145deg, #262931, #1d1f25); }
+html.lite .path-section-header { background: var(--lite-bar); }
 html.lite .view-veil { transition-duration: .15s; }
 
 /* ===== LEADERBOARD + PROFILE TABS (filled in by app.js when the API is on) ===== */

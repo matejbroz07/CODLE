@@ -1,0 +1,354 @@
+/* =============================================
+   Codle — Themes
+   (loads right after base.css, on every page)
+
+   js/theme.js puts the chosen theme on <html data-theme="…">. A theme is
+   nothing but a different set of the tokens from base.css, a scene painted
+   on .bg::before, and two looks that follow js/perf.js:
+     full  — glass, blur, the scene moving (html:not(.lite))
+     lite  — the same colours on opaque surfaces, nothing animated (html.lite;
+             the --lite-* tokens are what the LITE block in base.css uses)
+
+   The Codle theme is the one you can mix yourself (Profile → Theme): its
+   accent, backdrop, glass, corners, grain and scene come as inline tokens and
+   data-scene / data-grain attributes from js/theme.js.
+   ============================================= */
+
+/* ===== SCENE MOTION (full mode only — base.css stops it in lite) ===== */
+@keyframes scene-float { from { transform: translate3d(-2.5%, -2%, 0); } to { transform: translate3d(2.5%, 2%, 0); } }
+@keyframes scene-rise { from { transform: translate3d(0, 3%, 0); } to { transform: translate3d(0, -3%, 0); } }
+@keyframes scene-twinkle { from { opacity: .7; } to { opacity: 1; } }
+@keyframes scene-breathe { from { opacity: .78; } to { opacity: 1; } }
+@keyframes scene-grid { from { background-position: 0 0, 0 0; } to { background-position: 0 48px, 0 0; } }
+@keyframes scene-blocks { from { transform: translate3d(0, 1.2%, 0); } to { transform: translate3d(0, -1.2%, 0); } }
+
+/* =============================================
+   CODLE (default) — the scenes it can choose from
+   ============================================= */
+html[data-scene="aurora"] {
+  --scene:
+    radial-gradient(60% 50% at 18% 22%, rgba(var(--accent-rgb),.28), transparent 70%),
+    radial-gradient(50% 45% at 82% 18%, rgba(191,90,242,.16), transparent 70%),
+    radial-gradient(55% 55% at 70% 85%, rgba(var(--accent-rgb),.16), transparent 70%),
+    radial-gradient(40% 40% at 25% 92%, rgba(48,209,88,.10), transparent 70%);
+}
+html[data-scene="aurora"] .bg::before { inset: -8%; animation: scene-float 38s ease-in-out infinite alternate; }
+
+html[data-scene="stars"] {
+  --scene:
+    radial-gradient(1.6px 1.6px at 22px 34px, rgba(255,255,255,.95), transparent 100%),
+    radial-gradient(1px 1px at 130px 96px, rgba(255,255,255,.7), transparent 100%),
+    radial-gradient(1.4px 1.4px at 210px 170px, rgba(255,255,255,.85), transparent 100%),
+    radial-gradient(1px 1px at 300px 44px, rgba(255,255,255,.6), transparent 100%),
+    radial-gradient(1.8px 1.8px at 70px 230px, rgba(255,255,255,.8), transparent 100%),
+    radial-gradient(1px 1px at 260px 250px, rgba(255,255,255,.55), transparent 100%),
+    radial-gradient(60% 50% at 50% 110%, rgba(var(--accent-rgb),.18), transparent 70%);
+  --scene-size: 340px 280px, 340px 280px, 340px 280px, 340px 280px, 340px 280px, 340px 280px, 100% 100%;
+}
+html[data-scene="stars"] .bg::before { animation: scene-twinkle 5s ease-in-out infinite alternate; }
+
+html[data-scene="grid"] {
+  --scene:
+    linear-gradient(rgba(var(--fg-rgb),.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--fg-rgb),.05) 1px, transparent 1px),
+    radial-gradient(70% 60% at 50% 0%, rgba(var(--accent-rgb),.2), transparent 70%);
+  --scene-size: 48px 48px, 48px 48px, 100% 100%;
+}
+html[data-scene="grid"] .bg::before { animation: scene-breathe 7s ease-in-out infinite alternate; }
+
+/* =============================================
+   OVERWORLD — blocks, moss and torchlight
+   ============================================= */
+html[data-theme="overworld"] {
+  --bg: #141c12;
+  --ink: #eef4e6;
+  --ink-dim: rgba(238,244,230,.64);
+  --ink-faint: rgba(238,244,230,.4);
+  --accent: #5fbf47;
+  --accent-rgb: 95,191,71;
+  --accent-ink: #0b1a08;
+  --accent-3: #d79a3b;
+  --green: #7ed957;
+  --gold: #f1c84b;
+  --coral: #e0493f;
+  --panel: #243020;
+  --panel-2: #3b4a35;
+  --lg-radius: 10px;
+  --lg-radius-sm: 6px;
+  --lg-radius-pill: 10px;
+  --lg-blur: 14px;
+  --lg-sat: 130%;
+  --lg-rim: rgba(190,230,170,.55);
+  --lg-shadow: 0 6px 0 -2px rgba(0,0,0,.35), 0 22px 40px -20px rgba(0,0,0,.7);
+  --lite-surface: linear-gradient(145deg, #2a3626, #202a1d);
+  --lite-bar: linear-gradient(145deg, #33412e, #262f23);
+  --lite-panel: #263122;
+  --lite-panel-deep: #1c251a;
+  --lite-panel-locked: #1f271c;
+  --scene:
+    linear-gradient(rgba(var(--fg-rgb),.045) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(var(--fg-rgb),.045) 2px, transparent 2px),
+    linear-gradient(rgba(95,191,71,.16), rgba(95,191,71,.16)),
+    linear-gradient(rgba(215,154,59,.18), rgba(215,154,59,.18)),
+    linear-gradient(rgba(95,191,71,.11), rgba(95,191,71,.11)),
+    linear-gradient(rgba(120,160,220,.13), rgba(120,160,220,.13)),
+    linear-gradient(rgba(215,154,59,.10), rgba(215,154,59,.10)),
+    linear-gradient(180deg, rgba(120,170,230,.10), transparent 40%, rgba(95,191,71,.16) 100%);
+  --scene-size: 48px 48px, 48px 48px, 96px 96px, 48px 48px, 144px 48px, 48px 96px, 96px 48px, 100% 100%;
+  --scene-position: 0 0, 0 0, 8% 22%, 72% 14%, 84% 68%, 18% 78%, 46% 88%, 0 0;
+  --scene-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+}
+html[data-theme="overworld"] .bg::before { inset: -4%; animation: scene-blocks 9s ease-in-out infinite alternate; }
+html[data-theme="overworld"] .liquid-glass::before { padding: 2px; }         /* chunky rim */
+html[data-theme="overworld"] .liquid-glass--bar::before { padding: 2px; }
+html.lite[data-theme="overworld"] .liquid-glass::before { box-shadow: inset 0 0 0 2px var(--lite-rim); }
+
+/* =============================================
+   NIGHT CITY — neon yellow on black, scanlines
+   ============================================= */
+html[data-theme="nightcity"] {
+  --bg: #07060c;
+  --ink: #f3f0ff;
+  --ink-dim: rgba(243,240,255,.64);
+  --ink-faint: rgba(243,240,255,.4);
+  --accent: #fcee0a;
+  --accent-rgb: 252,238,10;
+  --accent-ink: #141200;
+  --accent-3: #00f0ff;
+  --green: #05ffa1;
+  --gold: #fcee0a;
+  --coral: #ff2a6d;
+  --panel: #16131f;
+  --panel-2: #2b2638;
+  --lg-radius: 8px;
+  --lg-radius-sm: 6px;
+  --lg-radius-pill: 8px;
+  --lg-blur: 18px;
+  --lg-sat: 160%;
+  --lg-rim: rgba(0,240,255,.7);
+  --lg-bar-glow: 0 0 34px -6px rgba(0,240,255,.35);
+  --lite-surface: linear-gradient(145deg, #1a1726, #12101a);
+  --lite-bar: linear-gradient(145deg, #211d30, #171420);
+  --lite-panel: #171420;
+  --lite-panel-deep: #100e17;
+  --lite-panel-locked: #131019;
+  --lite-rim: rgba(0,240,255,.28);
+  --scene:
+    repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px),
+    radial-gradient(55% 45% at 85% 8%, rgba(0,240,255,.18), transparent 70%),
+    radial-gradient(55% 45% at 10% 92%, rgba(255,42,109,.18), transparent 70%),
+    radial-gradient(40% 35% at 22% 14%, rgba(252,238,10,.09), transparent 70%);
+  --scene-size: auto, 100% 100%, 100% 100%, 100% 100%;
+}
+html[data-theme="nightcity"] .bg::before { animation: scene-breathe 4.5s ease-in-out infinite alternate; }
+/* a neon rim: cyan at the top-left, yellow across, pink at the bottom-right */
+html:not(.lite)[data-theme="nightcity"] .liquid-glass::before {
+  background: linear-gradient(135deg, rgba(0,240,255,.75) 0%, rgba(0,240,255,.18) 30%, rgba(252,238,10,.14) 55%, rgba(255,42,109,.2) 78%, rgba(255,42,109,.7) 100%);
+}
+
+/* =============================================
+   APERTURE — a clean, light test chamber
+   ============================================= */
+html[data-theme="aperture"] {
+  color-scheme: light;
+  --bg: #e8ebef;
+  --ink: #171a20;
+  --ink-dim: rgba(23,26,32,.64);
+  --ink-faint: rgba(23,26,32,.42);
+  --ink-strong: #0a0c10;
+  --fg-rgb: 23,26,32;
+  --accent: #ff6a00;
+  --accent-rgb: 255,106,0;
+  --accent-ink: #fff;
+  --accent-3: #1b7fff;
+  --green: #1f9d4f;
+  --gold: #b07900;            /* dark enough to read as text on the light backdrop */
+  --coral: #d9342b;
+  --panel: #ffffff;
+  --panel-2: #d6dbe2;
+  --btn-solid: #171a20;
+  --btn-solid-ink: #fff;
+  --well: rgba(23,26,32,.07);
+  --lg-blur: 20px;
+  --lg-sat: 120%;
+  --lg-rim: rgba(255,255,255,.95);
+  --lg-shadow: 0 20px 40px -22px rgba(30,40,60,.35), 0 1px 3px rgba(0,0,0,.08);
+  --lg-sheen: rgba(255,255,255,.6);
+  --lg-sheen-edge: rgba(255,255,255,.9);
+  --pill-bg: linear-gradient(180deg, #ffffff, #f2f4f7);
+  --pill-shadow: inset 0 1px 0 #fff, inset 0 0 0 1px rgba(23,26,32,.08), 0 6px 14px -8px rgba(0,0,0,.25);
+  --lite-surface: linear-gradient(145deg, #fbfcfd, #f1f3f6);
+  --lite-bar: linear-gradient(145deg, #ffffff, #f4f6f9);
+  --lite-panel: #f6f7f9;
+  --lite-panel-deep: #e9ecf0;
+  --lite-panel-locked: #eef0f3;
+  --lite-rim: rgba(23,26,32,.1);
+  --scene:
+    linear-gradient(rgba(23,26,32,.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23,26,32,.05) 1px, transparent 1px),
+    radial-gradient(45% 40% at 12% 15%, rgba(255,106,0,.24), transparent 70%),
+    radial-gradient(45% 40% at 88% 85%, rgba(27,127,255,.24), transparent 70%);
+  --scene-size: 64px 64px, 64px 64px, 100% 100%, 100% 100%;
+}
+html[data-theme="aperture"] .bg::before { animation: scene-breathe 8s ease-in-out infinite alternate; }
+/* light glass is white, not a dark tint */
+html:not(.lite)[data-theme="aperture"] .liquid-glass {
+  background: linear-gradient(145deg, rgba(255,255,255,.74), rgba(255,255,255,.5) 40%, rgba(255,255,255,.62));
+}
+html:not(.lite)[data-theme="aperture"] .liquid-glass--bar {
+  background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(255,255,255,.66) 45%, rgba(255,255,255,.78));
+}
+html:not(.lite)[data-theme="aperture"] .liquid-glass::after {
+  box-shadow: inset 0 1px 0 var(--lg-sheen-edge), inset 0 12px 28px -16px rgba(255,255,255,.6), inset 0 -14px 28px -18px rgba(20,30,50,.12);
+}
+html[data-theme="aperture"] .bg::after { opacity: .6; }
+/* the logo is a light-on-dark picture */
+html[data-theme="aperture"] .brand img, html[data-theme="aperture"] .auth-logo img { filter: invert(.92) hue-rotate(180deg); }
+/* labels glow light, not dark, on a light page */
+html[data-theme="aperture"] .milestone-label { text-shadow: 0 1px 0 rgba(255,255,255,.9), 0 0 10px rgba(255,255,255,.9); }
+html[data-theme="aperture"] .navbar-tab[aria-selected="true"] { text-shadow: none; }
+html.lite[data-theme="aperture"] .liquid-glass { box-shadow: 0 10px 22px -16px rgba(30,40,60,.4), 0 1px 2px rgba(0,0,0,.06); }
+html.lite[data-theme="aperture"] .liquid-glass::after { box-shadow: inset 0 1px 0 #fff; }
+html.lite[data-theme="aperture"] .glass-pill { background: #fff; box-shadow: inset 0 0 0 1px rgba(23,26,32,.08), 0 2px 6px -2px rgba(0,0,0,.2); }
+
+/* =============================================
+   HALLOWNEST — deep caverns, pale light, drifting spores
+   ============================================= */
+html[data-theme="hallownest"] {
+  --bg: #0a0e1a;
+  --ink: #e8eefb;
+  --ink-dim: rgba(232,238,251,.62);
+  --ink-faint: rgba(232,238,251,.38);
+  --accent: #8fb8ff;
+  --accent-rgb: 143,184,255;
+  --accent-ink: #081225;
+  --accent-3: #ff9d5c;
+  --green: #6fdcb0;
+  --gold: #e9d79a;
+  --coral: #ff6f86;
+  --panel: #161c2e;
+  --panel-2: #2b3450;
+  --lg-radius: 26px;
+  --lg-radius-sm: 18px;
+  --lg-blur: 28px;
+  --lg-sat: 150%;
+  --lg-rim: rgba(190,212,255,.6);
+  --lg-shadow: 0 24px 48px -20px rgba(0,0,0,.7), 0 0 40px -16px rgba(143,184,255,.25), 0 2px 6px rgba(0,0,0,.3);
+  --lite-surface: linear-gradient(145deg, #1b2237, #141a2b);
+  --lite-bar: linear-gradient(145deg, #202842, #171e31);
+  --lite-panel: #171e30;
+  --lite-panel-deep: #111626;
+  --lite-panel-locked: #141a2a;
+  --scene:
+    radial-gradient(2px 2px at 30px 40px, rgba(200,220,255,.6), transparent 100%),
+    radial-gradient(1.5px 1.5px at 160px 120px, rgba(200,220,255,.42), transparent 100%),
+    radial-gradient(2.5px 2.5px at 260px 60px, rgba(200,220,255,.5), transparent 100%),
+    radial-gradient(1.5px 1.5px at 90px 220px, rgba(200,220,255,.36), transparent 100%),
+    radial-gradient(2px 2px at 230px 200px, rgba(200,220,255,.46), transparent 100%),
+    radial-gradient(60% 55% at 50% 110%, rgba(60,90,160,.38), transparent 70%),
+    radial-gradient(50% 40% at 15% 0%, rgba(90,130,200,.2), transparent 70%);
+  --scene-size: 320px 280px, 320px 280px, 320px 280px, 320px 280px, 320px 280px, 100% 100%, 100% 100%;
+}
+html[data-theme="hallownest"] .bg::before { inset: -8%; animation: scene-rise 30s ease-in-out infinite alternate; }
+
+/* =============================================
+   OUTRUN — a sunset over a neon grid
+   ============================================= */
+html[data-theme="outrun"] {
+  --bg: #120826;
+  --ink: #fdf2ff;
+  --ink-dim: rgba(253,242,255,.64);
+  --ink-faint: rgba(253,242,255,.4);
+  --accent: #ff3ca6;
+  --accent-rgb: 255,60,166;
+  --accent-ink: #2a0418;
+  --accent-3: #ffb347;
+  --green: #3df2c6;
+  --gold: #ffd166;
+  --coral: #ff5d73;
+  --panel: #22113f;
+  --panel-2: #3b2366;
+  --lg-radius: 18px;
+  --lg-radius-sm: 12px;
+  --lg-blur: 20px;
+  --lg-sat: 180%;
+  --lg-rim: rgba(255,120,220,.65);
+  --lg-bar-glow: 0 0 36px -8px rgba(255,60,166,.4);
+  --lite-surface: linear-gradient(145deg, #2a1650, #1d0f3a);
+  --lite-bar: linear-gradient(145deg, #321b5c, #231342);
+  --lite-panel: #22123f;
+  --lite-panel-deep: #190c30;
+  --lite-panel-locked: #1d0f36;
+  --lite-rim: rgba(255,120,220,.25);
+}
+html[data-theme="outrun"] .bg {
+  background-image:
+    radial-gradient(70% 42% at 50% 64%, rgba(255,120,60,.6), rgba(255,60,166,.38) 42%, transparent 72%),
+    linear-gradient(180deg, #120826 0%, #2b0f4e 58%, #120826 100%);
+}
+html[data-theme="outrun"] .bg::before {
+  inset: auto -40% 0 -40%;
+  height: 46%;
+  background-image:
+    linear-gradient(rgba(255,60,166,.5) 2px, transparent 2px),
+    linear-gradient(90deg, rgba(255,60,166,.5) 2px, transparent 2px);
+  background-size: 100% 48px, 64px 100%;
+  background-position: 0 0, 0 0;
+  background-repeat: repeat;
+  transform: perspective(520px) rotateX(62deg);
+  transform-origin: 50% 0;
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 28%, #000);
+  mask-image: linear-gradient(180deg, transparent, #000 28%, #000);
+  animation: scene-grid 2.6s linear infinite;
+}
+html.lite[data-theme="outrun"] .bg { background-image: linear-gradient(180deg, #120826 0%, #2b0f4e 58%, #120826 100%); }
+
+/* =============================================
+   HYRULE — ancient lines, teal glow, a little gold
+   ============================================= */
+html[data-theme="hyrule"] {
+  --bg: #0b1516;
+  --ink: #e8f3ef;
+  --ink-dim: rgba(232,243,239,.64);
+  --ink-faint: rgba(232,243,239,.4);
+  --accent: #3fd1b0;
+  --accent-rgb: 63,209,176;
+  --accent-ink: #06201a;
+  --accent-3: #e8bd4f;
+  --green: #52d98a;
+  --gold: #f1cf5e;
+  --coral: #ff6a5b;
+  --panel: #152426;
+  --panel-2: #2a3d3f;
+  --lg-radius: 20px;
+  --lg-radius-sm: 14px;
+  --lg-blur: 22px;
+  --lg-sat: 150%;
+  --lg-rim: rgba(120,230,205,.55);
+  --lite-surface: linear-gradient(145deg, #1a2b2d, #142224);
+  --lite-bar: linear-gradient(145deg, #203536, #182a2b);
+  --lite-panel: #182a2b;
+  --lite-panel-deep: #112021;
+  --lite-panel-locked: #142425;
+  --scene:
+    repeating-linear-gradient(45deg, rgba(var(--fg-rgb),.028) 0 1px, transparent 1px 28px),
+    repeating-linear-gradient(-45deg, rgba(var(--fg-rgb),.028) 0 1px, transparent 1px 28px),
+    radial-gradient(50% 45% at 15% 20%, rgba(63,209,176,.22), transparent 70%),
+    radial-gradient(45% 40% at 85% 85%, rgba(232,189,79,.18), transparent 70%);
+  --scene-size: auto, auto, 100% 100%, 100% 100%;
+}
+html[data-theme="hyrule"] .bg::before { inset: -6%; animation: scene-float 44s ease-in-out infinite alternate; }
+
+/* Phones: the Overworld blocks are too big for a narrow screen and read as glitches behind the glass;
+   keep the grid and the sky-to-grass gradient only. */
+@media (max-width: 768px) {
+  html[data-theme="overworld"] {
+    --scene:
+      linear-gradient(rgba(var(--fg-rgb),.045) 2px, transparent 2px),
+      linear-gradient(90deg, rgba(var(--fg-rgb),.045) 2px, transparent 2px),
+      linear-gradient(180deg, rgba(120,170,230,.10), transparent 40%, rgba(95,191,71,.16) 100%);
+    --scene-size: 48px 48px, 48px 48px, 100% 100%;
+    --scene-position: 0 0, 0 0, 0 0;
+    --scene-repeat: repeat, repeat, no-repeat;
+  }
+}

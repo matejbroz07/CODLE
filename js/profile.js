@@ -186,7 +186,7 @@
   ================================================================*/
 
   // "curly" is labelled with the mascot's current name (it can be renamed there)
-  var TABS = [["overview", "Overview"], ["activity", "Activity"], ["settings", "Settings"], ["curly", "Curly"]];
+  var TABS = [["overview", "Overview"], ["activity", "Activity"], ["settings", "Settings"], ["theme", "Theme"], ["curly", "Curly"]];
   function tabLabel(t) { return t[0] === "curly" ? esc(curlyName()) : t[1]; }
 
   function buildShell() {
@@ -208,7 +208,9 @@
       "</div>";
     state.built = true;
     state.settingsBuilt = false;
-    // the Curly tab needs no profile data: draw it right away
+    // the Theme and Curly tabs need no profile data: draw them right away
+    th.built = false;
+    renderTheme();
     cy.built = false;
     renderCurly();
   }
@@ -227,6 +229,7 @@
       loadSessions();
     }
     if (name === "activity") revealHeatmap();
+    if (name === "theme") openTheme();
     if (name === "curly") openCurly();
   }
 
@@ -1287,6 +1290,9 @@
 
   document.addEventListener("input", function (e) {
     var id = e.target.id;
+    // the colour pickers preview live; the "change" event saves
+    if (id === "th-accent-custom" && themeApi()) { themeApi().customize({ accent: e.target.value }); return; }
+    if (id === "th-bg-custom" && themeApi()) { themeApi().customize({ bg: e.target.value }); return; }
     if (id === "pf-bio") {
       var len = e.target.value.length;
       $("pf-bio-count").textContent = len + " / " + BIO_MAX;
@@ -1329,8 +1335,20 @@
     } else if (t.id === "pf-effects") {
       if (window.CodlePerf) window.CodlePerf.setMode(t.value);
       renderEffects();
+      syncThemeUI();
       api.put("me/settings", { effects: t.value }).catch(function () { /* the device keeps it in localStorage anyway */ });
-    }
+    } else if (t.name === "th-theme") {
+      themeChange({ theme: t.value });
+      var m = mascot(), look = themeApi() && themeApi().theme(t.value);
+      if (m && look && window.innerWidth > 860) m.tip(look.id === "codle" ? "Back to the classic. Mix the colours below if you like." : "Ooh, " + look.name + ". It suits you.", { key: "theme", mood: "surprised", ms: 4500 });
+    } else if (t.name === "th-accent") themeChange({ accent: t.value });
+    else if (t.name === "th-bg") themeChange({ bg: t.value });
+    else if (t.name === "th-glass") themeChange({ glass: t.value });
+    else if (t.name === "th-corners") themeChange({ corners: t.value });
+    else if (t.name === "th-scene") themeChange({ scene: t.value });
+    else if (t.id === "th-grain") themeChange({ grain: t.checked });
+    else if (t.id === "th-accent-custom") themeChange({ accent: t.value });
+    else if (t.id === "th-bg-custom") themeChange({ bg: t.value });
   });
 
   // Drag and drop onto the picture box
@@ -1467,6 +1485,194 @@
     if (state.tab === "settings") loadSessions();
     if (state.settingsBuilt) { renderEffects(); renderTzDetect(); }
   });
+
+  /* ===============================================================
+     Theme — the look of every page (js/theme.js applies it, css/themes.css draws it).
+     A pick applies at once, is kept in this browser, and is saved to the account
+     (me/settings → appTheme, appThemeCustom) shortly after, like Curly's wardrobe.
+     Full / Lite (js/perf.js) is picked here as well: every theme has both looks.
+  ================================================================*/
+
+  var th = { built: false, saveTimer: null, account: null };
+  var TH_GLASS = { clear: ["Clear", "Thin glass, little blur"], normal: ["Normal", "The Codle look"], frosted: ["Frosted", "Thick, milky glass"] };
+  var TH_CORNERS = { sharp: ["Sharp", "Tight corners"], soft: ["Soft", "The Codle look"], round: ["Round", "Big, pillowy corners"] };
+  var TH_SCENES = { none: ["None", "Just the backdrop"], aurora: ["Aurora", "Slow drifting colour"], stars: ["Stars", "A quiet night sky"], grid: ["Grid", "Blueprint lines"] };
+  var TH_FX = [["auto", "Auto"], ["full", "Full"], ["lite", "Lite"]];
+
+  function themeApi() { return window.CodleTheme || null; }
+  function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  function thRgb(hex) { var n = parseInt(hex.slice(1), 16); return ((n >> 16) & 255) + "," + ((n >> 8) & 255) + "," + (n & 255); }
+
+  function thTile(t, on) {
+    return '<label class="th-tile' + (on ? " is-on" : "") + (t.light ? " is-light" : "") + '" style="--t-bg:' + t.bg + ";--t-accent:" + t.accent + ";--t-fg:" + thRgb(t.ink) + ";--t-glow:" + (t.glow || t.accent) + '">' +
+        '<input type="radio" name="th-theme" value="' + t.id + '"' + (on ? " checked" : "") + ">" +
+        '<span class="th-pre th-pre--' + t.id + '" aria-hidden="true"><i class="th-pre-bar"></i><i class="th-pre-card"></i><i class="th-pre-dot"></i></span>' +
+        '<span class="th-tile-text"><b>' + esc(t.name) + (t.custom ? ' <span class="pf-chip">Customizable</span>' : "") + "</b><small>" + esc(t.tag) + "</small></span>" +
+      "</label>";
+  }
+  function thSwatch(group, hex, label, on) {
+    return '<label class="cy-opt cy-opt--round' + (on ? " is-on" : "") + '" title="' + esc(label) + '">' +
+        '<input type="radio" name="th-' + group + '" value="' + hex + '"' + (on ? " checked" : "") + ">" +
+        '<span class="cy-swatch th-flat" style="--c:' + hex + '" aria-hidden="true"></span>' +
+        '<span class="cy-opt-label">' + esc(label) + "</span>" +
+      "</label>";
+  }
+  function thCustomSwatch(group, hex, on) {
+    return '<label class="cy-opt cy-opt--round th-custom-swatch' + (on ? " is-on" : "") + '" title="Any colour">' +
+        '<input type="color" id="th-' + group + '-custom" value="' + hex + '" aria-label="Custom ' + group + ' colour">' +
+        '<span class="cy-swatch th-flat th-rainbow" style="--c:' + hex + '" aria-hidden="true"></span>' +
+        '<span class="cy-opt-label">Custom</span>' +
+      "</label>";
+  }
+  function thSeg(group, table, current, label) {
+    return '<div class="cy-grid cy-grid--seg th-seg-grid" role="radiogroup" aria-label="' + label + '">' + Object.keys(table).map(function (id) {
+      var on = id === current;
+      return '<label class="cy-opt th-opt' + (on ? " is-on" : "") + '"><input type="radio" name="th-' + group + '" value="' + id + '"' + (on ? " checked" : "") + ">" +
+        '<span class="cy-opt-label">' + table[id][0] + '</span><span class="th-opt-sub">' + table[id][1] + "</span></label>";
+    }).join("") + "</div>";
+  }
+  function thSceneTiles(current) {
+    return '<div class="cy-grid cy-grid--tiles" role="radiogroup" aria-label="Scene">' + Object.keys(TH_SCENES).map(function (id) {
+      var on = id === current;
+      return '<label class="cy-opt th-opt' + (on ? " is-on" : "") + '"><input type="radio" name="th-scene" value="' + id + '"' + (on ? " checked" : "") + ">" +
+        '<span class="th-scene th-scene--' + id + '" aria-hidden="true"></span>' +
+        '<span class="cy-opt-label">' + TH_SCENES[id][0] + '</span><span class="th-opt-sub">' + TH_SCENES[id][1] + "</span></label>";
+    }).join("") + "</div>";
+  }
+  function thFxNote() {
+    var perf = window.CodlePerf;
+    if (!perf) return "";
+    if (perf.mode === "lite") return "Lite: opaque surfaces, no blur, nothing moving. Every theme has this look.";
+    if (perf.mode === "full") return "Full: glass, blur and a living scene, even on slow devices.";
+    return perf.lite ? "Auto picked Lite here (" + perf.reasons.join(", ") + ")." : "Auto: the full look now; switches to Lite if the page slows down.";
+  }
+  function thCustomHtml() {
+    var T = themeApi(), c = T.custom;
+    var presetAccent = T.accents.some(function (a) { return a[1] === c.accent; });
+    var presetBg = T.backdrops.some(function (b) { return b[1] === c.bg; });
+    return '<section class="pf-card liquid-glass th-card"><h3>Accent</h3>' +
+        '<div class="cy-grid cy-grid--round" role="radiogroup" aria-label="Accent colour">' +
+          T.accents.map(function (a) { return thSwatch("accent", a[1], cap(a[0]), a[1] === c.accent); }).join("") +
+          thCustomSwatch("accent", c.accent, !presetAccent) +
+        "</div></section>" +
+      '<section class="pf-card liquid-glass th-card"><h3>Backdrop</h3>' +
+        '<div class="cy-grid cy-grid--round" role="radiogroup" aria-label="Backdrop colour">' +
+          T.backdrops.map(function (b) { return thSwatch("bg", b[1], cap(b[0]), b[1] === c.bg); }).join("") +
+          thCustomSwatch("bg", c.bg, !presetBg) +
+        "</div></section>" +
+      '<section class="pf-card liquid-glass th-card"><h3>Scene</h3>' + thSceneTiles(c.scene) +
+        '<p class="pf-hint th-hint">Scenes move only with full effects; in Lite they stand still.</p></section>' +
+      '<section class="pf-card liquid-glass th-card"><h3>Glass</h3>' + thSeg("glass", TH_GLASS, c.glass, "Glass") + "</section>" +
+      '<section class="pf-card liquid-glass th-card"><h3>Corners</h3>' + thSeg("corners", TH_CORNERS, c.corners, "Corners") + "</section>" +
+      '<section class="pf-card liquid-glass th-card">' +
+        '<label class="pf-switch th-switch"><input type="checkbox" id="th-grain"' + (c.grain ? " checked" : "") + '><span class="pf-switch-ui" aria-hidden="true"></span>' +
+          "<span><b>Film grain</b><small>A fine texture over the backdrop. Lite leaves it out anyway.</small></span></label>" +
+        '<div class="pf-actions cy-actions"><button type="button" class="wordle-btn ghost" data-act="th-reset"' + (T.isCustomDefault() ? " disabled" : "") + ">Back to the Codle defaults</button></div>" +
+      "</section>";
+  }
+
+  function renderTheme() {
+    var panel = $("pf-panel-theme"), T = themeApi();
+    if (!panel) return;
+    if (!T) { panel.innerHTML = '<div class="pf-card liquid-glass pf-empty"><p>Themes are not available on this page.</p></div>'; return; }
+    panel.innerHTML =
+      '<section class="pf-card liquid-glass th-fx"><div class="pf-row">' +
+          '<span><b>Visual effects</b><small id="th-fx-note">' + esc(thFxNote()) + "</small></span>" +
+          '<div class="th-seg" role="radiogroup" aria-label="Visual effects" id="th-fx">' +
+            TH_FX.map(function (f) { return '<button type="button" role="radio" data-act="th-fx" data-fx="' + f[0] + '" aria-checked="' + (!!window.CodlePerf && window.CodlePerf.mode === f[0]) + '">' + f[1] + "</button>"; }).join("") +
+          "</div>" +
+      "</div></section>" +
+      '<section class="pf-section th-pick"><h3>Pick a look</h3>' +
+        '<div class="th-grid" role="radiogroup" aria-label="Theme">' + T.themes.map(function (t) { return thTile(t, t.id === T.id); }).join("") + "</div>" +
+      "</section>" +
+      '<section class="pf-section th-custom" id="th-custom"' + (T.id === "codle" ? "" : " hidden") + '><h3>Make Codle yours</h3>' + thCustomHtml() + "</section>" +
+      '<p class="cy-status" id="th-status" aria-live="polite"></p>';
+    th.built = true;
+  }
+  /** Marks the picked options in place (no redraw: focus and open colour pickers stay). */
+  function syncThemeUI() {
+    var T = themeApi(), panel = $("pf-panel-theme");
+    if (!T || !panel || !th.built) return;
+    var c = T.custom;
+    var current = { theme: T.id, accent: c.accent, bg: c.bg, glass: c.glass, corners: c.corners, scene: c.scene };
+    panel.querySelectorAll('input[type="radio"]').forEach(function (r) {
+      var on = r.value === current[r.name.slice(3)];
+      r.checked = on;
+      r.closest("label").classList.toggle("is-on", on);
+    });
+    ["accent", "bg"].forEach(function (g) {
+      var input = $("th-" + g + "-custom");
+      if (!input) return;
+      var preset = panel.querySelector('input[name="th-' + g + '"][value="' + current[g] + '"]');
+      if (document.activeElement !== input) input.value = current[g];
+      var label = input.closest("label");
+      label.classList.toggle("is-on", !preset);
+      label.querySelector(".cy-swatch").style.setProperty("--c", current[g]);
+    });
+    var grain = $("th-grain");
+    if (grain) grain.checked = c.grain;
+    var custom = $("th-custom");
+    if (custom) custom.hidden = T.id !== "codle";
+    var reset = panel.querySelector('[data-act="th-reset"]');
+    if (reset) reset.disabled = T.isCustomDefault();
+    var note = $("th-fx-note");
+    if (note) note.textContent = thFxNote();
+    panel.querySelectorAll("#th-fx [role=radio]").forEach(function (b) {
+      b.setAttribute("aria-checked", String(!!window.CodlePerf && window.CodlePerf.mode === b.getAttribute("data-fx")));
+    });
+  }
+  function thStatus(text) { var el = $("th-status"); if (el) el.textContent = text; }
+  /** Saves to the account a moment after the last change. */
+  function saveTheme() {
+    clearTimeout(th.saveTimer);
+    thStatus("Saving…");
+    th.saveTimer = setTimeout(function () {
+      var T = themeApi();
+      if (!T || !online()) { thStatus("Saved on this device"); return; }
+      api.put("me/settings", T.settings()).then(function (res) {
+        th.account = !!(res && res.settings && res.settings.hasOwnProperty("appTheme"));
+        thStatus(th.account ? "Saved to your account" : "Saved on this device");
+      }, function () { thStatus("Saved on this device. Couldn't reach the server."); });
+    }, 600);
+  }
+  /** On the first page load: take the theme saved with the account, or upload this device's the first time. */
+  function syncThemeFrom(st) {
+    var T = themeApi();
+    if (!T || !st) return;
+    if (!st.hasOwnProperty("appTheme")) { th.account = false; return; } // migration 004 not run yet
+    th.account = true;
+    if (st.appTheme) { if (T.configure(st)) syncThemeUI(); }
+    else if (T.id !== "codle" || !T.isCustomDefault()) saveTheme(); // a look picked before logging in goes to the account
+  }
+  /** One change from the tab: apply, mark, save. */
+  function themeChange(patch) {
+    var T = themeApi();
+    if (!T) return;
+    if (patch.theme) T.set(patch.theme); else T.customize(patch);
+    syncThemeUI();
+    saveTheme();
+  }
+  function openTheme() {
+    if (!th.built) renderTheme();
+    syncThemeUI();
+  }
+
+  ACTIONS["th-fx"] = function (btn) {
+    if (!window.CodlePerf) return;
+    var mode = btn.getAttribute("data-fx");
+    window.CodlePerf.setMode(mode);
+    syncThemeUI();
+    renderEffects();
+    api.put("me/settings", { effects: mode }).catch(function () { /* the device keeps it in localStorage anyway */ });
+  };
+  ACTIONS["th-reset"] = function () {
+    var T = themeApi();
+    if (!T) return;
+    T.resetCustom();
+    syncThemeUI();
+    saveTheme();
+  };
+  if (window.CodlePerf) window.CodlePerf.onChange(function () { if (th.built) syncThemeUI(); });
 
   /* ===============================================================
      Curly — the mascot's wardrobe and behaviour (js/mascot.js does the drawing).
@@ -1668,6 +1874,7 @@
     cy.fetched = true;
     api.get("me/settings").then(function (res) {
       var st = res && res.settings;
+      syncThemeFrom(st); // the Theme tab shares this one fetch
       if (!st || !st.hasOwnProperty("mascot")) { cy.account = false; return; } // migration 003 not run yet
       cy.account = true;
       if (st.mascot) { m.configure(st.mascot); refreshCurly(); if (cy.preview) cy.preview.refresh(); }

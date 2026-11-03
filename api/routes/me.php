@@ -119,7 +119,39 @@ function settings_out(array $s): array
         'effects'  => $s['effects_mode'],
     ] + (array_key_exists('mascot', $s)   // the column exists once migration 003 ran
         ? ['mascot' => $s['mascot'] !== null ? mascot_clean(json_decode($s['mascot'], true)) : null]
+        : [])
+      + (array_key_exists('app_theme', $s)   // migration 004
+        ? ['appTheme'       => $s['app_theme'],   // null = never chosen, the browser's look stays
+           'appThemeCustom' => $s['app_theme_custom'] !== null ? theme_custom_clean(json_decode($s['app_theme_custom'], true)) : null]
         : []);
+}
+
+/* ---------------------------------------------------------------
+   App theme (Profile → Theme) — same ids and options as js/theme.js.
+   The "codle" theme can be customised; the custom mix is stored as JSON.
+--------------------------------------------------------------- */
+
+const APP_THEMES = ['codle', 'overworld', 'nightcity', 'aperture', 'hallownest', 'outrun', 'hyrule'];
+const THEME_OPTIONS = [
+    'glass'   => ['normal', 'clear', 'frosted'],
+    'corners' => ['soft', 'sharp', 'round'],
+    'scene'   => ['none', 'aurora', 'stars', 'grid'],
+];
+
+/** The Codle theme's custom mix, made safe. Null when it is not an object at all. */
+function theme_custom_clean($c): ?array
+{
+    if (!is_array($c)) return null;
+    $hex = fn($v, $default) => is_string($v) && preg_match('/^#[0-9a-f]{6}$/i', $v) ? strtolower($v) : $default;
+    $out = [
+        'accent' => $hex($c['accent'] ?? null, '#0a84ff'),
+        'bg'     => $hex($c['bg'] ?? null, '#08090c'),
+    ];
+    foreach (THEME_OPTIONS as $key => $ids) {
+        $out[$key] = in_array($c[$key] ?? null, $ids, true) ? $c[$key] : $ids[0];
+    }
+    $out['grain'] = is_bool($c['grain'] ?? null) ? $c['grain'] : true;
+    return $out;
 }
 
 /* ---------------------------------------------------------------
@@ -186,7 +218,8 @@ function route_settings_put(): array
         $mascot = mascot_clean(body()['mascot']);
         if ($mascot === null) fail(422, 'invalid_mascot', 'mascot must be an object.');
     }
-    $s = array_merge(user_settings($user), body());
+    $current = user_settings($user);
+    $s = array_merge($current, body());
     $layout = in_array($s['layout'], ['split', 'swap', 'stacked'], true) ? $s['layout'] : 'split';
     $theme = in_array($s['theme'], ['codle', 'ember', 'paper'], true) ? $s['theme'] : 'codle';
     $effects = in_array($s['effects'], ['auto', 'full', 'lite'], true) ? $s['effects'] : 'auto';
@@ -207,8 +240,17 @@ function route_settings_put(): array
         $user['id'],
     ]);
     // Curly: only once migration 003 added the column; until then the browser keeps it
-    if ($mascot !== null && array_key_exists('mascot', user_settings($user))) {
+    if ($mascot !== null && array_key_exists('mascot', $current)) {
         q('UPDATE user_settings SET mascot = ? WHERE user_id = ?', [json_encode($mascot, JSON_UNESCAPED_UNICODE), $user['id']]);
+    }
+    // App theme: only once migration 004 added the columns; until then the browser keeps it
+    $b = body();
+    if ((array_key_exists('appTheme', $b) || array_key_exists('appThemeCustom', $b)) && array_key_exists('appTheme', $current)) {
+        $appTheme = $b['appTheme'] ?? $current['appTheme'] ?? 'codle';
+        if (!in_array($appTheme, APP_THEMES, true)) $appTheme = 'codle';
+        $custom = array_key_exists('appThemeCustom', $b) ? theme_custom_clean($b['appThemeCustom']) : $current['appThemeCustom'];
+        q('UPDATE user_settings SET app_theme = ?, app_theme_custom = ? WHERE user_id = ?',
+          [$appTheme, $custom !== null ? json_encode($custom) : null, $user['id']]);
     }
     return ['settings' => user_settings($user)];
 }
