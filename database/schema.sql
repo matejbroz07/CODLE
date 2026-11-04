@@ -156,7 +156,7 @@ CREATE TABLE user_settings (
   effects_mode     ENUM('auto','full','lite') NOT NULL DEFAULT 'auto',   -- visual effects / low-end devices
   mascot           TEXT            NULL,                     -- JSON, Curly's look and behaviour (Profile → Curly); NULL = defaults
   app_theme        VARCHAR(24)     NULL,                     -- look of every page (Profile → Theme, js/theme.js); NULL = never chosen, the browser decides
-  app_theme_custom TEXT            NULL,                     -- JSON, the Codle theme's own mix: accent, bg, glass, corners, scene, grain
+  app_theme_custom TEXT            NULL,                     -- JSON, the Codle theme's own mix: mode, accent, bg, glass, corners, scene, grain
   updated_at       DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id),
   CONSTRAINT fk_settings_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,

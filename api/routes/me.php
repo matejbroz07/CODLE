@@ -131,8 +131,9 @@ function settings_out(array $s): array
    The "codle" theme can be customised; the custom mix is stored as JSON.
 --------------------------------------------------------------- */
 
-const APP_THEMES = ['codle', 'overworld', 'nightcity', 'aperture', 'hallownest', 'outrun', 'hyrule'];
+const APP_THEMES = ['codle', 'notebook', 'overworld', 'dust', 'hallownest'];
 const THEME_OPTIONS = [
+    'mode'    => ['dark', 'light'],
     'glass'   => ['normal', 'clear', 'frosted'],
     'corners' => ['soft', 'sharp', 'round'],
     'scene'   => ['none', 'aurora', 'stars', 'grid'],
@@ -143,9 +144,10 @@ function theme_custom_clean($c): ?array
 {
     if (!is_array($c)) return null;
     $hex = fn($v, $default) => is_string($v) && preg_match('/^#[0-9a-f]{6}$/i', $v) ? strtolower($v) : $default;
+    $light = ($c['mode'] ?? null) === 'light';
     $out = [
         'accent' => $hex($c['accent'] ?? null, '#0a84ff'),
-        'bg'     => $hex($c['bg'] ?? null, '#08090c'),
+        'bg'     => $hex($c['bg'] ?? null, $light ? '#f2f4f7' : '#08090c'),
     ];
     foreach (THEME_OPTIONS as $key => $ids) {
         $out[$key] = in_array($c[$key] ?? null, $ids, true) ? $c[$key] : $ids[0];

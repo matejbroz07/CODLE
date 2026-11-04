@@ -1340,8 +1340,9 @@
     } else if (t.name === "th-theme") {
       themeChange({ theme: t.value });
       var m = mascot(), look = themeApi() && themeApi().theme(t.value);
-      if (m && look && window.innerWidth > 860) m.tip(look.id === "codle" ? "Back to the classic. Mix the colours below if you like." : "Ooh, " + look.name + ". It suits you.", { key: "theme", mood: "surprised", ms: 4500 });
-    } else if (t.name === "th-accent") themeChange({ accent: t.value });
+      if (m && look && window.innerWidth > 860) m.tip(look.id === "codle" ? "Back to the classic. Dark or light, mix the colours below if you like." : "Ooh, " + look.name + ". It suits you.", { key: "theme", mood: "surprised", ms: 4500 });
+    } else if (t.name === "th-mode") themeChange({ mode: t.value });
+    else if (t.name === "th-accent") themeChange({ accent: t.value });
     else if (t.name === "th-bg") themeChange({ bg: t.value });
     else if (t.name === "th-glass") themeChange({ glass: t.value });
     else if (t.name === "th-corners") themeChange({ corners: t.value });
@@ -1494,6 +1495,7 @@
   ================================================================*/
 
   var th = { built: false, saveTimer: null, account: null };
+  var TH_MODE = { dark: ["Dark", "Glass on a dark backdrop"], light: ["Light", "White glass on a pale backdrop"] };
   var TH_GLASS = { clear: ["Clear", "Thin glass, little blur"], normal: ["Normal", "The Codle look"], frosted: ["Frosted", "Thick, milky glass"] };
   var TH_CORNERS = { sharp: ["Sharp", "Tight corners"], soft: ["Soft", "The Codle look"], round: ["Round", "Big, pillowy corners"] };
   var TH_SCENES = { none: ["None", "Just the backdrop"], aurora: ["Aurora", "Slow drifting colour"], stars: ["Stars", "A quiet night sky"], grid: ["Grid", "Blueprint lines"] };
@@ -1506,7 +1508,7 @@
   function thTile(t, on) {
     return '<label class="th-tile' + (on ? " is-on" : "") + (t.light ? " is-light" : "") + '" style="--t-bg:' + t.bg + ";--t-accent:" + t.accent + ";--t-fg:" + thRgb(t.ink) + ";--t-glow:" + (t.glow || t.accent) + '">' +
         '<input type="radio" name="th-theme" value="' + t.id + '"' + (on ? " checked" : "") + ">" +
-        '<span class="th-pre th-pre--' + t.id + '" aria-hidden="true"><i class="th-pre-bar"></i><i class="th-pre-card"></i><i class="th-pre-dot"></i></span>' +
+        '<span class="th-pre th-pre--' + t.id + '" aria-hidden="true"><i class="th-pre-bar"></i><i class="th-pre-card"></i><i class="th-pre-dot"></i><i class="th-pre-type">Aa</i></span>' +
         '<span class="th-tile-text"><b>' + esc(t.name) + (t.custom ? ' <span class="pf-chip">Customizable</span>' : "") + "</b><small>" + esc(t.tag) + "</small></span>" +
       "</label>";
   }
@@ -1548,16 +1550,18 @@
   }
   function thCustomHtml() {
     var T = themeApi(), c = T.custom;
-    var presetAccent = T.accents.some(function (a) { return a[1] === c.accent; });
-    var presetBg = T.backdrops.some(function (b) { return b[1] === c.bg; });
-    return '<section class="pf-card liquid-glass th-card"><h3>Accent</h3>' +
+    var accents = T.accentsFor(c.mode), backdrops = T.backdropsFor(c.mode);
+    var presetAccent = accents.some(function (a) { return a[1] === c.accent; });
+    var presetBg = backdrops.some(function (b) { return b[1] === c.bg; });
+    return '<section class="pf-card liquid-glass th-card"><h3>Appearance</h3>' + thSeg("mode", TH_MODE, c.mode, "Appearance") + "</section>" +
+      '<section class="pf-card liquid-glass th-card"><h3>Accent</h3>' +
         '<div class="cy-grid cy-grid--round" role="radiogroup" aria-label="Accent colour">' +
-          T.accents.map(function (a) { return thSwatch("accent", a[1], cap(a[0]), a[1] === c.accent); }).join("") +
+          accents.map(function (a) { return thSwatch("accent", a[1], cap(a[0]), a[1] === c.accent); }).join("") +
           thCustomSwatch("accent", c.accent, !presetAccent) +
         "</div></section>" +
       '<section class="pf-card liquid-glass th-card"><h3>Backdrop</h3>' +
         '<div class="cy-grid cy-grid--round" role="radiogroup" aria-label="Backdrop colour">' +
-          T.backdrops.map(function (b) { return thSwatch("bg", b[1], cap(b[0]), b[1] === c.bg); }).join("") +
+          backdrops.map(function (b) { return thSwatch("bg", b[1], cap(b[0]), b[1] === c.bg); }).join("") +
           thCustomSwatch("bg", c.bg, !presetBg) +
         "</div></section>" +
       '<section class="pf-card liquid-glass th-card"><h3>Scene</h3>' + thSceneTiles(c.scene) +
@@ -1594,7 +1598,7 @@
     var T = themeApi(), panel = $("pf-panel-theme");
     if (!T || !panel || !th.built) return;
     var c = T.custom;
-    var current = { theme: T.id, accent: c.accent, bg: c.bg, glass: c.glass, corners: c.corners, scene: c.scene };
+    var current = { theme: T.id, mode: c.mode, accent: c.accent, bg: c.bg, glass: c.glass, corners: c.corners, scene: c.scene };
     panel.querySelectorAll('input[type="radio"]').forEach(function (r) {
       var on = r.value === current[r.name.slice(3)];
       r.checked = on;
@@ -1649,6 +1653,8 @@
     var T = themeApi();
     if (!T) return;
     if (patch.theme) T.set(patch.theme); else T.customize(patch);
+    // dark and light have their own accent and backdrop swatches: draw the mix again
+    if (patch.mode) { var custom = $("th-custom"); if (custom) custom.innerHTML = "<h3>Make Codle yours</h3>" + thCustomHtml(); }
     syncThemeUI();
     saveTheme();
   }

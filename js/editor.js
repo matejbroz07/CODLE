@@ -913,6 +913,8 @@ function codleEditor(lesson) {
 
   if (window.ResizeObserver) {
     new ResizeObserver(function () { fitWrap(); syncScroll(); moveFileIndicator(); }).observe(input);
+    // the theme's web font changes the tab widths once it arrives
+    if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", function () { requestAnimationFrame(moveFileIndicator); });
   }
 
   /* ===============================================================

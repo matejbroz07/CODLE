@@ -775,7 +775,7 @@ html.lite .cy-opt.is-on .cy-art svg { animation: none; }
 
 /* ===== THEME TAB =====
    Pick a look (one tile per theme in css/themes.css), choose Full / Lite effects,
-   and mix the Codle theme: accent, backdrop, scene, glass, corners, grain. */
+   and mix the Codle theme: dark or light, accent, backdrop, scene, glass, corners, grain. */
 .th-fx .pf-row { padding: 0; }
 .th-seg { display: inline-flex; flex: none; padding: 3px; border-radius: 10px; background: var(--well); box-shadow: inset 0 0 0 1px rgba(var(--fg-rgb),.06); }
 .th-seg button {
@@ -804,7 +804,7 @@ html.lite .cy-opt.is-on .cy-art svg { animation: none; }
 .th-tile-text small { display: block; margin-top: 3px; font-size: 12.5px; line-height: 1.4; color: var(--ink-dim); }
 .th-tile-text .pf-chip { font-size: 10.5px; padding: 2px 7px; }
 
-/* a miniature page: backdrop with its glow, a bar, a card and the accent */
+/* a miniature page in the theme's own material: backdrop, a bar, a card, the accent and a sample of its type */
 .th-pre {
   position: relative; display: block; height: 86px; border-radius: 10px; overflow: hidden;
   background:
@@ -812,23 +812,52 @@ html.lite .cy-opt.is-on .cy-art svg { animation: none; }
     radial-gradient(60% 50% at 10% 0%, color-mix(in srgb, var(--t-accent) 35%, transparent), transparent 70%),
     var(--t-bg);
   box-shadow: inset 0 0 0 1px rgba(var(--t-fg),.1);
+  color: rgb(var(--t-fg));
 }
 .th-pre::before { content: ""; position: absolute; inset: 0; }
 .th-pre i { position: absolute; display: block; border-radius: 6px; }
 .th-pre-bar { left: 10px; right: 10px; top: 9px; height: 12px; background: rgba(var(--t-fg),.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.25); }
 .th-pre-card { left: 10px; top: 29px; bottom: 10px; width: 58%; background: rgba(var(--t-fg),.10); box-shadow: inset 0 0 0 1px rgba(var(--t-fg),.12); }
 .th-pre-dot { right: 14px; bottom: 14px; width: 22px; height: 22px; border-radius: 50%; background: var(--t-accent); box-shadow: 0 0 14px color-mix(in srgb, var(--t-accent) 70%, transparent); }
+.th-pre-type { left: 20px; top: 36px; font-size: 22px; font-weight: 700; line-height: 1; letter-spacing: -.02em; font-style: normal; }
 .th-tile.is-light .th-pre-bar { background: rgba(255,255,255,.85); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .th-tile.is-light .th-pre-card { background: rgba(255,255,255,.72); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-.th-pre--overworld i, .th-pre--nightcity i { border-radius: 2px; }
-.th-pre--overworld::before { background: linear-gradient(rgba(255,255,255,.05) 2px, transparent 2px) 0 0 / 14px 14px, linear-gradient(90deg, rgba(255,255,255,.05) 2px, transparent 2px) 0 0 / 14px 14px; }
-.th-pre--nightcity::before { background: repeating-linear-gradient(0deg, rgba(0,0,0,.25) 0 1px, transparent 1px 3px); }
-.th-pre--nightcity .th-pre-bar { box-shadow: inset 0 0 0 1px rgba(0,240,255,.6); }
-.th-pre--aperture::before { background: linear-gradient(rgba(23,26,32,.06) 1px, transparent 1px) 0 0 / 16px 16px, linear-gradient(90deg, rgba(23,26,32,.06) 1px, transparent 1px) 0 0 / 16px 16px; }
+/* Notebook: ruled lines, a red margin, a serif, a highlighter on the bar */
+.th-pre--notebook { background: repeating-linear-gradient(180deg, transparent 0 9px, rgba(80,120,200,.25) 9px 10px), #f5efe3; }
+.th-pre--notebook::before { left: 16px; width: 1px; background: rgba(214,69,47,.5); }
+.th-pre--notebook i { border-radius: 2px; }
+.th-pre--notebook .th-pre-bar { background: #fff2a0; box-shadow: none; left: 24px; width: 40%; right: auto; transform: skewX(-6deg); }
+.th-pre--notebook .th-pre-card { left: 24px; background: #fffdf8; box-shadow: 0 0 0 1px rgba(42,39,35,.2), 2px 2px 0 rgba(42,39,35,.1); }
+.th-pre--notebook .th-pre-type { left: 32px; font-family: "Iowan Old Style", "Palatino Linotype", Georgia, serif; }
+.th-pre--notebook .th-pre-dot { border-radius: 50%; box-shadow: none; }
+/* Overworld: dirt, bevelled stone, pixel type */
+.th-pre--overworld { background: #1b140d; }
+.th-pre--overworld::before { background: linear-gradient(rgba(255,255,255,.04) 2px, transparent 2px) 0 0 / 8px 8px, linear-gradient(90deg, rgba(255,255,255,.04) 2px, transparent 2px) 0 0 / 8px 8px, linear-gradient(0deg, #5a9a37 0 8px, transparent 8px); }
+.th-pre--overworld i { border-radius: 0; }
+.th-pre--overworld .th-pre-bar { background: #2f2f2f; box-shadow: inset 1px 1px 0 rgba(255,255,255,.25), inset -1px -1px 0 rgba(0,0,0,.6), 0 0 0 1px #000; }
+.th-pre--overworld .th-pre-card { background: #3c3c3c; box-shadow: inset 1px 1px 0 rgba(255,255,255,.22), inset -1px -1px 0 rgba(0,0,0,.6), 0 0 0 1px #000, 2px 2px 0 rgba(0,0,0,.5); }
+.th-pre--overworld .th-pre-dot { box-shadow: 0 0 0 1px #000, 2px 2px 0 rgba(0,0,0,.5); background: #55c43a; }
+.th-pre--overworld .th-pre-type { font-family: "Pixelify Sans", monospace; text-shadow: 2px 2px 0 rgba(0,0,0,.7); }
+/* Dust: brackets, a skewed orange plate, a segmented bar, a radar */
+.th-pre--dust { background: linear-gradient(180deg, #14171c 55%, #231f18), #14171c; }
+.th-pre--dust::before { background: linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px) 0 0 / 10px 10px, linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px) 0 0 / 10px 10px, radial-gradient(circle at 84% 30%, transparent 0 7px, rgba(93,139,209,.45) 7px 8px, transparent 8px 14px, rgba(93,139,209,.45) 14px 15px, transparent 15px); }
+.th-pre--dust i { border-radius: 2px; }
+.th-pre--dust .th-pre-bar { background: #e6a23c; left: 12px; width: 30%; right: auto; transform: skewX(-14deg); box-shadow: none; }
+.th-pre--dust .th-pre-card { background: rgba(28,33,42,.9); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.th-pre--dust .th-pre-card::before, .th-pre--dust .th-pre-card::after { content: ""; position: absolute; width: 10px; height: 10px; }
+.th-pre--dust .th-pre-card::before { left: 0; top: 0; border-left: 2px solid #e6a23c; border-top: 2px solid #e6a23c; }
+.th-pre--dust .th-pre-card::after { right: 0; bottom: 0; border-right: 2px solid #e6a23c; border-bottom: 2px solid #e6a23c; }
+.th-pre--dust .th-pre-dot { border-radius: 0; width: 44px; height: 6px; bottom: 16px; background: #e6a23c; box-shadow: none; -webkit-mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px); mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px); }
+.th-pre--dust .th-pre-type { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; text-transform: uppercase; letter-spacing: .04em; }
+/* Hallownest: spores, a double rim, a diamond, a serif */
+.th-pre--hallownest { background: radial-gradient(70% 60% at 50% 120%, rgba(70,100,170,.5), transparent 70%), #090d18; }
 .th-pre--hallownest::before { background: radial-gradient(1.5px 1.5px at 20% 30%, rgba(200,220,255,.8), transparent), radial-gradient(1.5px 1.5px at 70% 20%, rgba(200,220,255,.6), transparent), radial-gradient(2px 2px at 85% 60%, rgba(200,220,255,.7), transparent), radial-gradient(1.5px 1.5px at 40% 75%, rgba(200,220,255,.5), transparent); }
-.th-pre--outrun { background: radial-gradient(60% 40% at 50% 60%, rgba(255,120,60,.7), rgba(255,60,166,.4) 45%, transparent 75%), linear-gradient(180deg, #120826, #2b0f4e 60%, #120826); }
-.th-pre--outrun::before { inset: auto -30% 0; height: 45%; background: linear-gradient(rgba(255,60,166,.5) 1px, transparent 1px) 0 0 / 100% 9px, linear-gradient(90deg, rgba(255,60,166,.5) 1px, transparent 1px) 0 0 / 14px 100%; transform: perspective(120px) rotateX(55deg); transform-origin: 50% 0; }
-.th-pre--hyrule::before { background: repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 1px, transparent 1px 9px), repeating-linear-gradient(-45deg, rgba(255,255,255,.04) 0 1px, transparent 1px 9px); }
+.th-pre--hallownest i { border-radius: 8px; }
+.th-pre--hallownest .th-pre-bar { background: transparent; box-shadow: inset 0 0 0 1px rgba(214,226,255,.5); }
+.th-pre--hallownest .th-pre-card { background: rgba(214,226,255,.06); box-shadow: inset 0 0 0 1px rgba(214,226,255,.45), inset 0 0 0 4px #0b1020, inset 0 0 0 5px rgba(214,226,255,.18); }
+.th-pre--hallownest .th-pre-card::before { content: ""; position: absolute; left: calc(50% - 3px); top: -1px; width: 6px; height: 6px; transform: rotate(45deg); background: #dfe7ff; }
+.th-pre--hallownest .th-pre-dot { box-shadow: 0 0 0 3px rgba(214,226,255,.08), 0 0 0 4px rgba(214,226,255,.4), 0 0 16px rgba(159,184,234,.6); }
+.th-pre--hallownest .th-pre-type { left: 24px; top: 40px; font-family: "Cinzel", "Trajan Pro", Georgia, serif; }
 
 /* the Codle mix */
 .th-card { margin-bottom: 12px; }
@@ -841,6 +870,7 @@ html.lite .cy-opt.is-on .cy-art svg { animation: none; }
   -webkit-mask: radial-gradient(circle, transparent 69%, #000 71%); mask: radial-gradient(circle, transparent 69%, #000 71%);
 }
 .th-seg-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.th-seg-grid:has(input[name="th-mode"]) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .th-opt { gap: 4px; }
 .th-opt-sub { font-size: 11.5px; line-height: 1.3; color: var(--ink-dim); }
 .th-scene { display: block; width: 100%; height: 46px; margin-bottom: 4px; border-radius: 8px; background: var(--bg); box-shadow: inset 0 0 0 1px rgba(var(--fg-rgb),.1); }

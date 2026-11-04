@@ -71,8 +71,13 @@
     if (xpRing) {
       var ratio = Math.min(1, user.dailyGoal ? user.xpToday / user.dailyGoal : 0);
       var offset = XP_RING_CIRCUMFERENCE * (1 - ratio);
+      var xpWrap = xpRing.closest(".xp-ring-wrap");
       // Let the first paint happen at "empty" so the ring animates in.
-      requestAnimationFrame(function () { xpRing.setAttribute("stroke-dashoffset", offset); });
+      // --pct is the same value for themes that draw the ring as a frame (css/themes.css).
+      requestAnimationFrame(function () {
+        xpRing.setAttribute("stroke-dashoffset", offset);
+        if (xpWrap) xpWrap.style.setProperty("--pct", ratio);
+      });
     }
 
     // Level: number, XP left to the next level, and the ring around the avatar
@@ -84,7 +89,11 @@
       var levelRing = $("ui-level-ring");
       if (levelRing && needed) {
         var levelOffset = LEVEL_RING_CIRCUMFERENCE * (1 - earned / needed);
-        requestAnimationFrame(function () { levelRing.style.strokeDashoffset = levelOffset; });
+        var levelWrap = levelRing.closest(".profile-avatar-wrapper");
+        requestAnimationFrame(function () {
+          levelRing.style.strokeDashoffset = levelOffset;
+          if (levelWrap) levelWrap.style.setProperty("--pct", earned / needed);
+        });
       }
     }
 
@@ -180,8 +189,10 @@
     var fill = activeCourseView().querySelector(".milestone.current .progress-ring .fill");
     if (fill) {
       var pct = progress.currentMilestoneProgress || 0;
+      var ringBox = fill.closest(".progress-ring");
       requestAnimationFrame(function () {
         fill.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct / 100);
+        if (ringBox) ringBox.style.setProperty("--pct", pct / 100);
       });
     }
   }
@@ -935,6 +946,17 @@
 
   var desktopNav = makeIndicator("navbar-tabs", "navbar-tab-indicator", "navbar-tab-indicator-fill", ".navbar-tab", 4);
   var mobileNav = makeIndicator("mobile-tabs", "mobile-tab-indicator", "mobile-tab-indicator-fill", ".bottom-nav-item", 0);
+
+  // A theme brings its own type and tab padding, so the tabs change width: measure the
+  // indicator again when the theme changes and again once its web font has arrived.
+  function refreshNavIndicators() {
+    requestAnimationFrame(function () {
+      if (desktopNav) desktopNav.refresh();
+      if (mobileNav) mobileNav.refresh();
+    });
+  }
+  if (window.CodleTheme) window.CodleTheme.onChange(refreshNavIndicators);
+  if (document.fonts && document.fonts.addEventListener) document.fonts.addEventListener("loadingdone", refreshNavIndicators);
 
   var isSwitching = false;
 

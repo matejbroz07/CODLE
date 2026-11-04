@@ -2,29 +2,144 @@
    Codle — Themes
    (loads right after base.css, on every page)
 
-   js/theme.js puts the chosen theme on <html data-theme="…">. A theme is
-   nothing but a different set of the tokens from base.css, a scene painted
-   on .bg::before, and two looks that follow js/perf.js:
+   js/theme.js puts the chosen theme on <html data-theme="…"> and, for the
+   dark-on-light ones, <html data-light>. A theme is more than a palette:
+   it swaps the tokens from base.css, repaints the scene on .bg::before,
+   rebuilds the glass surfaces, pills, buttons and path nodes in its own
+   material and, when it has one, brings its own typeface (--font-display,
+   --font-body; js/theme.js loads the font). Every theme has two looks
+   that follow js/perf.js:
      full  — glass, blur, the scene moving (html:not(.lite))
      lite  — the same colours on opaque surfaces, nothing animated (html.lite;
              the --lite-* tokens are what the LITE block in base.css uses)
 
-   The Codle theme is the one you can mix yourself (Profile → Theme): its
-   accent, backdrop, glass, corners, grain and scene come as inline tokens and
-   data-scene / data-grain attributes from js/theme.js.
+   Themes, top to bottom:
+     codle       the default, dark or light, mixed in Profile → Theme
+     notebook    light: cream paper, ruled lines, ink, a highlighter
+     overworld   dirt, stone, bevelled blocks, pixel type
+     dust        tactical HUD: charcoal, sand orange, radar, brackets
+     hallownest  ink-blue caverns, serif, pale ornament
+
+   Decorations that are not part of the scene (a grass strip, a radar, a
+   margin line) sit on body::before / body::after: fixed, z-index -1, so they
+   are above .bg (-2) and under the page.
+
+   The three progress rings (daily XP, the level ring around the avatar, the
+   ring on the current lesson) are SVG circles; js/app.js also writes the same
+   value as --pct on their wrapper, so a theme with square nodes can hide the
+   circle and draw the progress as a frame instead (see Overworld, Dust).
    ============================================= */
+
+/* ===== TYPE =====
+   The elements that take a theme's display face. Specificity (0,2,1) beats a
+   page's own `font: inherit` on buttons, so a theme's type shows everywhere. */
+html[data-theme] :is(h1, h2, h3, h4,
+  .navbar-tab, .bottom-nav-item, .course-dropdown, .course-chip,
+  .stat-value, .stat-header span, .streak-count, .streak-label,
+  .milestone-label, .milestone-start-btn, .tip-title, .path-section-header h3,
+  .profile-username, .profile-level-title, .empty-view-title,
+  .wordle-btn, .ed-btn, .status-btn, .status-code, .game-back, .game-title, .game-pill, .pf-chip,
+  .pf-card h3, .pf-section h3, .th-seg button, .sheet-card h3, .sheet-row-body b,
+  .qz-title, .qz-crumb, .qz-btn, .auth-toggle-btn, .btn-primary, .btn-social, .auth-title, .reg-title,
+  .ed-quest-title, .ed-section-label, .lb-name) { font-family: var(--font-display); }
 
 /* ===== SCENE MOTION (full mode only — base.css stops it in lite) ===== */
 @keyframes scene-float { from { transform: translate3d(-2.5%, -2%, 0); } to { transform: translate3d(2.5%, 2%, 0); } }
 @keyframes scene-rise { from { transform: translate3d(0, 3%, 0); } to { transform: translate3d(0, -3%, 0); } }
 @keyframes scene-twinkle { from { opacity: .7; } to { opacity: 1; } }
 @keyframes scene-breathe { from { opacity: .78; } to { opacity: 1; } }
-@keyframes scene-grid { from { background-position: 0 0, 0 0; } to { background-position: 0 48px, 0 0; } }
-@keyframes scene-blocks { from { transform: translate3d(0, 1.2%, 0); } to { transform: translate3d(0, -1.2%, 0); } }
+@keyframes scene-spin { to { transform: rotate(360deg); } }
+
+/* ===== TYPE =====
+   The elements that take a theme's display face. Specificity (0,2,1) beats a
+   page's own `font: inherit` on buttons, so a theme's type shows everywhere. */
+html[data-theme] :is(h1, h2, h3, h4,
+  .navbar-tab, .bottom-nav-item, .course-dropdown, .course-chip,
+  .stat-value, .stat-header span, .streak-count, .streak-label,
+  .milestone-label, .milestone-start-btn, .tip-title, .path-section-header h3,
+  .profile-username, .profile-level-title, .empty-view-title,
+  .wordle-btn, .ed-btn, .status-btn, .status-code, .game-back, .game-title, .game-pill, .pf-chip,
+  .pf-card h3, .pf-section h3, .th-seg button, .sheet-card h3, .sheet-row-body b,
+  .qz-title, .qz-crumb, .qz-btn, .auth-toggle-btn, .btn-primary, .btn-social, .auth-title, .reg-title,
+  .ed-quest-title, .ed-section-label, .lb-name) { font-family: var(--font-display); }
+
+/* ===== SCENE MOTION (full mode only — base.css stops it in lite) ===== */
+@keyframes scene-float { from { transform: translate3d(-2.5%, -2%, 0); } to { transform: translate3d(2.5%, 2%, 0); } }
+@keyframes scene-rise { from { transform: translate3d(0, 3%, 0); } to { transform: translate3d(0, -3%, 0); } }
+@keyframes scene-twinkle { from { opacity: .7; } to { opacity: 1; } }
+@keyframes scene-breathe { from { opacity: .78; } to { opacity: 1; } }
+@keyframes scene-spin { to { transform: rotate(360deg); } }
+@keyframes nc-flicker { 0%, 100% { opacity: 1; } 92% { opacity: 1; } 93% { opacity: .55; } 94% { opacity: 1; } 97% { opacity: .7; } 98% { opacity: 1; } }
+@keyframes nc-glitch {
+  0% { transform: translate(0); }
+  25% { transform: translate(-2px, 1px) skewX(-6deg); }
+  50% { transform: translate(2px, -1px) skewX(4deg); }
+  75% { transform: translate(-1px, 0); }
+  100% { transform: translate(0); }
+}
 
 /* =============================================
-   CODLE (default) — the scenes it can choose from
+   LIGHT THEMES — what every dark-on-light theme shares
+   (<html data-light>: Notebook, Codle in light mode)
    ============================================= */
+html[data-light] {
+  color-scheme: light;
+  --fg-rgb: 23,26,32;
+  --ink-strong: #0a0c10;
+  --btn-solid: #171a20;
+  --btn-solid-ink: #fff;
+  --well: rgba(23,26,32,.07);
+  --lg-rim: rgba(255,255,255,.95);
+  --lg-shadow: 0 20px 40px -22px rgba(30,40,60,.35), 0 1px 3px rgba(0,0,0,.08);
+  --lg-sheen: rgba(255,255,255,.6);
+  --lg-sheen-edge: rgba(255,255,255,.9);
+  --pill-bg: linear-gradient(180deg, #ffffff, #f2f4f7);
+  --pill-shadow: inset 0 1px 0 #fff, inset 0 0 0 1px rgba(23,26,32,.08), 0 6px 14px -8px rgba(0,0,0,.25);
+  --lite-rim: rgba(23,26,32,.1);
+}
+/* light glass is white, not a dark tint */
+html[data-light]:not(.lite) .liquid-glass {
+  background: linear-gradient(145deg, rgba(255,255,255,.74), rgba(255,255,255,.5) 40%, rgba(255,255,255,.62));
+}
+html[data-light]:not(.lite) .liquid-glass--bar {
+  background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(255,255,255,.66) 45%, rgba(255,255,255,.78));
+}
+html[data-light]:not(.lite) .liquid-glass::after {
+  box-shadow: inset 0 1px 0 var(--lg-sheen-edge), inset 0 12px 28px -16px rgba(255,255,255,.6), inset 0 -14px 28px -18px rgba(20,30,50,.12);
+}
+html[data-light] .bg::after { opacity: .6; }
+/* the logo is a light-on-dark picture */
+html[data-light] .brand img, html[data-light] .auth-logo img { filter: invert(.92) hue-rotate(180deg); }
+/* labels glow light, not dark, on a light page */
+html[data-light] .milestone-label { text-shadow: 0 1px 0 rgba(255,255,255,.9), 0 0 10px rgba(255,255,255,.9); }
+html[data-light] .navbar-tab[aria-selected="true"] { text-shadow: none; }
+html[data-light] .navbar-tabs { box-shadow: inset 0 1px 2px rgba(0,0,0,.08), inset 0 0 0 1px rgba(23,26,32,.05); }
+html.lite[data-light] .liquid-glass { box-shadow: 0 10px 22px -16px rgba(30,40,60,.4), 0 1px 2px rgba(0,0,0,.06); }
+html.lite[data-light] .liquid-glass::after { box-shadow: inset 0 1px 0 #fff; }
+html.lite[data-light] .glass-pill { background: #fff; box-shadow: inset 0 0 0 1px rgba(23,26,32,.08), 0 2px 6px -2px rgba(0,0,0,.2); }
+/* every other theme paints its selected tab itself (a yellow plate, a highlighter, a ring…): lite keeps that */
+html.lite[data-theme]:not([data-theme="codle"]) .glass-pill { background: var(--pill-bg); box-shadow: var(--pill-shadow); }
+
+/* =============================================
+   CODLE (default) — dark by default, light on request, and its scenes
+   ============================================= */
+html[data-theme="codle"][data-mode="light"] {
+  --bg: #f2f4f7;
+  --ink: #171a20;
+  --ink-dim: rgba(23,26,32,.64);
+  --ink-faint: rgba(23,26,32,.42);
+  --gold: #b07900;            /* dark enough to read as text on the light backdrop */
+  --green: #1f9d4f;
+  --coral: #d9342b;
+  --panel: #ffffff;
+  --panel-2: #dfe3e9;
+  --lite-surface: linear-gradient(145deg, #fbfcfd, #f1f3f6);
+  --lite-bar: linear-gradient(145deg, #ffffff, #f4f6f9);
+  --lite-panel: #f6f7f9;
+  --lite-panel-deep: #e9ecf0;
+  --lite-panel-locked: #eef0f3;
+}
+
 html[data-scene="aurora"] {
   --scene:
     radial-gradient(60% 50% at 18% 22%, rgba(var(--accent-rgb),.28), transparent 70%),
@@ -35,16 +150,18 @@ html[data-scene="aurora"] {
 html[data-scene="aurora"] .bg::before { inset: -8%; animation: scene-float 38s ease-in-out infinite alternate; }
 
 html[data-scene="stars"] {
+  --star: 255,255,255;
   --scene:
-    radial-gradient(1.6px 1.6px at 22px 34px, rgba(255,255,255,.95), transparent 100%),
-    radial-gradient(1px 1px at 130px 96px, rgba(255,255,255,.7), transparent 100%),
-    radial-gradient(1.4px 1.4px at 210px 170px, rgba(255,255,255,.85), transparent 100%),
-    radial-gradient(1px 1px at 300px 44px, rgba(255,255,255,.6), transparent 100%),
-    radial-gradient(1.8px 1.8px at 70px 230px, rgba(255,255,255,.8), transparent 100%),
-    radial-gradient(1px 1px at 260px 250px, rgba(255,255,255,.55), transparent 100%),
+    radial-gradient(1.6px 1.6px at 22px 34px, rgba(var(--star),.95), transparent 100%),
+    radial-gradient(1px 1px at 130px 96px, rgba(var(--star),.7), transparent 100%),
+    radial-gradient(1.4px 1.4px at 210px 170px, rgba(var(--star),.85), transparent 100%),
+    radial-gradient(1px 1px at 300px 44px, rgba(var(--star),.6), transparent 100%),
+    radial-gradient(1.8px 1.8px at 70px 230px, rgba(var(--star),.8), transparent 100%),
+    radial-gradient(1px 1px at 260px 250px, rgba(var(--star),.55), transparent 100%),
     radial-gradient(60% 50% at 50% 110%, rgba(var(--accent-rgb),.18), transparent 70%);
   --scene-size: 340px 280px, 340px 280px, 340px 280px, 340px 280px, 340px 280px, 340px 280px, 100% 100%;
 }
+html[data-light][data-scene="stars"] { --star: 23,26,32; }   /* ink dots on a light page */
 html[data-scene="stars"] .bg::before { animation: scene-twinkle 5s ease-in-out infinite alternate; }
 
 html[data-scene="grid"] {
@@ -57,298 +174,470 @@ html[data-scene="grid"] {
 html[data-scene="grid"] .bg::before { animation: scene-breathe 7s ease-in-out infinite alternate; }
 
 /* =============================================
-   OVERWORLD — blocks, moss and torchlight
+   NOTEBOOK — cream paper, ruled lines, a red margin, ink and a highlighter
+   ============================================= */
+html[data-theme="notebook"] {
+  --font-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
+  --bg: #f5efe3;
+  --ink: #2a2723;
+  --ink-dim: rgba(42,39,35,.66);
+  --ink-faint: rgba(42,39,35,.44);
+  --ink-strong: #15130f;
+  --fg-rgb: 42,39,35;
+  --accent: #2456d6;
+  --accent-rgb: 36,86,214;
+  --accent-ink: #fff;
+  --accent-3: #d6452f;
+  --green: #2f8f52;
+  --gold: #a3690a;
+  --coral: #d6452f;
+  --panel: #fffdf8;
+  --panel-2: #e6dfd1;
+  --btn-solid: #2a2723;
+  --btn-solid-ink: #fffdf8;
+  --well: rgba(42,39,35,.06);
+  --lg-radius: 6px;
+  --lg-radius-sm: 4px;
+  --lg-radius-pill: 6px;
+  --lg-blur: 0px;
+  --lg-sat: 100%;
+  --lg-shadow: 0 0 0 1px rgba(42,39,35,.18), 3px 3px 0 rgba(42,39,35,.10);
+  --lg-sheen: transparent;
+  --lg-sheen-edge: transparent;
+  --pill-bg: #fff2a0;                         /* the highlighter */
+  --pill-shadow: none;
+  --lite-surface: #fffdf8;
+  --lite-bar: #fffdf8;
+  --lite-panel: #fbf8f1;
+  --lite-panel-deep: #f1ece2;
+  --lite-panel-locked: #efeadf;
+  --lite-rim: rgba(42,39,35,.18);
+  --scene: repeating-linear-gradient(180deg, transparent 0 27px, rgba(80,120,200,.2) 27px 28px);
+}
+/* paper, not glass: flat sheets stacked a little off */
+html[data-theme="notebook"][data-light] .liquid-glass, html[data-theme="notebook"][data-light] .liquid-glass--bar {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background: #fffdf8;
+  box-shadow: var(--lg-shadow);
+}
+html[data-theme="notebook"][data-light] .liquid-glass::before, html[data-theme="notebook"][data-light] .liquid-glass::after { display: none; }
+html[data-theme="notebook"] .game-card:hover { transform: translate(-1px, -1px); box-shadow: 0 0 0 1px rgba(42,39,35,.22), 5px 5px 0 rgba(42,39,35,.12); }
+/* the red margin line of a ruled page */
+html[data-theme="notebook"] body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 72px;
+  z-index: -1;
+  width: 2px;
+  background: rgba(214,69,47,.4);
+  pointer-events: none;
+}
+/* the selected tab is a swipe of highlighter: slightly askew, square-ish */
+html[data-theme="notebook"] .navbar-tab-indicator-fill, html[data-theme="notebook"] .mobile-tab-indicator-fill { border-radius: 4px; transform: skewX(-6deg) rotate(-.6deg); }
+html[data-theme="notebook"] .navbar-tab-indicator-fill.squash, html[data-theme="notebook"] .mobile-tab-indicator-fill.squash { animation: none; }
+html[data-theme="notebook"] .navbar-tab[aria-selected="true"], html[data-theme="notebook"] .bottom-nav-item[aria-selected="true"] { color: #15130f; text-shadow: none; }
+html[data-theme="notebook"] .navbar-tabs { background: transparent; box-shadow: none; }
+/* ink-outlined buttons, a filled one for the main action */
+html[data-theme="notebook"] :is(.wordle-btn, .ed-btn, .milestone-start-btn, .status-btn, .game-back, .qz-btn, .btn-primary) { border-radius: 6px; letter-spacing: .01em; }
+html[data-theme="notebook"] :is(.ed-btn.ghost, .wordle-btn.ghost, .status-btn:not(.primary), .game-back) {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1.5px rgba(42,39,35,.7);
+}
+html[data-theme="notebook"] :is(.ed-btn.ghost, .wordle-btn.ghost, .status-btn:not(.primary), .game-back):hover { background: rgba(42,39,35,.06); color: var(--ink-strong); }
+html[data-theme="notebook"] :is(.ed-btn.primary, .status-btn.primary) { box-shadow: 3px 3px 0 rgba(42,39,35,.18); }
+html[data-theme="notebook"] h1, html[data-theme="notebook"] h2 { letter-spacing: 0; font-weight: 600; }
+/* path nodes are drawn in ink */
+html[data-theme="notebook"] .milestone-circle { background: #fffdf8; box-shadow: 0 0 0 1.5px rgba(42,39,35,.6), 3px 3px 0 rgba(42,39,35,.1); }
+html[data-theme="notebook"] .milestone.completed .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 14%, #fffdf8); }
+html[data-theme="notebook"] .milestone.current .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 22%, #fffdf8); box-shadow: 0 0 0 2.5px var(--chapter-accent), 3px 3px 0 rgba(42,39,35,.12); }
+html[data-theme="notebook"] .milestone.locked .milestone-circle { filter: none; background: #f1ece2; box-shadow: 0 0 0 1.5px rgba(42,39,35,.25); }
+html[data-theme="notebook"] .milestone:hover .milestone-circle { box-shadow: 0 0 0 1.5px rgba(42,39,35,.6), 5px 5px 0 rgba(42,39,35,.12); }
+html[data-theme="notebook"] .milestone-label { text-shadow: none; }
+html[data-theme="notebook"] .stat-bar-track, html[data-theme="notebook"] .qz-progress-track { border-radius: 2px; background: #fff; box-shadow: inset 0 0 0 1px rgba(42,39,35,.35); }
+html[data-theme="notebook"] .stat-bar-fill, html[data-theme="notebook"] .qz-progress-fill { border-radius: 1px; }
+html[data-theme="notebook"] .leaderboard-item + .leaderboard-item { border-top: 1px dashed rgba(42,39,35,.2); }
+html[data-theme="notebook"] .sheet-card { background: #fffdf8; }
+@media (max-width: 768px) { html[data-theme="notebook"] body::before { left: 22px; } }
+
+/* =============================================
+   OVERWORLD — dirt, stone and bevelled blocks; pixel type with a hard shadow
    ============================================= */
 html[data-theme="overworld"] {
-  --bg: #141c12;
-  --ink: #eef4e6;
-  --ink-dim: rgba(238,244,230,.64);
-  --ink-faint: rgba(238,244,230,.4);
-  --accent: #5fbf47;
-  --accent-rgb: 95,191,71;
+  --font-display: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
+  --bg: #1b140d;
+  --ink: #f2f2f2;
+  --ink-dim: rgba(242,242,242,.7);
+  --ink-faint: rgba(242,242,242,.45);
+  --ink-strong: #fff;
+  --accent: #55c43a;
+  --accent-rgb: 85,196,58;
   --accent-ink: #0b1a08;
   --accent-3: #d79a3b;
   --green: #7ed957;
-  --gold: #f1c84b;
+  --gold: #ffd83d;
   --coral: #e0493f;
-  --panel: #243020;
-  --panel-2: #3b4a35;
-  --lg-radius: 10px;
-  --lg-radius-sm: 6px;
-  --lg-radius-pill: 10px;
-  --lg-blur: 14px;
-  --lg-sat: 130%;
-  --lg-rim: rgba(190,230,170,.55);
-  --lg-shadow: 0 6px 0 -2px rgba(0,0,0,.35), 0 22px 40px -20px rgba(0,0,0,.7);
-  --lite-surface: linear-gradient(145deg, #2a3626, #202a1d);
-  --lite-bar: linear-gradient(145deg, #33412e, #262f23);
-  --lite-panel: #263122;
-  --lite-panel-deep: #1c251a;
-  --lite-panel-locked: #1f271c;
-  --scene:
-    linear-gradient(rgba(var(--fg-rgb),.045) 2px, transparent 2px),
-    linear-gradient(90deg, rgba(var(--fg-rgb),.045) 2px, transparent 2px),
-    linear-gradient(rgba(95,191,71,.16), rgba(95,191,71,.16)),
-    linear-gradient(rgba(215,154,59,.18), rgba(215,154,59,.18)),
-    linear-gradient(rgba(95,191,71,.11), rgba(95,191,71,.11)),
-    linear-gradient(rgba(120,160,220,.13), rgba(120,160,220,.13)),
-    linear-gradient(rgba(215,154,59,.10), rgba(215,154,59,.10)),
-    linear-gradient(180deg, rgba(120,170,230,.10), transparent 40%, rgba(95,191,71,.16) 100%);
-  --scene-size: 48px 48px, 48px 48px, 96px 96px, 48px 48px, 144px 48px, 48px 96px, 96px 48px, 100% 100%;
-  --scene-position: 0 0, 0 0, 8% 22%, 72% 14%, 84% 68%, 18% 78%, 46% 88%, 0 0;
-  --scene-repeat: repeat, repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
+  --panel: #3b3b3b;
+  --panel-2: #5a5a5a;
+  --btn-solid: #d6d6d6;
+  --btn-solid-ink: #1b1b1b;
+  --well: rgba(0,0,0,.45);
+  --lg-radius: 0;
+  --lg-radius-sm: 0;
+  --lg-radius-pill: 0;
+  --lg-blur: 0px;
+  --lg-sat: 100%;
+  --lg-shadow: 4px 4px 0 rgba(0,0,0,.5);
+  --lg-sheen: transparent;
+  --lg-sheen-edge: transparent;
+  --pill-bg: transparent;                      /* the hotbar selector: a white frame */
+  --pill-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.6);
+  --lite-surface: #3c3c3c;
+  --lite-bar: #2f2f2f;
+  --lite-panel: #3c3c3c;
+  --lite-panel-deep: #2a2a2a;
+  --lite-panel-locked: #2e2e2e;
+  --lite-rim: #000;
+  /* an 8×8 dirt texture, 8px per texel */
+  --scene: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%233b2a1a'/%3E%3Cpath fill='%23473321' d='M0 0h1v1H0zM5 0h1v1H5zM3 1h1v1H3zM7 2h1v1H7zM1 3h1v1H1zM2 4h1v1H2zM6 5h1v1H6zM0 6h1v1H0zM5 7h1v1H5zM4 2h1v1H4z'/%3E%3Cpath fill='%232f2114' d='M2 0h1v1H2zM1 1h1v1H1zM6 1h1v1H6zM3 3h1v1H3zM0 4h1v1H0zM7 4h1v1H7zM5 5h1v1H5zM2 6h1v1H2zM1 7h1v1H1zM6 7h1v1H6z'/%3E%3Cpath fill='%234a3622' d='M7 0h1v1H7zM0 2h1v1H0zM6 3h1v1H6zM4 4h1v1H4zM3 5h1v1H3zM7 6h1v1H7zM4 7h1v1H4z'/%3E%3Cpath fill='%23352616' d='M4 0h1v1H4zM2 2h1v1H2zM5 3h1v1H5zM1 5h1v1H1zM4 6h1v1H4zM3 7h1v1H3z'/%3E%3C/svg%3E");
+  --scene-size: 64px 64px;
+  --scene-opacity: .9;
 }
-html[data-theme="overworld"] .bg::before { inset: -4%; animation: scene-blocks 9s ease-in-out infinite alternate; }
-html[data-theme="overworld"] .liquid-glass::before { padding: 2px; }         /* chunky rim */
-html[data-theme="overworld"] .liquid-glass--bar::before { padding: 2px; }
-html.lite[data-theme="overworld"] .liquid-glass::before { box-shadow: inset 0 0 0 2px var(--lite-rim); }
+/* stone panels with a hard bevel, no glass at all */
+html[data-theme="overworld"] .liquid-glass {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect width='8' height='8' fill='%233c3c3c'/%3E%3Cpath fill='%23444' d='M1 0h1v1H1zM5 1h1v1H5zM3 2h1v1H3zM7 3h1v1H7zM0 4h1v1H0zM4 5h1v1H4zM2 6h1v1H2zM6 7h1v1H6z'/%3E%3Cpath fill='%23363636' d='M4 0h1v1H4zM0 1h1v1H0zM6 2h1v1H6zM2 3h1v1H2zM5 4h1v1H5zM1 5h1v1H1zM7 6h1v1H7zM3 7h1v1H3z'/%3E%3C/svg%3E") 0 0 / 48px 48px,
+    #3c3c3c;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.22), inset -2px -2px 0 rgba(0,0,0,.55), 0 0 0 2px #000, 4px 4px 0 rgba(0,0,0,.45);
+}
+html[data-theme="overworld"] .liquid-glass--bar { background: #2f2f2f; }
+html[data-theme="overworld"] .liquid-glass::before, html[data-theme="overworld"] .liquid-glass::after { display: none; }
+html[data-theme="overworld"] .game-card:hover { transform: translate(-2px, -2px); box-shadow: inset 2px 2px 0 rgba(255,255,255,.22), inset -2px -2px 0 rgba(0,0,0,.55), 0 0 0 2px #000, 6px 6px 0 rgba(0,0,0,.45); }
+html[data-theme="overworld"] .navbar-tabs { background: rgba(0,0,0,.5); box-shadow: inset 0 0 0 2px #0a0a0a; }
+html[data-theme="overworld"] .navbar-tab[aria-selected="true"], html[data-theme="overworld"] .bottom-nav-item[aria-selected="true"] { color: #ffffa0; }
+html[data-theme="overworld"] .navbar-tab-indicator-fill.squash, html[data-theme="overworld"] .mobile-tab-indicator-fill.squash { animation: none; }
+/* the grass line along the bottom of the world */
+html[data-theme="overworld"] body::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  height: 40px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 5' shape-rendering='crispEdges'%3E%3Crect width='8' height='5' fill='%233b2a1a'/%3E%3Crect width='8' height='2' fill='%235a9a37'/%3E%3Cpath fill='%236bb545' d='M1 0h1v1H1zM4 0h1v1H4zM6 1h1v1H6zM2 1h1v1H2z'/%3E%3Cpath fill='%234c852d' d='M3 1h1v1H3zM7 0h1v1H7z'/%3E%3Cpath fill='%235a9a37' d='M0 2h1v1H0zM1 2h1v1H1zM4 2h1v1H4zM5 2h1v1H5zM7 2h1v1H7zM1 3h1v1H1zM5 3h1v1H5z'/%3E%3C/svg%3E") 0 0 / 64px 40px repeat-x;
+  pointer-events: none;
+}
+/* text with the classic 2px shadow */
+html[data-theme="overworld"] :is(h1, h2, h3, .navbar-tab, .bottom-nav-item, .course-dropdown, .course-chip, .stat-value, .streak-count, .milestone-label, .milestone-start-btn, .game-title, .profile-username, .empty-view-title, .wordle-btn, .ed-btn, .status-btn, .qz-title, .sheet-row-body b, .game-back) {
+  text-shadow: 2px 2px 0 rgba(0,0,0,.6);
+  letter-spacing: 0;
+}
+html[data-theme="overworld"] :is(h1, h2, h3, .stat-value, .streak-count, .profile-username, .empty-view-title, .game-title) { font-weight: 600; }
+/* stone buttons: grey, hard-edged, yellow text when hovered */
+html[data-theme="overworld"] :is(.wordle-btn, .ed-btn, .milestone-start-btn, .status-btn, .game-back, .qz-btn, .btn-primary) {
+  border-radius: 0;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.35), inset -2px -2px 0 rgba(0,0,0,.45), 0 0 0 2px #000;
+}
+html[data-theme="overworld"] :is(.ed-btn.ghost, .wordle-btn.ghost, .status-btn:not(.primary), .game-back) {
+  background: linear-gradient(#8b8b8b, #6f6f6f);
+  color: #fff;
+}
+html[data-theme="overworld"] :is(.ed-btn.ghost, .wordle-btn.ghost, .status-btn:not(.primary), .game-back):hover {
+  background: linear-gradient(#8f9ad6, #6f7bc0);
+  color: #ffffa0;
+  box-shadow: inset 2px 2px 0 rgba(255,255,255,.4), inset -2px -2px 0 rgba(0,0,0,.45), 0 0 0 2px #fff;
+}
+html[data-theme="overworld"] .th-seg { border-radius: 0; box-shadow: inset 0 0 0 2px #000; }
+html[data-theme="overworld"] .th-seg button { border-radius: 0; }
+/* every round thing is a block: nodes, avatars, pills, icons */
+html[data-theme="overworld"] :is(.milestone-circle, .empty-view-icon, .nav-profile, .profile-avatar, .lb-avatar, .cx-avatar, .game-card-icon, .game-card-icon span, .sheet-row-mark, .pf-chip, .game-pill, .milestone-check, .qz-back, .qz-xp-pill, .ed-icon-btn, .icon-btn) { border-radius: 0; }
+html[data-theme="overworld"] .milestone-circle {
+  background: #4a4a4a;
+  box-shadow: inset 3px 3px 0 rgba(255,255,255,.22), inset -3px -3px 0 rgba(0,0,0,.5), 0 0 0 2px #000, 4px 4px 0 rgba(0,0,0,.45);
+}
+html[data-theme="overworld"] .milestone.completed .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 55%, #2a2a2a); }
+html[data-theme="overworld"] .milestone.current .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 72%, #2a2a2a); }
+html[data-theme="overworld"] .milestone.locked .milestone-circle { filter: none; background: #2a2a2a; }
+html[data-theme="overworld"] .milestone:hover .milestone-circle { transform: translate(-2px, -2px); box-shadow: inset 3px 3px 0 rgba(255,255,255,.22), inset -3px -3px 0 rgba(0,0,0,.5), 0 0 0 2px #000, 6px 6px 0 rgba(0,0,0,.45); }
+html[data-theme="overworld"] .milestone-check { box-shadow: 0 0 0 2px #000; }
+/* progress is the experience bar: black frame, dark track, green fill (no translucent rings — they vanish on dirt).
+   One bar under the avatar (level), one under the daily XP star, one under the lesson you are on. */
+html[data-theme="overworld"] :is(.progress-ring svg, .level-ring, .xp-ring-wrap > svg:first-child) { display: none; }
+html[data-theme="overworld"] .progress-ring, html[data-theme="overworld"] .profile-avatar-wrapper::before, html[data-theme="overworld"] .xp-ring-wrap::before {
+  border-radius: 0;
+  height: 10px;
+  background:
+    linear-gradient(#b8ff5c 0 2px, #7fff1f 2px calc(100% - 3px), #3f9a0a 0) 0 0 / calc(var(--pct, 0) * 100%) 100% no-repeat,
+    linear-gradient(#262626 0 2px, #111 2px calc(100% - 2px), #000 0);
+  box-shadow: 0 0 0 2px #000, inset 0 0 0 1px rgba(255,255,255,.06);
+}
+html[data-theme="overworld"] .progress-ring { inset: auto -4px -18px -4px; }
+html[data-theme="overworld"] .milestone.current .milestone-start-btn { margin-top: 26px; }
+html[data-theme="overworld"] .profile-avatar-wrapper::before, html[data-theme="overworld"] .xp-ring-wrap::before { content: ""; position: absolute; left: 2px; right: 2px; bottom: 2px; pointer-events: none; }
+html[data-theme="overworld"] .profile-avatar-wrapper { align-items: flex-start; }
+html[data-theme="overworld"] .profile-avatar { width: 66px; height: 66px; box-shadow: inset 2px 2px 0 rgba(255,255,255,.25), inset -2px -2px 0 rgba(0,0,0,.5), 0 0 0 2px #000; }
+html[data-theme="overworld"] .xp-ring-wrap .xp-ring-icon { top: 24px; width: 30px; height: 30px; }
+html[data-theme="overworld"] .nav-profile, html[data-theme="overworld"] .lb-avatar { box-shadow: inset 1px 1px 0 rgba(255,255,255,.25), inset -1px -1px 0 rgba(0,0,0,.5), 0 0 0 2px #000; }
+/* the experience bar */
+html[data-theme="overworld"] .stat-bar-track, html[data-theme="overworld"] .qz-progress-track { height: 10px; border-radius: 0; background: #000; box-shadow: 0 0 0 2px #000, inset 0 0 0 1px #2b2b2b; }
+html[data-theme="overworld"] .stat-bar-fill, html[data-theme="overworld"] .qz-progress-fill { border-radius: 0; background: linear-gradient(#b8ff5c 0 2px, #7fff1f 2px calc(100% - 3px), #3f9a0a 0); box-shadow: none; }
+html[data-theme="overworld"] .leaderboard-item.you-row { border-radius: 0; background: #3c3c3c; box-shadow: 0 0 0 2px #000, inset 2px 2px 0 rgba(255,255,255,.2), inset -2px -2px 0 rgba(0,0,0,.5); }
+html[data-theme="overworld"] #path-svg .trail-bg { stroke: #0e0a06; }
+html[data-theme="overworld"] .milestone.locked .milestone-label { color: rgba(242,242,242,.75); }
+html[data-theme="overworld"] .sheet-card { border-radius: 0; background: #3c3c3c; box-shadow: inset 2px 2px 0 rgba(255,255,255,.22), inset -2px -2px 0 rgba(0,0,0,.55), 0 0 0 2px #000; }
+html[data-theme="overworld"] .sheet-row, html[data-theme="overworld"] .sheet-handle { border-radius: 0; }
+html[data-theme="overworld"] ::-webkit-scrollbar-thumb { border-radius: 0; background: #8b8b8b; box-shadow: inset 1px 1px 0 #fff, inset -1px -1px 0 #555; }
+html[data-theme="overworld"] :focus-visible { border-radius: 0; outline-color: #fff; }
+/* the grass strip and the 2px frames hold up without any effects, so lite changes nothing here */
 
 /* =============================================
-   NIGHT CITY — neon yellow on black, scanlines
+   DUST — a tactical HUD: charcoal, sand orange, corner brackets, a radar
    ============================================= */
-html[data-theme="nightcity"] {
-  --bg: #07060c;
-  --ink: #f3f0ff;
-  --ink-dim: rgba(243,240,255,.64);
-  --ink-faint: rgba(243,240,255,.4);
-  --accent: #fcee0a;
-  --accent-rgb: 252,238,10;
-  --accent-ink: #141200;
-  --accent-3: #00f0ff;
-  --green: #05ffa1;
-  --gold: #fcee0a;
-  --coral: #ff2a6d;
-  --panel: #16131f;
-  --panel-2: #2b2638;
-  --lg-radius: 8px;
-  --lg-radius-sm: 6px;
-  --lg-radius-pill: 8px;
-  --lg-blur: 18px;
-  --lg-sat: 160%;
-  --lg-rim: rgba(0,240,255,.7);
-  --lg-bar-glow: 0 0 34px -6px rgba(0,240,255,.35);
-  --lite-surface: linear-gradient(145deg, #1a1726, #12101a);
-  --lite-bar: linear-gradient(145deg, #211d30, #171420);
-  --lite-panel: #171420;
-  --lite-panel-deep: #100e17;
-  --lite-panel-locked: #131019;
-  --lite-rim: rgba(0,240,255,.28);
+html[data-theme="dust"] {
+  --font-body: "Barlow", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Segoe UI", system-ui, sans-serif;
+  --bg: #14171c;
+  --ink: #e9ecef;
+  --ink-dim: rgba(233,236,239,.66);
+  --ink-faint: rgba(233,236,239,.42);
+  --accent: #e6a23c;
+  --accent-rgb: 230,162,60;
+  --accent-ink: #1b1206;
+  --accent-3: #5d8bd1;
+  --green: #8be28b;
+  --gold: #e6a23c;
+  --coral: #e8503f;
+  --panel: #1e232a;
+  --panel-2: #343b45;
+  --btn-solid: #e6a23c;
+  --btn-solid-ink: #1b1206;
+  --well: rgba(0,0,0,.38);
+  --lg-radius: 4px;
+  --lg-radius-sm: 3px;
+  --lg-radius-pill: 3px;
+  --lg-blur: 10px;
+  --lg-sat: 110%;
+  --lg-rim: rgba(255,255,255,.1);
+  --lg-shadow: 0 0 0 1px rgba(255,255,255,.07), 0 16px 28px -18px #000;
+  --lg-sheen: transparent;
+  --lg-sheen-edge: rgba(255,255,255,.06);
+  --pill-bg: #e6a23c;                          /* the selected tab: a skewed orange plate */
+  --pill-shadow: none;
+  --lite-surface: #1c2027;
+  --lite-bar: #20252d;
+  --lite-panel: #1c2027;
+  --lite-panel-deep: #14181d;
+  --lite-panel-locked: #181c22;
+  --lite-rim: rgba(255,255,255,.08);
   --scene:
-    repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px),
-    radial-gradient(55% 45% at 85% 8%, rgba(0,240,255,.18), transparent 70%),
-    radial-gradient(55% 45% at 10% 92%, rgba(255,42,109,.18), transparent 70%),
-    radial-gradient(40% 35% at 22% 14%, rgba(252,238,10,.09), transparent 70%);
-  --scene-size: auto, 100% 100%, 100% 100%, 100% 100%;
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(180deg, transparent 55%, rgba(201,166,107,.14) 100%),
+    radial-gradient(50% 40% at 90% 5%, rgba(93,139,209,.12), transparent 70%);
+  --scene-size: 32px 32px, 32px 32px, 100% 100%, 100% 100%;
 }
-html[data-theme="nightcity"] .bg::before { animation: scene-breathe 4.5s ease-in-out infinite alternate; }
-/* a neon rim: cyan at the top-left, yellow across, pink at the bottom-right */
-html:not(.lite)[data-theme="nightcity"] .liquid-glass::before {
-  background: linear-gradient(135deg, rgba(0,240,255,.75) 0%, rgba(0,240,255,.18) 30%, rgba(252,238,10,.14) 55%, rgba(255,42,109,.2) 78%, rgba(255,42,109,.7) 100%);
+html[data-theme="dust"] :is(h1, h2, h3, h4, .navbar-tab, .bottom-nav-item, .course-dropdown, .course-chip, .milestone-label, .milestone-start-btn, .game-title, .profile-username, .empty-view-title, .wordle-btn, .ed-btn, .status-btn, .game-back, .qz-btn, .qz-title, .sheet-row-body b, .lb-name, .stat-header span, .pf-card h3, .pf-section h3, .streak-label, .game-pill, .pf-chip, .th-seg button) {
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 600;
 }
+html[data-theme="dust"] :is(h1, h2, .practice-head h2, .empty-view-title, .profile-username) { font-weight: 700; letter-spacing: .03em; }
+html[data-theme="dust"] :is(.stat-value, .streak-count) { font-weight: 600; letter-spacing: 0; }
+html[data-theme="dust"] .navbar-tab, html[data-theme="dust"] .milestone-label { font-size: 15.5px; }
+/* panels: a thin frame, brackets in orange at two corners and faint at the other two */
+html:not(.lite)[data-theme="dust"] .liquid-glass { background: rgba(28,33,42,.78); }
+html:not(.lite)[data-theme="dust"] .liquid-glass--bar { background: rgba(32,37,45,.9); }
+html[data-theme="dust"] .liquid-glass::before {
+  padding: 0;
+  -webkit-mask: none;
+  mask: none;
+  background:
+    linear-gradient(var(--accent), var(--accent)) 0 0 / 16px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 0 0 / 2px 16px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / 16px 2px no-repeat,
+    linear-gradient(var(--accent), var(--accent)) 100% 100% / 2px 16px no-repeat,
+    linear-gradient(rgba(255,255,255,.25), rgba(255,255,255,.25)) 100% 0 / 16px 2px no-repeat,
+    linear-gradient(rgba(255,255,255,.25), rgba(255,255,255,.25)) 100% 0 / 2px 16px no-repeat,
+    linear-gradient(rgba(255,255,255,.25), rgba(255,255,255,.25)) 0 100% / 16px 2px no-repeat,
+    linear-gradient(rgba(255,255,255,.25), rgba(255,255,255,.25)) 0 100% / 2px 16px no-repeat;
+}
+html[data-theme="dust"] .liquid-glass::after { background: none; box-shadow: inset 0 1px 0 rgba(255,255,255,.06); }
+html[data-theme="dust"] .liquid-glass--bar::after { background: linear-gradient(var(--accent), var(--accent)) 0 50% / 3px 55% no-repeat; }
+html[data-theme="dust"] .game-card:hover { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(230,162,60,.5), 0 20px 30px -18px #000; }
+html[data-theme="dust"] .navbar-tabs { background: transparent; box-shadow: none; border-radius: 0; padding: 4px; }
+html[data-theme="dust"] .navbar-tab { padding: 9px 20px; }
+html[data-theme="dust"] :is(.navbar-tab-indicator-fill, .mobile-tab-indicator-fill) { border-radius: 2px; transform: skewX(-14deg); }
+html[data-theme="dust"] .mobile-tab-indicator-fill { transform: skewX(-8deg); }
+html[data-theme="dust"] .navbar-tab-indicator-fill.squash, html[data-theme="dust"] .mobile-tab-indicator-fill.squash { animation: none; }
+html[data-theme="dust"] .navbar-tab[aria-selected="true"], html[data-theme="dust"] .bottom-nav-item[aria-selected="true"] { color: #1b1206; text-shadow: none; }
+/* the radar in the bottom-left corner: rings and a cross stand still, the sweep turns */
+html[data-theme="dust"] body::after, html[data-theme="dust"] body::before {
+  content: "";
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  z-index: -1;
+  width: 170px;
+  height: 170px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+html[data-theme="dust"] body::after {
+  background:
+    linear-gradient(rgba(93,139,209,.35), rgba(93,139,209,.35)) 50% 0 / 1px 100% no-repeat,
+    linear-gradient(rgba(93,139,209,.35), rgba(93,139,209,.35)) 0 50% / 100% 1px no-repeat,
+    repeating-radial-gradient(circle, transparent 0 27px, rgba(93,139,209,.3) 27px 28px),
+    radial-gradient(circle, rgba(93,139,209,.14), rgba(20,24,30,.3) 72%);
+  box-shadow: 0 0 0 1px rgba(93,139,209,.45), inset 0 0 24px rgba(0,0,0,.5);
+}
+html[data-theme="dust"] body::before { background: conic-gradient(from 0deg, rgba(230,162,60,.45), rgba(230,162,60,.1) 50deg, transparent 80deg); }
+html:not(.lite)[data-theme="dust"] body::before { animation: scene-spin 5s linear infinite; }
+@media (max-width: 1100px) { html[data-theme="dust"] body::after, html[data-theme="dust"] body::before { display: none; } }
+/* buttons: plates with a 2px corner, orange for the main action; the pointer is a crosshair */
+html[data-theme="dust"] :is(.wordle-btn, .ed-btn, .milestone-start-btn, .status-btn, .game-back, .qz-btn, .btn-primary, .pf-chip, .game-pill, .qz-xp-pill, .course-chip, .th-seg, .th-seg button) { border-radius: 2px; }
+html[data-theme="dust"] :is(.ed-btn.ghost, .wordle-btn.ghost, .status-btn:not(.primary), .game-back) {
+  background: rgba(255,255,255,.06);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.16), inset 0 -2px 0 rgba(255,255,255,.06);
+}
+html[data-theme="dust"] :is(.ed-btn.ghost, .wordle-btn.ghost, .status-btn:not(.primary), .game-back):hover { background: rgba(255,255,255,.1); box-shadow: inset 0 0 0 1px rgba(230,162,60,.6), inset 0 -2px 0 var(--accent); color: #fff; }
+html[data-theme="dust"] :is(.ed-btn.primary, .status-btn.primary, .wordle-btn:not(.ghost), .milestone-start-btn) { box-shadow: inset 0 -2px 0 rgba(0,0,0,.25); }
+html[data-theme="dust"] :is(button, [role="button"], .milestone, a.ed-back, label.th-tile, label.cy-opt) { cursor: crosshair; }
+html[data-theme="dust"] .milestone.locked { cursor: not-allowed; }
+html[data-theme="dust"] .th-seg button[aria-checked="true"] { background: var(--accent); color: #1b1206; box-shadow: none; }
+/* nodes are weapon-slot tiles: rounded squares with the brackets */
+html[data-theme="dust"] :is(.milestone-circle, .empty-view-icon, .game-card-icon, .sheet-row-mark) { border-radius: 10px; }
+html[data-theme="dust"] :is(.nav-profile, .profile-avatar, .lb-avatar, .cx-avatar) { border-radius: 6px; }
+html[data-theme="dust"] .milestone-circle { --accent: var(--chapter-accent); }
+html[data-theme="dust"] .milestone.current .milestone-circle { box-shadow: 0 0 0 1px rgba(255,255,255,.1), 0 0 0 4px color-mix(in srgb, var(--chapter-accent) 25%, transparent), 0 16px 28px -18px #000; }
+html[data-theme="dust"] .milestone:hover .milestone-circle { transform: translateY(-3px); box-shadow: 0 0 0 1px rgba(255,255,255,.2), 0 24px 36px -18px #000; }
+html[data-theme="dust"] .milestone-check { border-radius: 4px; }
+/* progress as a segmented frame around the tile, the avatar and the XP badge, like the round timer */
+html[data-theme="dust"] :is(.progress-ring svg, .level-ring, .xp-ring-wrap > svg:first-child) { display: none; }
+html[data-theme="dust"] .progress-ring, html[data-theme="dust"] .profile-avatar-wrapper::before, html[data-theme="dust"] .xp-ring-wrap::before {
+  border-radius: 14px;
+  padding: 4px;
+  background:
+    repeating-conic-gradient(from -2deg, #000 0 4deg, transparent 4deg 18deg),
+    conic-gradient(var(--frame-fill) calc(var(--pct, 0) * 360deg), rgba(255,255,255,.1) 0);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+}
+html[data-theme="dust"] .progress-ring { inset: -10px; --frame-fill: var(--chapter-accent); }
+html[data-theme="dust"] .profile-avatar-wrapper::before, html[data-theme="dust"] .xp-ring-wrap::before { content: ""; position: absolute; inset: 0; pointer-events: none; }
+html[data-theme="dust"] .profile-avatar-wrapper { --frame-fill: var(--unit-accent, var(--accent)); }
+html[data-theme="dust"] .xp-ring-wrap { --frame-fill: var(--gold); }
+html[data-theme="dust"] .profile-avatar { width: 68px; height: 68px; border-radius: 9px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.12), 0 0 0 1px rgba(0,0,0,.5); }
+html[data-theme="dust"] .milestone-label { text-shadow: 0 1px 2px rgba(0,0,0,.9); }
+/* segmented bars, like armour and health */
+html[data-theme="dust"] .stat-bar-track, html[data-theme="dust"] .qz-progress-track { height: 8px; border-radius: 0; background: rgba(0,0,0,.45); box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+html[data-theme="dust"] .stat-bar-fill, html[data-theme="dust"] .qz-progress-fill {
+  border-radius: 0;
+  -webkit-mask: repeating-linear-gradient(90deg, #000 0 9px, transparent 9px 12px);
+  mask: repeating-linear-gradient(90deg, #000 0 9px, transparent 9px 12px);
+}
+html[data-theme="dust"] .leaderboard-item.you-row { border-radius: 0; background: rgba(230,162,60,.1); box-shadow: inset 3px 0 0 var(--accent); }
+html[data-theme="dust"] .leaderboard-item .gold-rank { color: var(--accent); }
+html[data-theme="dust"] .sheet-card { border-radius: 6px; }
+html[data-theme="dust"] .sheet-row { border-radius: 4px; }
+html[data-theme="dust"] ::-webkit-scrollbar-thumb { border-radius: 0; background: rgba(230,162,60,.5); }
 
 /* =============================================
-   APERTURE — a clean, light test chamber
-   ============================================= */
-html[data-theme="aperture"] {
-  color-scheme: light;
-  --bg: #e8ebef;
-  --ink: #171a20;
-  --ink-dim: rgba(23,26,32,.64);
-  --ink-faint: rgba(23,26,32,.42);
-  --ink-strong: #0a0c10;
-  --fg-rgb: 23,26,32;
-  --accent: #ff6a00;
-  --accent-rgb: 255,106,0;
-  --accent-ink: #fff;
-  --accent-3: #1b7fff;
-  --green: #1f9d4f;
-  --gold: #b07900;            /* dark enough to read as text on the light backdrop */
-  --coral: #d9342b;
-  --panel: #ffffff;
-  --panel-2: #d6dbe2;
-  --btn-solid: #171a20;
-  --btn-solid-ink: #fff;
-  --well: rgba(23,26,32,.07);
-  --lg-blur: 20px;
-  --lg-sat: 120%;
-  --lg-rim: rgba(255,255,255,.95);
-  --lg-shadow: 0 20px 40px -22px rgba(30,40,60,.35), 0 1px 3px rgba(0,0,0,.08);
-  --lg-sheen: rgba(255,255,255,.6);
-  --lg-sheen-edge: rgba(255,255,255,.9);
-  --pill-bg: linear-gradient(180deg, #ffffff, #f2f4f7);
-  --pill-shadow: inset 0 1px 0 #fff, inset 0 0 0 1px rgba(23,26,32,.08), 0 6px 14px -8px rgba(0,0,0,.25);
-  --lite-surface: linear-gradient(145deg, #fbfcfd, #f1f3f6);
-  --lite-bar: linear-gradient(145deg, #ffffff, #f4f6f9);
-  --lite-panel: #f6f7f9;
-  --lite-panel-deep: #e9ecf0;
-  --lite-panel-locked: #eef0f3;
-  --lite-rim: rgba(23,26,32,.1);
-  --scene:
-    linear-gradient(rgba(23,26,32,.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(23,26,32,.05) 1px, transparent 1px),
-    radial-gradient(45% 40% at 12% 15%, rgba(255,106,0,.24), transparent 70%),
-    radial-gradient(45% 40% at 88% 85%, rgba(27,127,255,.24), transparent 70%);
-  --scene-size: 64px 64px, 64px 64px, 100% 100%, 100% 100%;
-}
-html[data-theme="aperture"] .bg::before { animation: scene-breathe 8s ease-in-out infinite alternate; }
-/* light glass is white, not a dark tint */
-html:not(.lite)[data-theme="aperture"] .liquid-glass {
-  background: linear-gradient(145deg, rgba(255,255,255,.74), rgba(255,255,255,.5) 40%, rgba(255,255,255,.62));
-}
-html:not(.lite)[data-theme="aperture"] .liquid-glass--bar {
-  background: linear-gradient(145deg, rgba(255,255,255,.88), rgba(255,255,255,.66) 45%, rgba(255,255,255,.78));
-}
-html:not(.lite)[data-theme="aperture"] .liquid-glass::after {
-  box-shadow: inset 0 1px 0 var(--lg-sheen-edge), inset 0 12px 28px -16px rgba(255,255,255,.6), inset 0 -14px 28px -18px rgba(20,30,50,.12);
-}
-html[data-theme="aperture"] .bg::after { opacity: .6; }
-/* the logo is a light-on-dark picture */
-html[data-theme="aperture"] .brand img, html[data-theme="aperture"] .auth-logo img { filter: invert(.92) hue-rotate(180deg); }
-/* labels glow light, not dark, on a light page */
-html[data-theme="aperture"] .milestone-label { text-shadow: 0 1px 0 rgba(255,255,255,.9), 0 0 10px rgba(255,255,255,.9); }
-html[data-theme="aperture"] .navbar-tab[aria-selected="true"] { text-shadow: none; }
-html.lite[data-theme="aperture"] .liquid-glass { box-shadow: 0 10px 22px -16px rgba(30,40,60,.4), 0 1px 2px rgba(0,0,0,.06); }
-html.lite[data-theme="aperture"] .liquid-glass::after { box-shadow: inset 0 1px 0 #fff; }
-html.lite[data-theme="aperture"] .glass-pill { background: #fff; box-shadow: inset 0 0 0 1px rgba(23,26,32,.08), 0 2px 6px -2px rgba(0,0,0,.2); }
-
-/* =============================================
-   HALLOWNEST — deep caverns, pale light, drifting spores
+   HALLOWNEST — ink-blue caverns, pale light, serif, a diamond on every panel
    ============================================= */
 html[data-theme="hallownest"] {
-  --bg: #0a0e1a;
-  --ink: #e8eefb;
-  --ink-dim: rgba(232,238,251,.62);
-  --ink-faint: rgba(232,238,251,.38);
-  --accent: #8fb8ff;
-  --accent-rgb: 143,184,255;
-  --accent-ink: #081225;
-  --accent-3: #ff9d5c;
-  --green: #6fdcb0;
+  --font-body: "EB Garamond", "Iowan Old Style", Georgia, serif;
+  --font-display: "Cinzel", "Trajan Pro", "Iowan Old Style", Georgia, serif;
+  --bg: #090d18;
+  --ink: #e6ebf5;
+  --ink-dim: rgba(230,235,245,.64);
+  --ink-faint: rgba(230,235,245,.4);
+  --accent: #9fb8ea;
+  --accent-rgb: 159,184,234;
+  --accent-ink: #0b1222;
+  --accent-3: #e8c891;
+  --green: #8fd9b6;
   --gold: #e9d79a;
-  --coral: #ff6f86;
-  --panel: #161c2e;
-  --panel-2: #2b3450;
-  --lg-radius: 26px;
-  --lg-radius-sm: 18px;
-  --lg-blur: 28px;
-  --lg-sat: 150%;
-  --lg-rim: rgba(190,212,255,.6);
-  --lg-shadow: 0 24px 48px -20px rgba(0,0,0,.7), 0 0 40px -16px rgba(143,184,255,.25), 0 2px 6px rgba(0,0,0,.3);
-  --lite-surface: linear-gradient(145deg, #1b2237, #141a2b);
-  --lite-bar: linear-gradient(145deg, #202842, #171e31);
-  --lite-panel: #171e30;
-  --lite-panel-deep: #111626;
-  --lite-panel-locked: #141a2a;
+  --coral: #ff8295;
+  --panel: #121829;
+  --panel-2: #243050;
+  --btn-solid: #dfe7ff;
+  --btn-solid-ink: #0b1222;
+  --lg-radius: 22px;
+  --lg-radius-sm: 16px;
+  --lg-blur: 24px;
+  --lg-sat: 120%;
+  --lg-rim: rgba(214,226,255,.55);
+  --lg-shadow: 0 30px 60px -28px #000, 0 0 36px -14px rgba(143,184,255,.25), 0 2px 6px rgba(0,0,0,.3);
+  --lg-sheen: rgba(255,255,255,.08);
+  --lg-sheen-edge: rgba(255,255,255,.16);
+  --pill-bg: transparent;                      /* the selected tab: a pale ring of light */
+  --pill-shadow: inset 0 0 0 1px rgba(214,226,255,.6), 0 0 18px -6px rgba(143,184,255,.7);
+  --lite-surface: linear-gradient(145deg, #171f34, #111728);
+  --lite-bar: linear-gradient(145deg, #1c2540, #141b2e);
+  --lite-panel: #141b2e;
+  --lite-panel-deep: #0f1424;
+  --lite-panel-locked: #121829;
+  --lite-rim: rgba(214,226,255,.2);
+  --diamond: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath d='M5 0L10 5 5 10 0 5z' fill='%23dfe7ff' fill-opacity='.6'/%3E%3C/svg%3E");
   --scene:
+    radial-gradient(ellipse 70% 60% at 50% 45%, transparent 40%, rgba(0,0,0,.55) 100%),
     radial-gradient(2px 2px at 30px 40px, rgba(200,220,255,.6), transparent 100%),
     radial-gradient(1.5px 1.5px at 160px 120px, rgba(200,220,255,.42), transparent 100%),
     radial-gradient(2.5px 2.5px at 260px 60px, rgba(200,220,255,.5), transparent 100%),
     radial-gradient(1.5px 1.5px at 90px 220px, rgba(200,220,255,.36), transparent 100%),
     radial-gradient(2px 2px at 230px 200px, rgba(200,220,255,.46), transparent 100%),
-    radial-gradient(60% 55% at 50% 110%, rgba(60,90,160,.38), transparent 70%),
-    radial-gradient(50% 40% at 15% 0%, rgba(90,130,200,.2), transparent 70%);
-  --scene-size: 320px 280px, 320px 280px, 320px 280px, 320px 280px, 320px 280px, 100% 100%, 100% 100%;
+    radial-gradient(70% 55% at 50% 110%, rgba(70,100,170,.32), transparent 70%),
+    radial-gradient(50% 40% at 15% 0%, rgba(90,130,200,.18), transparent 70%);
+  --scene-size: 100% 100%, 320px 280px, 320px 280px, 320px 280px, 320px 280px, 320px 280px, 100% 100%, 100% 100%;
 }
-html[data-theme="hallownest"] .bg::before { inset: -8%; animation: scene-rise 30s ease-in-out infinite alternate; }
+html:not(.lite)[data-theme="hallownest"] .bg::before { inset: -8%; animation: scene-rise 30s ease-in-out infinite alternate; }
+html[data-theme="hallownest"] body { font-size: 1.02em; }
+html[data-theme="hallownest"] :is(h1, h2, h3, .navbar-tab, .bottom-nav-item, .milestone-label, .game-title, .profile-username, .stat-header span, .pf-card h3, .pf-section h3, .streak-label, .qz-crumb) { letter-spacing: .05em; font-weight: 600; }
+html[data-theme="hallownest"] :is(.wordle-btn, .ed-btn, .milestone-start-btn, .status-btn, .game-back, .qz-btn, .btn-primary, .game-pill, .pf-chip) { letter-spacing: .08em; font-weight: 600; }
+/* a second, inner rim and a diamond at the top and bottom of every panel */
+html[data-theme="hallownest"] .liquid-glass { outline: 1px solid rgba(214,226,255,.14); outline-offset: -6px; }
+html[data-theme="hallownest"] .liquid-glass:focus-visible { outline: 2px solid rgba(var(--fg-rgb),.7); outline-offset: 3px; }
+html[data-theme="hallownest"] .liquid-glass::after {
+  background:
+    var(--diamond) 50% 3px / 9px 9px no-repeat,
+    var(--diamond) 50% calc(100% - 3px) / 9px 9px no-repeat,
+    radial-gradient(120% 70% at 50% -10%, var(--lg-sheen), transparent 60%);
+}
+html[data-theme="hallownest"] .liquid-glass--bar::after { background: radial-gradient(120% 70% at 50% -10%, var(--lg-sheen), transparent 60%); }
+html[data-theme="hallownest"] :is(.milestone-circle, .empty-view-icon, .game-card-icon) { outline-offset: -5px; }
+html[data-theme="hallownest"] .milestone-circle::after, html[data-theme="hallownest"] .empty-view-icon::after { background: none; }
+html[data-theme="hallownest"] .game-card:hover { box-shadow: 0 34px 60px -28px #000, 0 0 44px -12px rgba(143,184,255,.4), 0 2px 6px rgba(0,0,0,.3); }
+html[data-theme="hallownest"] .navbar-tabs { background: rgba(0,0,0,.3); box-shadow: inset 0 0 0 1px rgba(214,226,255,.1); }
+html[data-theme="hallownest"] .navbar-tab[aria-selected="true"], html[data-theme="hallownest"] .bottom-nav-item[aria-selected="true"] { color: #fff; text-shadow: 0 0 12px rgba(159,184,234,.8); }
+/* pale-rimmed buttons, a pale filled one for the main action */
+html[data-theme="hallownest"] :is(.ed-btn.ghost, .wordle-btn.ghost, .status-btn:not(.primary), .game-back) {
+  background: rgba(214,226,255,.05);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(214,226,255,.4);
+}
+html[data-theme="hallownest"] :is(.ed-btn.ghost, .wordle-btn.ghost, .status-btn:not(.primary), .game-back):hover { background: rgba(214,226,255,.12); color: #fff; box-shadow: inset 0 0 0 1px rgba(214,226,255,.7), 0 0 20px -6px rgba(159,184,234,.7); }
+html[data-theme="hallownest"] :is(.ed-btn.primary, .status-btn.primary) { box-shadow: 0 0 24px -6px rgba(159,184,234,.6), 0 10px 24px -12px rgba(0,0,0,.6); }
+/* the path glows softly; the node you are on is wrapped in a ring of light */
+html[data-theme="hallownest"] .milestone-circle { --lg-shadow: 0 24px 48px -20px #000, 0 0 30px -10px rgba(143,184,255,.35); }
+html[data-theme="hallownest"] .milestone.current .milestone-circle { box-shadow: 0 0 0 1px rgba(214,226,255,.5), 0 0 0 7px rgba(214,226,255,.06), 0 0 0 8px rgba(214,226,255,.3), 0 0 36px -8px rgba(143,184,255,.7), 0 24px 48px -20px #000; }
+html[data-theme="hallownest"] .milestone-label { font-size: 15.5px; text-shadow: 0 0 12px rgba(0,0,0,.9), 0 1px 4px rgba(0,0,0,.9); }
+html[data-theme="hallownest"] .progress-ring circle { stroke-width: 2.5; }
+html[data-theme="hallownest"] .stat-bar-track, html[data-theme="hallownest"] .qz-progress-track { height: 4px; }
+html[data-theme="hallownest"] .stat-bar-fill, html[data-theme="hallownest"] .qz-progress-fill { box-shadow: 0 0 10px color-mix(in srgb, var(--unit-accent, var(--accent)) 70%, transparent); }
+html[data-theme="hallownest"] .leaderboard-item + .leaderboard-item { border-top-color: rgba(214,226,255,.1); }
+html[data-theme="hallownest"] ::-webkit-scrollbar-thumb { background: rgba(214,226,255,.2); }
 
-/* =============================================
-   OUTRUN — a sunset over a neon grid
-   ============================================= */
-html[data-theme="outrun"] {
-  --bg: #120826;
-  --ink: #fdf2ff;
-  --ink-dim: rgba(253,242,255,.64);
-  --ink-faint: rgba(253,242,255,.4);
-  --accent: #ff3ca6;
-  --accent-rgb: 255,60,166;
-  --accent-ink: #2a0418;
-  --accent-3: #ffb347;
-  --green: #3df2c6;
-  --gold: #ffd166;
-  --coral: #ff5d73;
-  --panel: #22113f;
-  --panel-2: #3b2366;
-  --lg-radius: 18px;
-  --lg-radius-sm: 12px;
-  --lg-blur: 20px;
-  --lg-sat: 180%;
-  --lg-rim: rgba(255,120,220,.65);
-  --lg-bar-glow: 0 0 36px -8px rgba(255,60,166,.4);
-  --lite-surface: linear-gradient(145deg, #2a1650, #1d0f3a);
-  --lite-bar: linear-gradient(145deg, #321b5c, #231342);
-  --lite-panel: #22123f;
-  --lite-panel-deep: #190c30;
-  --lite-panel-locked: #1d0f36;
-  --lite-rim: rgba(255,120,220,.25);
-}
-html[data-theme="outrun"] .bg {
-  background-image:
-    radial-gradient(70% 42% at 50% 64%, rgba(255,120,60,.6), rgba(255,60,166,.38) 42%, transparent 72%),
-    linear-gradient(180deg, #120826 0%, #2b0f4e 58%, #120826 100%);
-}
-html[data-theme="outrun"] .bg::before {
-  inset: auto -40% 0 -40%;
-  height: 46%;
-  background-image:
-    linear-gradient(rgba(255,60,166,.5) 2px, transparent 2px),
-    linear-gradient(90deg, rgba(255,60,166,.5) 2px, transparent 2px);
-  background-size: 100% 48px, 64px 100%;
-  background-position: 0 0, 0 0;
-  background-repeat: repeat;
-  transform: perspective(520px) rotateX(62deg);
-  transform-origin: 50% 0;
-  -webkit-mask-image: linear-gradient(180deg, transparent, #000 28%, #000);
-  mask-image: linear-gradient(180deg, transparent, #000 28%, #000);
-  animation: scene-grid 2.6s linear infinite;
-}
-html.lite[data-theme="outrun"] .bg { background-image: linear-gradient(180deg, #120826 0%, #2b0f4e 58%, #120826 100%); }
-
-/* =============================================
-   HYRULE — ancient lines, teal glow, a little gold
-   ============================================= */
-html[data-theme="hyrule"] {
-  --bg: #0b1516;
-  --ink: #e8f3ef;
-  --ink-dim: rgba(232,243,239,.64);
-  --ink-faint: rgba(232,243,239,.4);
-  --accent: #3fd1b0;
-  --accent-rgb: 63,209,176;
-  --accent-ink: #06201a;
-  --accent-3: #e8bd4f;
-  --green: #52d98a;
-  --gold: #f1cf5e;
-  --coral: #ff6a5b;
-  --panel: #152426;
-  --panel-2: #2a3d3f;
-  --lg-radius: 20px;
-  --lg-radius-sm: 14px;
-  --lg-blur: 22px;
-  --lg-sat: 150%;
-  --lg-rim: rgba(120,230,205,.55);
-  --lite-surface: linear-gradient(145deg, #1a2b2d, #142224);
-  --lite-bar: linear-gradient(145deg, #203536, #182a2b);
-  --lite-panel: #182a2b;
-  --lite-panel-deep: #112021;
-  --lite-panel-locked: #142425;
-  --scene:
-    repeating-linear-gradient(45deg, rgba(var(--fg-rgb),.028) 0 1px, transparent 1px 28px),
-    repeating-linear-gradient(-45deg, rgba(var(--fg-rgb),.028) 0 1px, transparent 1px 28px),
-    radial-gradient(50% 45% at 15% 20%, rgba(63,209,176,.22), transparent 70%),
-    radial-gradient(45% 40% at 85% 85%, rgba(232,189,79,.18), transparent 70%);
-  --scene-size: auto, auto, 100% 100%, 100% 100%;
-}
-html[data-theme="hyrule"] .bg::before { inset: -6%; animation: scene-float 44s ease-in-out infinite alternate; }
-
-/* Phones: the Overworld blocks are too big for a narrow screen and read as glitches behind the glass;
-   keep the grid and the sky-to-grass gradient only. */
+/* ===== PHONES ===== */
 @media (max-width: 768px) {
-  html[data-theme="overworld"] {
-    --scene:
-      linear-gradient(rgba(var(--fg-rgb),.045) 2px, transparent 2px),
-      linear-gradient(90deg, rgba(var(--fg-rgb),.045) 2px, transparent 2px),
-      linear-gradient(180deg, rgba(120,170,230,.10), transparent 40%, rgba(95,191,71,.16) 100%);
-    --scene-size: 48px 48px, 48px 48px, 100% 100%;
-    --scene-position: 0 0, 0 0, 0 0;
-    --scene-repeat: repeat, repeat, no-repeat;
-  }
+  /* the Overworld grass strip would sit under the bottom bar: thinner (the Dust radar is off already) */
+  html[data-theme="overworld"] body::before { height: 24px; background-size: 48px 30px; }
 }

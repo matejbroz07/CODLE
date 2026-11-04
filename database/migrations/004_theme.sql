@@ -12,5 +12,5 @@ SET NAMES utf8mb4;
 USE codle;
 
 ALTER TABLE user_settings
-  ADD COLUMN app_theme        VARCHAR(24) NULL AFTER mascot,       -- codle, overworld, nightcity, aperture, hallownest, outrun, hyrule; NULL = never chosen
-  ADD COLUMN app_theme_custom TEXT        NULL AFTER app_theme;    -- JSON, the Codle theme's own mix: accent, bg, glass, corners, scene, grain
+  ADD COLUMN app_theme        VARCHAR(24) NULL AFTER mascot,       -- codle, notebook, overworld, dust, hallownest; NULL = never chosen
+  ADD COLUMN app_theme_custom TEXT        NULL AFTER app_theme;    -- JSON, the Codle theme's own mix: mode, accent, bg, glass, corners, scene, grain
