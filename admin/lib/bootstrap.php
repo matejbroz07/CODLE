@@ -50,7 +50,7 @@ function db(): PDO
     } catch (PDOException $e) {
         error_log('Codle admin: database connection failed: ' . $e->getMessage());
         fatal_page(503, __('Database unavailable'),
-            __('Check that MySQL is running in XAMPP and that the login in %s is right. %s creates the database.',
+            __('Check that the database server is running and that the login in %s is right. %s creates the database.',
                 '<code>admin/config.php</code>', '<code>database/schema.sql</code>'));
     }
     // Keep CURRENT_DATE in SQL on the same day as PHP's today().

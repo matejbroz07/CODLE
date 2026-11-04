@@ -9,7 +9,7 @@
  * Online (js/api.js, logged in): cards and today's story come from the API,
  * runs and answers are saved there (XP, best streak, story streak), and the
  * right answer to the story is only revealed by the server after answering.
- * Offline demo: content from js/history-data.js, progress in localStorage.
+ * Before the server answers (or if it cannot): content from js/history-data.js.
  */
 (function () {
   "use strict";

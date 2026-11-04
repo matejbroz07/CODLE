@@ -1,6 +1,10 @@
-# Codle admin (Apache 2.4 / XAMPP)
+# Codle admin (Apache 2.4)
 Options -Indexes
 
 <FilesMatch "^(config|config\.sample)\.php$">
   Require all denied
 </FilesMatch>
+
+# Libraries, translations and command-line tools are not pages.
+RewriteEngine On
+RewriteRule ^(lib|tools)(/|$) - [F,L]

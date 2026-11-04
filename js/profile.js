@@ -1,7 +1,7 @@
 /**
  * Codle — Profile tab
  *
- * Fills #view-profile when the API is on (offline the static "Coming soon" stays):
+ * Fills #view-profile from the API:
  *   Overview  — daily goal ring + last 7 days with the streak, courses (one segment
  *               per lesson), badge shelf
  *   Activity  — 26-week heatmap, XP by source, games (win-rate rings, Wordle
@@ -118,7 +118,7 @@
     built: false,       // the view skeleton exists
     settingsBuilt: false,
     sessions: null,
-    emailStep: null     // { email, devCode } while waiting for the code
+    emailStep: null     // { email, minutes } while waiting for the code
   };
 
   function viewActive() {
@@ -725,9 +725,13 @@
         '<div class="pf-actions"><button type="button" class="wordle-btn ghost" data-act="signout-others" id="pf-signout-others" hidden>Sign out all other devices</button></div>' +
       "</section>" +
 
+      // Google / GitHub
+      '<section class="pf-card liquid-glass" id="pf-set-providers"><h3>Sign-in methods</h3>' + providersHtml(a) + "</section>" +
+
       // Data + account
       '<section class="pf-card liquid-glass" id="pf-set-account"><h3>Your data</h3>' +
         '<p class="pf-note">Download everything Codle stores about you as a JSON file: account, progress, XP history, game results and saved code.</p>' +
+        '<p class="pf-note">How Codle handles your data: <a class="pf-link" href="privacy.html">Privacy Policy</a> · <a class="pf-link" href="terms.html">Terms of Service</a></p>' +
         '<div class="pf-actions">' +
           '<button type="button" class="wordle-btn ghost" data-act="export">' + icon("download") + "Download my data</button>" +
           '<button type="button" class="wordle-btn ghost" data-act="logout">Log out</button>' +
@@ -776,6 +780,22 @@
   }
 
   /** Username cooldown and password dates; refreshed after every load. */
+  /** Google / GitHub linked to the account, with a link to connect the other one. */
+  var PROVIDER_NAMES = { google: "Google", github: "GitHub" };
+  function providersHtml(a) {
+    var linked = a.providers || [];
+    var available = a.providersAvailable || [];
+    var all = ["google", "github"].filter(function (p) { return linked.indexOf(p) >= 0 || available.indexOf(p) >= 0; });
+    if (!all.length) return '<p class="pf-note">Signing in with Google or GitHub is not available on this server.</p>';
+    var rows = all.map(function (p) {
+      var on = linked.indexOf(p) >= 0;
+      return '<div class="pf-row"><span><b>' + PROVIDER_NAMES[p] + "</b><small>" + (on ? "Connected. You can log in with it." : "Not connected.") + "</small></span>" +
+        (on ? '<span class="pf-chip pf-chip-ok">Connected</span>'
+            : '<a class="wordle-btn ghost" href="api/auth/oauth/' + p + '/start">Connect</a>') + "</div>";
+    }).join("");
+    return '<p class="pf-note">Log in with one click, no password needed. Your password keeps working too.</p>' + rows;
+  }
+
   function renderAccountNotes() {
     var a = state.profile && state.profile.account;
     if (!a) return;
@@ -842,7 +862,6 @@
     box.innerHTML = current +
       '<form id="pf-code-form" class="pf-form" novalidate>' +
         '<p class="pf-note">We sent a code to <b>' + esc(step.email) + "</b>. It is valid for " + (step.minutes || 15) + " minutes.</p>" +
-        (step.devCode ? '<p class="pf-note pf-dev">Development mode, no e-mail was sent. Your code is <b>' + esc(step.devCode) + "</b>.</p>" : "") +
         field("pf-email-code", "Code", '<input type="text" class="pf-input pf-code" id="pf-email-code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}">') +
         '<div class="pf-form-foot"><button type="submit" class="wordle-btn">Confirm e-mail</button>' +
         '<button type="button" class="wordle-btn ghost" data-act="email-back">Back</button><p class="pf-error" id="pf-code-error" role="alert"></p></div>' +
@@ -1428,7 +1447,7 @@
       showError("pf-email-error");
       busy(btn, true, "Sending…");
       api.post("me/email/code", { email: email, password: pass }).then(function (res) {
-        state.emailStep = { email: email, devCode: res.devCode || null, minutes: res.expiresInMinutes };
+        state.emailStep = { email: email, minutes: res.expiresInMinutes };
         renderEmail();
       }, function (err) { busy(btn, false); showError("pf-email-error", err); });
     },

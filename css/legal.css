@@ -1,0 +1,62 @@
+/* Codle — Terms of Service and Privacy Policy */
+
+.legal-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 16px 64px;
+}
+
+.legal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.legal-top img { height: 48px; width: auto; display: block; }
+.legal-top nav { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+.legal-top nav a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-dim);
+  text-decoration: none;
+}
+.legal-top nav a:hover { color: var(--ink-strong); background: rgba(var(--fg-rgb), .06); }
+.legal-top nav a[aria-current="page"] { color: var(--ink-strong); background: rgba(var(--fg-rgb), .1); }
+
+.legal-card {
+  padding: 36px 40px;
+  border-radius: 24px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.65;
+}
+.legal-card h1 { margin: 0 0 6px; font-size: 30px; line-height: 1.2; color: var(--ink-strong); }
+.legal-meta { margin: 0 0 28px; font-size: 13px; color: var(--ink-dim); }
+.legal-card h2 { margin: 32px 0 10px; font-size: 19px; color: var(--ink-strong); }
+.legal-card h3 { margin: 20px 0 6px; font-size: 15px; color: var(--ink-strong); }
+.legal-card p { margin: 0 0 12px; }
+.legal-card ul { margin: 0 0 14px; padding-left: 22px; }
+.legal-card li { margin: 0 0 6px; }
+.legal-card a { color: var(--accent); }
+.legal-card strong { color: var(--ink-strong); }
+.legal-card code { font-size: 13px; padding: 1px 6px; border-radius: 6px; background: rgba(var(--fg-rgb), .08); }
+
+.legal-table-wrap { overflow-x: auto; margin: 0 0 16px; }
+.legal-card table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.legal-card th, .legal-card td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid rgba(var(--fg-rgb), .1); }
+.legal-card th { color: var(--ink-strong); font-weight: 600; white-space: nowrap; }
+
+.legal-foot { margin-top: 24px; text-align: center; font-size: 13px; color: var(--ink-dim); }
+.legal-foot a { color: var(--ink-dim); }
+
+@media (max-width: 600px) {
+  .legal-wrap { padding: 24px 16px 48px; }
+  .legal-card { padding: 24px 20px; border-radius: 20px; }
+  .legal-card h1 { font-size: 25px; }
+  .legal-top img { height: 40px; }
+}

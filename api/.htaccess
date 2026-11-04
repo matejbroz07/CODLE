@@ -1,4 +1,4 @@
-# Codle API (Apache 2.4 / XAMPP)
+# Codle API (Apache 2.4)
 Options -Indexes
 
 <FilesMatch "^(config|config\.sample)\.php$">

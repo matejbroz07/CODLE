@@ -149,14 +149,21 @@ function active_course(array $user): ?array
                   WHERE e.user_id = ? ORDER BY e.is_active DESC, e.enrolled_at DESC LIMIT 1', [$user['id']]);
 }
 
-/** Enrolls (if needed) and makes the course the one shown on the path. */
-function activate_course(array $user, array $course, ?int $placementLevel = null): void
+/**
+ * Enrolls (if needed) and makes the course the one shown on the path. A placement
+ * level is applied only the first time the learner enrolls in the course.
+ * Returns the number of units the placement quiz skipped.
+ */
+function activate_course(array $user, array $course, ?int $placementLevel = null): int
 {
+    $enrolled = q_val('SELECT 1 FROM enrollments WHERE user_id = ? AND course_id = ?', [$user['id'], $course['id']]);
     q('UPDATE enrollments SET is_active = 0 WHERE user_id = ?', [$user['id']]);
     q('INSERT INTO enrollments (user_id, course_id, placement_level, is_active) VALUES (?, ?, ?, 1)
-       ON DUPLICATE KEY UPDATE is_active = 1, placement_level = COALESCE(VALUES(placement_level), placement_level)',
+       ON DUPLICATE KEY UPDATE is_active = 1, placement_level = COALESCE(placement_level, VALUES(placement_level))',
         [$user['id'], $course['id'], $placementLevel]);
+    $skipped = $enrolled ? 0 : apply_placement($user, $course, $placementLevel);
     sync_enrollment($user, (int) $course['id']);
+    return $skipped;
 }
 
 /* ---------------------------------------------------------------
@@ -185,13 +192,38 @@ function lesson_playable(array $lesson): bool
     return $lesson['quest_id'] !== null || (int) $lesson['has_quiz'] === 1;
 }
 
-/** The first lesson that is not completed yet (the "Continue" node), or null when all are done. */
+/**
+ * The first lesson that is neither completed nor skipped by the placement quiz
+ * (the "Continue" node), or null when all are done.
+ */
 function current_lesson(array $lessons): ?array
 {
     foreach ($lessons as $l) {
-        if ($l['status'] !== 'completed') return $l;
+        if ($l['status'] !== 'completed' && $l['status'] !== 'skipped') return $l;
     }
     return null;
+}
+
+/**
+ * Applies the placement quiz result: a learner placed at level L starts at
+ * unit L, and every lesson of the units before it is marked "skipped". Skipped
+ * lessons stay open (they can be done any time for their XP), they just do not
+ * block the path. Returns the number of skipped units.
+ */
+function apply_placement(array $user, array $course, ?int $level): int
+{
+    $skipUnits = max(0, min(5, (int) $level) - 1);
+    if ($skipUnits === 0) return 0;
+    $unitCount = (int) q_val('SELECT COUNT(*) FROM units WHERE course_id = ?', [$course['id']]);
+    // Always leave at least one unit to learn.
+    $skipUnits = min($skipUnits, max(0, $unitCount - 1));
+    if ($skipUnits === 0) return 0;
+    q("INSERT INTO lesson_progress (user_id, lesson_id, status)
+       SELECT ?, l.id, 'skipped' FROM lessons l JOIN units u ON u.id = l.unit_id
+       WHERE u.course_id = ? AND u.position <= ?
+       ON DUPLICATE KEY UPDATE status = IF(status = 'completed', status, 'skipped')",
+        [$user['id'], $course['id'], $skipUnits]);
+    return $skipUnits;
 }
 
 /** Keeps enrollments.current_lesson_id in step with lesson_progress (the admin stats read it). */
@@ -202,10 +234,11 @@ function sync_enrollment(array $user, int $courseId): void
         [$current['id'] ?? null, $user['id'], $courseId]);
 }
 
-/** Lesson states: lessons before the current one are completed, after it locked. */
+/** Lesson states: completed, skipped (by the placement quiz, still open), current, or locked. */
 function lesson_state(array $lesson, ?array $current): string
 {
     if ($lesson['status'] === 'completed') return 'completed';
+    if ($lesson['status'] === 'skipped') return 'skipped';
     return $current && (int) $current['id'] === (int) $lesson['id'] ? 'current' : 'locked';
 }
 
@@ -223,10 +256,12 @@ function course_path(array $user, array $course): array
     foreach ($units as $ui => $u) {
         $list = $byUnit[$u['id']] ?? [];
         $done = 0;
+        $skipped = 0;
         $items = [];
         foreach ($list as $li => $l) {
             $state = lesson_state($l, $current);
             if ($state === 'completed') $done++;
+            if ($state === 'skipped') $skipped++;
             if ($state === 'current') {
                 $progress = ['currentUnit' => $ui + 1, 'currentMilestone' => $li + 1, 'currentMilestoneProgress' => (int) $l['progress_pct']];
             }
@@ -242,7 +277,7 @@ function course_path(array $user, array $course): array
             ];
         }
         $outUnits[] = ['id' => (int) $u['id'], 'position' => (int) $u['position'], 'title' => $u['title'],
-                       'total' => count($list), 'completed' => $done, 'lessons' => $items];
+                       'total' => count($list), 'completed' => $done, 'skipped' => $skipped, 'lessons' => $items];
     }
 
     return [

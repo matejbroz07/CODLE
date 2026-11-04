@@ -12,7 +12,9 @@
 declare(strict_types=1);
 
 require __DIR__ . '/lib/bootstrap.php';
+require __DIR__ . '/lib/mail.php';
 require __DIR__ . '/lib/auth.php';
+require __DIR__ . '/lib/oauth.php';
 require __DIR__ . '/lib/progress.php';
 require __DIR__ . '/lib/wordle.php';
 require __DIR__ . '/lib/history.php';
@@ -27,12 +29,18 @@ header('X-Content-Type-Options: nosniff');
 header('Referrer-Policy: same-origin');
 header('Cache-Control: no-store');
 
-// "METHOD path" => handler. {id} matches a positive integer and is passed as an int.
+// "METHOD path" => handler. {id} matches a positive integer and is passed as an int;
+// {provider} matches google|github and is passed as a string.
 $ROUTES = [
     'GET session'                => 'route_session',
     'POST auth/login'            => 'route_login',
     'POST auth/logout'           => 'route_logout',
     'GET auth/username'          => 'route_username_check',
+    'GET auth/challenge'         => 'route_challenge',
+    'GET auth/courses'           => 'route_public_courses',
+    'GET auth/oauth/{provider}/start'    => 'route_oauth_start',
+    'GET auth/oauth/{provider}/callback' => 'route_oauth_callback',
+    'GET auth/oauth/pending'     => 'route_oauth_pending',
     'POST auth/register/code'    => 'route_register_code',
     'POST auth/register/verify'  => 'route_register_verify',
     'POST auth/register'         => 'route_register',
@@ -100,10 +108,10 @@ function dispatch(array $routes): void
     $allowed = [];
     foreach ($routes as $spec => $handler) {
         [$m, $pattern] = explode(' ', $spec, 2);
-        $re = '#^' . str_replace('\{id\}', '([1-9][0-9]{0,9})', preg_quote($pattern, '#')) . '$#';
+        $re = '#^' . strtr(preg_quote($pattern, '#'), ['\{id\}' => '([1-9][0-9]{0,9})', '\{provider\}' => '(google|github)']) . '$#';
         if (!preg_match($re, $path, $match)) continue;
         if ($m !== $method) { $allowed[] = $m; continue; }
-        $args = array_map('intval', array_slice($match, 1));
+        $args = array_map(fn($v) => ctype_digit($v) ? (int) $v : $v, array_slice($match, 1));
         send_json(200, $handler(...$args));
     }
     if ($allowed) {

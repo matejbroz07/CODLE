@@ -458,6 +458,16 @@
 .milestone.completed .milestone-circle .ms-icon { color: color-mix(in srgb, var(--chapter-accent) 80%, #fff); }
 .milestone.completed .milestone-label { color: rgba(var(--fg-rgb),.9); }
 
+/* Skipped by the placement quiz: open, but not done yet */
+.milestone.skipped .milestone-circle {
+  background: color-mix(in srgb, var(--chapter-accent) 8%, transparent);
+  --lg-rim: color-mix(in srgb, var(--chapter-accent) 45%, transparent);
+  opacity: .78;
+}
+.milestone.skipped .milestone-circle .ms-icon { color: color-mix(in srgb, var(--chapter-accent) 65%, #fff); }
+.milestone.skipped .milestone-label { color: rgba(var(--fg-rgb),.7); }
+.milestone.skipped:hover .milestone-circle { opacity: 1; }
+
 /* Current */
 .milestone.current .milestone-circle {
   width: var(--ms-size-current);
@@ -829,6 +839,7 @@ html.lite .sheet-card { background: var(--lite-panel); }
    through, so milestone fills are mixed with the page colour instead. */
 html.lite .milestone-circle { background: var(--lite-panel); }
 html.lite .milestone.completed .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 16%, var(--lite-panel-deep)); }
+html.lite .milestone.skipped .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 8%, var(--lite-panel-deep)); }
 html.lite .milestone.current .milestone-circle { background: color-mix(in srgb, var(--chapter-accent) 28%, var(--lite-panel-deep)); }
 html.lite .milestone.locked .milestone-circle { filter: none; background: var(--lite-panel-locked); }
 html.lite .milestone:hover .milestone-circle { box-shadow: 0 12px 20px -12px rgba(0,0,0,.7); }

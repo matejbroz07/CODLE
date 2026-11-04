@@ -1,16 +1,42 @@
-# Codle (Apache 2.4 / XAMPP)
+# Codle (Apache 2.4)
 # Anything that does not exist gets the 404 page with Curly (404.php -> 404.html).
-# api/ has its own rewrite rules and answers with JSON errors; GitHub Pages serves 404.html by itself.
+# api/ has its own rewrite rules and answers with JSON errors.
 
-# Pages, styles and scripts are revalidated on every load (a cheap 304 when unchanged),
-# so a browser never mixes a new page with a stale stylesheet or script.
+Options -Indexes
+# The public home page answers on /, the app itself is index.html.
+DirectoryIndex home.html index.html
+RewriteEngine On
+
+# Always HTTPS (also behind a proxy / load balancer that sets X-Forwarded-Proto).
+RewriteCond %{HTTPS} off
+RewriteCond %{HTTP:X-Forwarded-Proto} !https
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+
+# Never serve dotfiles (.git, .github, .htaccess …), docs, the workspace file or the database folder.
+RewriteRule (^|/)\. - [F,L]
+RewriteRule ^database(/|$) - [F,L]
+<FilesMatch "\.(md|sql|code-workspace|yml|yaml|sample\.php)$">
+  Require all denied
+</FilesMatch>
+
 <IfModule mod_headers.c>
-  <FilesMatch "\.(html|css|js)$">
+  # Pages, styles and scripts are revalidated on every load (a cheap 304 when unchanged),
+  # so a browser never mixes a new page with a stale stylesheet or script.
+  <FilesMatch "\.(html|css|js|webmanifest)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
+  <FilesMatch "\.(png|jpg|jpeg|gif|svg|ico|woff2?)$">
+    Header set Cache-Control "public, max-age=604800"
+  </FilesMatch>
+
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on' || %{HTTP:X-Forwarded-Proto} == 'https'"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+  # The pages may be framed only by themselves (the editor preview uses a sandboxed iframe).
+  Header always set X-Frame-Options "SAMEORIGIN"
 </IfModule>
 
-RewriteEngine On
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^ 404.php [L]

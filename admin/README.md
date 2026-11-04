@@ -1,6 +1,6 @@
 # Codle admin
 
-Administrace obsahu v PHP nad databází z `database/schema.sql`. Běží v XAMPP (PHP 8.1+, MariaDB 10.4+).
+Administrace obsahu v PHP nad databází z `database/schema.sql` (PHP 8.1+, MariaDB 10.4+ nebo MySQL 8.0+).
 
 | Stránka | K čemu |
 |---|---|
@@ -12,15 +12,15 @@ Administrace obsahu v PHP nad databází z `database/schema.sql`. Běží v XAMP
 
 ## Zprovoznění
 
-1. V XAMPP spusťte Apache a MySQL a naimportujte databázi (viz `database/README.md`).
+1. Naimportujte databázi (viz `database/README.md`).
 2. Nastavte heslo (zároveň se vytvoří `admin/config.php` ze vzoru):
 
    ```bash
-   /Applications/XAMPP/xamppfiles/bin/php admin/tools/set-password.php
+   php admin/tools/set-password.php
    ```
 
-3. V `admin/config.php` zkontrolujte přihlášení k databázi (výchozí `root` bez hesla na `127.0.0.1:3306`).
-4. Otevřete <http://localhost/Klimax/CODLE/admin/>.
+3. V `admin/config.php` vyplňte přihlášení k databázi (stejné jako v `api/config.php`).
+4. Otevřete `https://<váš web>/admin/`. Doporučení: v panelu hostingu přidejte na `admin/` ještě ochranu heslem (HTTP Basic) nebo omezení na vaši IP.
 
 Heslo změníte stejným příkazem. Změna hesla odhlásí všechny otevřené relace.
 
@@ -37,7 +37,7 @@ Heslo změníte stejným příkazem. Změna hesla odhlásí všechny otevřené 
 - `.htaccess` blokuje přímý přístup ke `config.php`, `lib/` a `tools/`.
 - Všechny formuláře mají CSRF token. Po 10 chybných přihlášeních za 15 minut se přihlašování na 15 minut zablokuje. IP adresy se neukládají.
 - Po 2 hodinách nečinnosti admin odhlásí.
-- GitHub Pages umí jen statické soubory, proto je `admin/` vyřazený z publikace v `_config.yml`. Na veřejném serveru provozujte admin jen přes HTTPS.
+- Kořenový `.htaccess` vynucuje HTTPS i pro admin.
 
 ## Omezení (stav k 23. 10. 2026)
 

@@ -27,7 +27,7 @@ return [
     'Admin cannot read its config' => 'Admin nemůže přečíst config',
     'The web server is not allowed to read %s. Run %s on that file.' => 'Webový server nemá právo číst %s. Spusťte na tento soubor %s.',
     'Database unavailable' => 'Databáze není dostupná',
-    'Check that MySQL is running in XAMPP and that the login in %s is right. %s creates the database.' => 'Zkontrolujte, že v XAMPP běží MySQL a že údaje v %s sedí. Databázi vytvoří %s.',
+    'Check that the database server is running and that the login in %s is right. %s creates the database.' => 'Zkontrolujte, že databázový server běží a že údaje v %s sedí. Databázi vytvoří %s.',
     'The form has expired' => 'Formulář vypršel',
     'Reload the page and try again.' => 'Načtěte stránku znovu a akci zopakujte.',
 

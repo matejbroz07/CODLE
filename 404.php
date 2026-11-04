@@ -1,9 +1,8 @@
 <?php
 /**
  * Codle — "page not found". The root .htaccess sends every missing file here, so
- * it leaves with a real 404 status and the page with Curly (404.html, which GitHub
- * Pages serves by itself). The page shows up at any depth, so it gets a <base>
- * pointing back at the app root.
+ * it leaves with a real 404 status and the page with Curly (404.html). The page
+ * shows up at any depth, so it gets a <base> pointing back at the app root.
  */
 
 declare(strict_types=1);

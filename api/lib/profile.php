@@ -142,18 +142,14 @@ function clean_bio(string $bio): string
 }
 
 /* ---------------------------------------------------------------
-   Notices to the account's e-mail (only when mail.mode = mail)
+   Notices to the account's e-mail (password / e-mail changed)
 --------------------------------------------------------------- */
 
 function notify_mail(string $to, string $subject, string $text): void
 {
-    if ((config()['mail']['mode'] ?? 'dev') !== 'mail') return;
-    $from = (string) (config()['mail']['from'] ?? 'Codle <no-reply@example.com>');
-    $headers = "From: $from\r\nContent-Type: text/plain; charset=utf-8\r\n";
     // A notice is a courtesy: a failed one must not undo the change itself.
-    if (!@mail($to, $subject, $text . "\n\nIf this was not you, reset your password right away.\n\nCodle", $headers)) {
-        error_log('Codle API: notice mail failed: ' . $subject);
-    }
+    [$subject, $plain, $html] = notice_mail($subject, $text);
+    send_mail_quietly($to, $subject, $plain, $html);
 }
 
 /* ---------------------------------------------------------------
@@ -340,6 +336,9 @@ function profile_payload(array $user, bool $own, array $viewer): array
             'usernameCooldownDays' => username_cooldown_days(),
             'previousNames'      => q('SELECT old_username FROM username_history WHERE user_id = ? ORDER BY changed_at DESC LIMIT 5',
                                       [$user['id']])->fetchAll(PDO::FETCH_COLUMN),
+            'providers'          => linked_providers((int) $user['id']),   // google / github linked to the account
+            'providersAvailable' => array_values(array_filter(array_keys(OAUTH_PROVIDERS),
+                                        fn($p) => !empty(config()['oauth'][$p]['client_id']))),
         ];
         $out['recent'] = recent_activity($user);
     }

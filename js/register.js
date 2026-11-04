@@ -10,2260 +10,173 @@
  * - Username availability checking
  * - Password strength meter with rule validation
  *
- * With the API (js/api.js) everything goes to the server: questions come from
- * the database and the account is created there. Without it (static hosting)
- * the page runs as a demo: the question bank below, code 111111, no account.
+ * - "Continue with Google / GitHub": a first sign-in comes back here with
+ *   ?oauth=<token>; the wizard then skips the e-mail step (the provider already
+ *   verified the address) and asks only for the language, the quiz, a username
+ *   and a password
+ * - Invisible bot check: a small proof of work (js, well under a second) on a
+ *   signed server challenge, plus a honeypot field
+ *
+ * Everything goes to the API (js/api.js): questions come from the database,
+ * the server grades the quiz again and creates the account.
  */
 
 (function () {
   "use strict";
 
-  /* ===============================================================
-     0. QUESTION BANK — Adaptive Quiz Data
-  ================================================================*/
-
-  var QUESTIONS = {
-    "html": [
-        {
-            "level": 1,
-            "q": "What does HTML stand for?",
-            "answers": [
-                "Hyper Text Markup Language",
-                "High Tech Modern Language",
-                "Home Tool Markup Language",
-                "Hyperlinks and Text Markup Language"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "Which tag is used for the highest level heading?",
-            "answers": [
-                "<heading>",
-                "<h6>",
-                "<h1>",
-                "<head>"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 1,
-            "q": "Which HTML element is used for paragraphs?",
-            "answers": [
-                "<paragraph>",
-                "<p>",
-                "<text>",
-                "<br>"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "What is the correct tag for a line break?",
-            "answers": [
-                "<break>",
-                "<lb>",
-                "<br>",
-                "<newline>"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 1,
-            "q": "Which tag is used for bold text?",
-            "answers": [
-                "<b>",
-                "<bold>",
-                "<heavy>",
-                "<strong>"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "Which tag is used for italic text?",
-            "answers": [
-                "<i>",
-                "<italic>",
-                "<em>",
-                "<text-italic>"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "How do you create a hyperlink?",
-            "answers": [
-                "<a url='...'>",
-                "<a href='...'>",
-                "<link href='...'>",
-                "<hyperlink>"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "Which character is used to indicate an end tag?",
-            "answers": [
-                "*",
-                "/",
-                "<",
-                "^"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "What does the <title> tag do?",
-            "answers": [
-                "Adds a title to the body",
-                "Sets the title in the browser tab",
-                "Creates a heading",
-                "Defines the document structure"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "Which tag contains the visible page content?",
-            "answers": [
-                "<head>",
-                "<body>",
-                "<html>",
-                "<main>"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What is the correct HTML element for inserting an image?",
-            "answers": [
-                "<img src='image.jpg'>",
-                "<image src='image.jpg'>",
-                "<picture>image.jpg</picture>",
-                "<src img='image.jpg'>"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 2,
-            "q": "What does the 'alt' attribute do on the <img> tag?",
-            "answers": [
-                "Sets an alternative image",
-                "Describes the image for accessibility",
-                "Resizes the image",
-                "Adds an animation"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "Which HTML element creates a numbered list?",
-            "answers": [
-                "<ul>",
-                "<list>",
-                "<ol>",
-                "<dl>"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "Which HTML element creates an unordered list?",
-            "answers": [
-                "<ul>",
-                "<ol>",
-                "<li>",
-                "<list>"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 2,
-            "q": "What tag is used for a list item?",
-            "answers": [
-                "<item>",
-                "<li>",
-                "<ul>",
-                "<list>"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "How can you open a link in a new tab?",
-            "answers": [
-                "target='_new'",
-                "target='_blank'",
-                "open='new'",
-                "newtab='true'"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What is the purpose of the <thead> tag?",
-            "answers": [
-                "Page header",
-                "Table header grouping",
-                "Heading of an article",
-                "Document metadata"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "Which tag defines a table row?",
-            "answers": [
-                "<th>",
-                "<td>",
-                "<tr>",
-                "<table>"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "Which tag defines a table cell?",
-            "answers": [
-                "<cell>",
-                "<tr>",
-                "<td>",
-                "<th>"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What does the <iframe> tag do?",
-            "answers": [
-                "Displays an image",
-                "Embeds another document within the current one",
-                "Creates a form",
-                "Defines a frame for a picture"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the purpose of the <meta charset='UTF-8'> tag?",
-            "answers": [
-                "Sets the page language",
-                "Defines the character set of the document",
-                "Adds metadata for SEO",
-                "Sets the password encoding"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is semantic HTML?",
-            "answers": [
-                "HTML with inline styles",
-                "Using tags that clearly describe their content",
-                "HTML validated by W3C validator",
-                "HTML generated by JavaScript"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the difference between <section> and <div>?",
-            "answers": [
-                "No difference",
-                "<section> is semantic, <div> has no meaning",
-                "<div> is semantic, <section> is not",
-                "<section> is deprecated"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "Which of these is a valid semantic tag?",
-            "answers": [
-                "<wrapper>",
-                "<container>",
-                "<article>",
-                "<block>"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 3,
-            "q": "What does the <aside> tag represent?",
-            "answers": [
-                "A sidebar",
-                "Content indirectly related to the main content",
-                "A comment",
-                "A footer"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the use of the <nav> element?",
-            "answers": [
-                "To navigate to a new page",
-                "To represent a section with navigation links",
-                "To define a breadcrumb trail",
-                "To embed a map"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What does the <form> attribute 'action' do?",
-            "answers": [
-                "Defines the HTTP method",
-                "Specifies where to send the form-data",
-                "Validates the form",
-                "Submits the form immediately"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the difference between GET and POST methods in a form?",
-            "answers": [
-                "GET is secure, POST is not",
-                "POST appends data to URL, GET sends it in the body",
-                "GET appends data to URL, POST sends it in the body",
-                "No difference"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 3,
-            "q": "Which input type creates a dropdown list?",
-            "answers": [
-                "<select>",
-                "<list>",
-                "<dropdown>",
-                "<input type='dropdown'>"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 3,
-            "q": "What does the 'required' attribute do in forms?",
-            "answers": [
-                "Formats the input",
-                "Mandates that the field must be filled out before submitting",
-                "Validates email format",
-                "Disables the input"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the loading='lazy' attribute do for images?",
-            "answers": [
-                "Loads the image asynchronously",
-                "Defers loading the image until it is near the viewport",
-                "Compresses the image",
-                "Loads the image from cache"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the purpose of the <template> tag?",
-            "answers": [
-                "Defines a page template",
-                "Holds HTML content hidden from the user when the page loads",
-                "Creates a responsive layout",
-                "Imports external HTML"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "How does the <picture> element differ from <img>?",
-            "answers": [
-                "It adds a frame to the image",
-                "It allows specifying multiple source images for different viewport sizes",
-                "It is only for vector graphics",
-                "There is no difference"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the 'srcset' attribute do?",
-            "answers": [
-                "Sets multiple CSS classes",
-                "Defines a set of images for the browser to choose from based on screen density/width",
-                "Points to a JavaScript file",
-                "Sets the video source"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the <canvas> element used for?",
-            "answers": [
-                "Displaying static images",
-                "Drawing graphics via scripting (usually JavaScript)",
-                "Creating complex layouts",
-                "Embedding PDF files"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the <figure> element represent?",
-            "answers": [
-                "A mathematical equation",
-                "Self-contained content like illustrations or diagrams",
-                "A numerical list",
-                "A CSS shape"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "How does the 'defer' attribute on a <script> tag work?",
-            "answers": [
-                "Executes the script immediately",
-                "Downloads the script in parallel and executes it after the document is parsed",
-                "Executes the script before parsing the body",
-                "Prevents the script from running"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the 'async' attribute on a <script> tag?",
-            "answers": [
-                "Waits for the DOM to load",
-                "Executes the script as soon as it is downloaded, without blocking parsing",
-                "Defers execution until the load event",
-                "Runs the script on a web worker"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the <details> and <summary> combination create?",
-            "answers": [
-                "A table of contents",
-                "An interactive disclosure widget (accordion)",
-                "A form summary",
-                "A modal window"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the <datalist> element?",
-            "answers": [
-                "A database table",
-                "Specifies a list of pre-defined options for an <input> element",
-                "An ordered list",
-                "A JSON data structure"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the Shadow DOM?",
-            "answers": [
-                "DOM of shadow elements on the page",
-                "Encapsulated DOM separate from the main document",
-                "Invisible DOM elements",
-                "Alternative to Virtual DOM"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does the contenteditable attribute do?",
-            "answers": [
-                "Locks the content from being edited",
-                "Allows the user to edit the element's content",
-                "Allows text copying",
-                "Encrypts the element content"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "How do Web Components relate to HTML?",
-            "answers": [
-                "They are external libraries",
-                "They allow creation of custom, reusable, encapsulated HTML tags",
-                "They replace the DOM",
-                "They are a CSS framework"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the purpose of the <slot> element?",
-            "answers": [
-                "A placeholder inside a web component that you can fill with your own markup",
-                "A gambling game",
-                "Allocates memory for JS",
-                "Defines a grid area"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 5,
-            "q": "What does the 'rel=noopener noreferrer' attribute combination prevent?",
-            "answers": [
-                "Cross-site scripting (XSS)",
-                "Tabnabbing vulnerability and prevents passing referrer headers",
-                "SQL Injection",
-                "CSS leakage"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the <dialog> element?",
-            "answers": [
-                "A chat window",
-                "A native HTML element for creating modal dialogs/popups",
-                "A form element",
-                "An alert box alternative"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "How does 'prefetch' differ from 'preload' in a <link> tag?",
-            "answers": [
-                "They are identical",
-                "Prefetch is for low-priority future navigation, preload is for high-priority current page resources",
-                "Preload is for the future, prefetch is for the present",
-                "Prefetch only works for images"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is a Service Worker in relation to HTML?",
-            "answers": [
-                "An HTML tag for offline caching",
-                "A script that runs in the background enabling offline experiences and PWA features",
-                "A server-side HTML parser",
-                "A CSS compiler"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the purpose of the 'manifest' attribute on the <html> tag (AppCache)?",
-            "answers": [
-                "It defines the PWA manifest",
-                "It is deprecated and was used for offline caching",
-                "It points to a CSS file",
-                "It lists the required scripts"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does the <base> tag do?",
-            "answers": [
-                "Sets the base font size",
-                "Specifies the base URL for all relative URLs in a document",
-                "Defines the bottom layout",
-                "Imports base styles"
-            ],
-            "correct": 1
-        }
-    ],
-    "css": [
-        {
-            "level": 1,
-            "q": "How do you set text color in CSS?",
-            "answers": [
-                "text-color: red;",
-                "font-color: red;",
-                "color: red;",
-                "text: red;"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 1,
-            "q": "Which CSS selector targets an element with id 'header'?",
-            "answers": [
-                ".header",
-                "#header",
-                "header",
-                "*header"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you add a comment in CSS?",
-            "answers": [
-                "// comment",
-                "<!-- comment -->",
-                "/* comment */",
-                "# comment"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 1,
-            "q": "Which property is used to change the background color?",
-            "answers": [
-                "color",
-                "bgcolor",
-                "background-color",
-                "background-image"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 1,
-            "q": "How do you select elements with class name 'test'?",
-            "answers": [
-                "#test",
-                ".test",
-                "test",
-                "*test"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you select all p elements?",
-            "answers": [
-                "p",
-                ".p",
-                "#p",
-                "all-p"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "Which property changes the font size?",
-            "answers": [
-                "text-size",
-                "font-size",
-                "text-style",
-                "size"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you make text bold?",
-            "answers": [
-                "font-weight: bold;",
-                "style: bold;",
-                "text: b;",
-                "font: bold;"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "Which property is used to center text?",
-            "answers": [
-                "align: center;",
-                "text-align: center;",
-                "center-text: true;",
-                "text-position: center;"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you remove the underline from a link?",
-            "answers": [
-                "text-decoration: none;",
-                "underline: none;",
-                "link-style: none;",
-                "text-style: none;"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 2,
-            "q": "What does 'display: flex' do?",
-            "answers": [
-                "Hides the element",
-                "Creates a flexible container",
-                "Sets a fixed position",
-                "Creates a grid layout"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What is the difference between margin and padding?",
-            "answers": [
-                "None",
-                "Margin is outer space, padding is inner space",
-                "Padding is outer space, margin is inner space",
-                "Both are inner spaces"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What does 'position: relative' do?",
-            "answers": [
-                "Removes element from normal flow",
-                "Element remains in normal flow but can be offset",
-                "Element is fixed to the screen",
-                "Centers the element"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "How do you select all p elements inside a div element?",
-            "answers": [
-                "div p",
-                "div + p",
-                "div ~ p",
-                "div > p"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 2,
-            "q": "What property is used to change the font of an element?",
-            "answers": [
-                "font-family",
-                "font-style",
-                "font-weight",
-                "text-font"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 2,
-            "q": "How do you add a shadow to a box?",
-            "answers": [
-                "shadow-box",
-                "box-shadow",
-                "shadow",
-                "element-shadow"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What does 'float: left' do?",
-            "answers": [
-                "Makes the element fly",
-                "Positions the element to the left and lets content wrap around it",
-                "Aligns text to the left",
-                "Hides the element"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "How do you make a list not display bullet points?",
-            "answers": [
-                "list-type: none;",
-                "bullet: none;",
-                "list-style-type: none;",
-                "no-bullet: true;"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What property controls the space between lines of text?",
-            "answers": [
-                "line-spacing",
-                "spacing",
-                "line-height",
-                "text-height"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What does 'opacity: 0' do?",
-            "answers": [
-                "Makes the element fully transparent",
-                "Removes the element from the DOM",
-                "Makes the element black",
-                "Makes the element fully opaque"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 3,
-            "q": "What is CSS specificity? Order from lowest to highest:",
-            "answers": [
-                "element < class < id < inline",
-                "class < element < id < inline",
-                "id < class < element < inline",
-                "inline < id < class < element"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 3,
-            "q": "What does 'box-sizing: border-box' do?",
-            "answers": [
-                "Adds a border to every element",
-                "Width and height include padding and border",
-                "Removes the box model",
-                "Sets rounded corners"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "How does 'z-index' work?",
-            "answers": [
-                "Sets the font size",
-                "Controls the stacking order of elements",
-                "Sets the transparency",
-                "Defines a grid zone"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What does 'position: absolute' do?",
-            "answers": [
-                "Positions element relative to the viewport",
-                "Removes element from document flow and positions it relative to closest positioned ancestor",
-                "Keeps element in flow",
-                "Floats the element"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "How do you select an element that is the first child of its parent?",
-            "answers": [
-                ":first",
-                ":first-child",
-                ":child(1)",
-                ":nth-child(0)"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is a pseudo-element?",
-            "answers": [
-                "A fake element",
-                "A keyword added to a selector that lets you style a specific part of the selected element (e.g. ::before)",
-                "A JavaScript variable",
-                "An HTML tag"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What does the > selector mean (e.g., div > p)?",
-            "answers": [
-                "Any descendant",
-                "Direct child",
-                "Next sibling",
-                "Previous sibling"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What does the + selector mean (e.g., div + p)?",
-            "answers": [
-                "Direct child",
-                "Adjacent sibling",
-                "General sibling",
-                "Inside"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the rem unit relative to?",
-            "answers": [
-                "The parent element's font size",
-                "The viewport width",
-                "The root element's font size",
-                "The physical screen size"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 3,
-            "q": "What does 'display: none' vs 'visibility: hidden' do?",
-            "answers": [
-                "No difference",
-                "display:none hides it and removes space; visibility:hidden hides it but keeps space",
-                "display:none keeps space; visibility:hidden removes space",
-                "display:none is for images only"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is 'CSS Grid' and how does it differ from Flexbox?",
-            "answers": [
-                "Grid is only for tables",
-                "Grid is a 2D system, Flexbox is 1D",
-                "Grid is deprecated, Flexbox is modern",
-                "No difference"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the CSS function clamp() do?",
-            "answers": [
-                "Restricts a value between a minimum and maximum",
-                "Rounds the value",
-                "Animates between values",
-                "Converts units"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 4,
-            "q": "What does the 'transform: translate3d(x, y, z)' property enable?",
-            "answers": [
-                "3D printing",
-                "Hardware acceleration (GPU rendering) for the transformation",
-                "Creates a 3D box",
-                "Requires a VR headset"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "How do CSS Variables (Custom Properties) differ from preprocessor variables (like Sass)?",
-            "answers": [
-                "No difference",
-                "CSS variables are dynamic and can be changed by JS/CSS at runtime, Sass variables are compiled away",
-                "Sass variables are faster",
-                "CSS variables only work for colors"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does 'align-items: baseline' do in flexbox?",
-            "answers": [
-                "Aligns items to the bottom",
-                "Aligns items such that their text baselines align",
-                "Stretches items",
-                "Centers items"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the purpose of the 'will-change' property?",
-            "answers": [
-                "Animates the element",
-                "Hints to the browser what properties will change to optimize rendering in advance",
-                "Changes the DOM structure",
-                "Forces a repaint"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is a 'BFC' (Block Formatting Context)?",
-            "answers": [
-                "A type of font",
-                "A part of a visual CSS rendering of a webpage where block boxes are laid out",
-                "A JavaScript object",
-                "A grid container"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does 'flex-basis' define?",
-            "answers": [
-                "The final size",
-                "The default size of an element before the remaining space is distributed",
-                "The minimum size",
-                "The gap between items"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the 'vh' unit?",
-            "answers": [
-                "Visual Height",
-                "Viewport Height (1vh = 1% of viewport height)",
-                "Vertical Height",
-                "View Horizontal"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "How does 'mix-blend-mode' work?",
-            "answers": [
-                "Blends colors within a gradient",
-                "Determines how an element's content should blend with its parent and background",
-                "Mixes JavaScript variables",
-                "Creates a blur effect"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is a CSS @container query?",
-            "answers": [
-                "Query for a database",
-                "Styling based on the size of a parent container rather than the viewport",
-                "Media query for Docker containers",
-                "Alternative to @media"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "How does the CSS pseudo-class :has() work?",
-            "answers": [
-                "Selects a div inside an img",
-                "A parent selector that selects an element if it contains a specified descendant",
-                "Selects an img inside a div",
-                "Adds an image to a div"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is 'CSS Houdini'?",
-            "answers": [
-                "A magic trick",
-                "A set of low-level APIs that expose parts of the CSS engine to developers",
-                "A new CSS framework",
-                "A polyfill for IE11"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the 'paint()' function in CSS used for?",
-            "answers": [
-                "Coloring text",
-                "Invoking a Paint Worklet (Houdini API) to dynamically draw an image",
-                "Drawing borders",
-                "Fills SVGs"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does the property 'content-visibility: auto' do?",
-            "answers": [
-                "Hides the element",
-                "Skips rendering the element's layout and painting until it is close to the viewport",
-                "Makes text readable by screen readers",
-                "Adjusts contrast automatically"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "How does '@layer' (Cascade Layers) work?",
-            "answers": [
-                "Creates a z-index layer",
-                "Allows developers to explicitly define the cascade ordering of CSS rules regardless of source order or specificity",
-                "Groups animations",
-                "Creates photoshop-like layers"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the 'minmax()' function used for in CSS Grid?",
-            "answers": [
-                "Responsive typography",
-                "Defines a size range greater than or equal to min and less than or equal to max",
-                "Restricting colors",
-                "Setting max-width"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does 'overscroll-behavior: contain' achieve?",
-            "answers": [
-                "Prevents scrolling entirely",
-                "Prevents scroll chaining (bounce effects) from propagating to parent elements",
-                "Hides the scrollbar",
-                "Smooth scrolls the page"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "How does 'aspect-ratio' property work?",
-            "answers": [
-                "Sets the monitor resolution",
-                "Sets a preferred aspect ratio for the box, auto-calculating dimensions",
-                "Forces the image to be square",
-                "Crops the image"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the 'lch()' color function?",
-            "answers": [
-                "Lightness, Chroma, Hue color space that is perceptually uniform",
-                "Low Contrast Hue",
-                "Linear Color Header",
-                "Light Color Highlight"
-            ],
-            "correct": 0
-        }
-    ],
-    "javascript": [
-        {
-            "level": 1,
-            "q": "How do you declare a variable in JavaScript?",
-            "answers": [
-                "variable x = 5;",
-                "var x = 5;",
-                "v x = 5;",
-                "x := 5;"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "What does 'console.log()' do?",
-            "answers": [
-                "Writes to a file",
-                "Prints to the browser console",
-                "Creates a dialog box",
-                "Logs server errors"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you create a function in JavaScript?",
-            "answers": [
-                "function:myFunction()",
-                "function myFunction()",
-                "create myFunction()",
-                "def myFunction()"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you call a function named 'myFunction'?",
-            "answers": [
-                "call myFunction()",
-                "call function myFunction()",
-                "myFunction()",
-                "execute myFunction()"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 1,
-            "q": "How to write an IF statement in JavaScript?",
-            "answers": [
-                "if i = 5 then",
-                "if (i == 5)",
-                "if i == 5",
-                "if i = 5"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How does a WHILE loop start?",
-            "answers": [
-                "while i = 1 to 10",
-                "while (i <= 10)",
-                "while (i <= 10; i++)",
-                "while i < 10 then"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How does a FOR loop start?",
-            "answers": [
-                "for (i <= 5; i++)",
-                "for (i = 0; i <= 5; i++)",
-                "for i = 1 to 5",
-                "for (i = 0; i <= 5)"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you add a comment in JavaScript?",
-            "answers": [
-                "<!-- comment -->",
-                "' comment",
-                "// comment",
-                "# comment"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 1,
-            "q": "What is the correct way to write a JavaScript array?",
-            "answers": [
-                "var colors = ['red', 'green', 'blue']",
-                "var colors = (1:'red', 2:'green', 3:'blue')",
-                "var colors = 1 = ('red'), 2 = ('green')",
-                "var colors = 'red', 'green', 'blue'"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "How do you round the number 7.25 to the nearest integer?",
-            "answers": [
-                "Math.rnd(7.25)",
-                "round(7.25)",
-                "Math.round(7.25)",
-                "rnd(7.25)"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What is the difference between '==' and '==='?",
-            "answers": [
-                "None",
-                "'==' also compares types",
-                "'===' compares both value and type",
-                "'===' is deprecated"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What is a callback function?",
-            "answers": [
-                "A function that calls itself",
-                "A function passed as an argument to another function",
-                "A function returning void",
-                "A recursive function"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "How do you find the number with the highest value of x and y?",
-            "answers": [
-                "Math.ceil(x, y)",
-                "top(x, y)",
-                "Math.max(x, y)",
-                "ceil(x, y)"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What event occurs when the user clicks on an HTML element?",
-            "answers": [
-                "onmouseover",
-                "onchange",
-                "onclick",
-                "onmouseclick"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "How do you declare a JavaScript object?",
-            "answers": [
-                "var obj = [];",
-                "var obj = {};",
-                "var obj = ();",
-                "var obj = <>;"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What is JSON?",
-            "answers": [
-                "JavaScript Object Notation",
-                "JavaScript Object Native",
-                "Java Standard Object Network",
-                "JavaScript Output Name"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 2,
-            "q": "How to parse a JSON string into a JavaScript object?",
-            "answers": [
-                "JSON.stringify()",
-                "JSON.parse()",
-                "JSON.toObject()",
-                "JSON.read()"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "Which operator is used to assign a value to a variable?",
-            "answers": [
-                "*",
-                "-",
-                "=",
-                "x"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What will 'typeof undefined' return?",
-            "answers": [
-                "'null'",
-                "'undefined'",
-                "'object'",
-                "'string'"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What does the 'this' keyword refer to in a regular object method?",
-            "answers": [
-                "The window object",
-                "The document object",
-                "The object the method belongs to",
-                "The function itself"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 3,
-            "q": "What is a closure in JavaScript?",
-            "answers": [
-                "A way to close the browser",
-                "A function with access to variables in its outer scope",
-                "Syntactic sugar for classes",
-                "A method for closing connections"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the difference between 'let' and 'var'?",
-            "answers": [
-                "No difference",
-                "'let' has block scope, 'var' has function scope",
-                "'var' has block scope, 'let' has function scope",
-                "'let' is faster"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What does the array 'map()' method do?",
-            "answers": [
-                "Mutates the original array",
-                "Creates a new array populated with the results of calling a provided function on every element",
-                "Filters elements",
-                "Reduces array to a single value"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is event bubbling?",
-            "answers": [
-                "Events trigger on the child and bubble up to parents",
-                "Events trigger on the parent and trickle down to children",
-                "Events fire randomly",
-                "Browser crashes due to too many events"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 3,
-            "q": "What does 'preventDefault()' do?",
-            "answers": [
-                "Stops event bubbling",
-                "Prevents the default action of the event from occurring",
-                "Destroys the element",
-                "Hides the event"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is a Promise?",
-            "answers": [
-                "An object representing the eventual completion or failure of an async operation",
-                "A guarantee that code will run fast",
-                "A string representation",
-                "A synchronous loop"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 3,
-            "q": "What does 'strict mode' do?",
-            "answers": [
-                "Makes code execute faster",
-                "Enforces stricter parsing and error handling in JavaScript",
-                "Removes warnings",
-                "Enables new syntax features"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is destructuring assignment?",
-            "answers": [
-                "Deleting an object",
-                "Unpacking values from arrays or properties from objects into distinct variables",
-                "Merging two objects",
-                "Copying an object"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What does the spread operator (...) do?",
-            "answers": [
-                "Compresses an array",
-                "Expands an iterable into more elements",
-                "Multiplies numbers",
-                "Concatenates strings"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "How do you check if a property exists in an object?",
-            "answers": [
-                "'property' in object",
-                "object.has('property')",
-                "object.contains('property')",
-                "object.property == true"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 4,
-            "q": "What does 'Promise.all()' do?",
-            "answers": [
-                "Executes promises sequentially",
-                "Returns a single Promise that fulfills when all of the input's promises fulfill",
-                "Cancels all promises",
-                "Returns the first fulfilled promise"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the event loop?",
-            "answers": [
-                "A loop for DOM event handling",
-                "A mechanism for processing asynchronous callbacks in a single-threaded environment",
-                "An infinite loop in the browser",
-                "A method for repeating animations"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is a generator function?",
-            "answers": [
-                "A function that creates objects",
-                "A function that can be paused and resumed using the 'yield' keyword",
-                "A function that generates random numbers",
-                "An arrow function"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the difference between call() and apply()?",
-            "answers": [
-                "No difference",
-                "call() takes arguments separately, apply() takes them as an array",
-                "apply() takes arguments separately, call() takes them as an array",
-                "call() is synchronous, apply() is async"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the 'bind()' method do?",
-            "answers": [
-                "Creates a new function that, when called, has its 'this' keyword set to the provided value",
-                "Links two objects",
-                "Attaches an event listener",
-                "Merges arrays"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 4,
-            "q": "What is prototype chaining?",
-            "answers": [
-                "Linking arrays",
-                "The mechanism by which objects inherit features from one another",
-                "A way to chain Promises",
-                "Chaining string methods"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is a Symbol?",
-            "answers": [
-                "An icon",
-                "A primitive data type whose instances are unique and immutable",
-                "A string alias",
-                "A mathematical operator"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does 'async/await' do?",
-            "answers": [
-                "Replaces callbacks with promises",
-                "Provides syntactic sugar over Promises to write async code that looks synchronous",
-                "Makes code run in parallel",
-                "Stops the event loop"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is a WeakMap?",
-            "answers": [
-                "A map that forgets data",
-                "A collection of key/value pairs where keys must be objects and are weakly referenced",
-                "A map with slow lookup",
-                "A map restricted to strings"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does Object.freeze() do?",
-            "answers": [
-                "Makes an object invisible",
-                "Freezes an object, preventing new properties from being added or existing ones from being altered",
-                "Saves object to localStorage",
-                "Deep clones the object"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is a Proxy object in JavaScript?",
-            "answers": [
-                "An HTTP proxy server",
-                "An object for intercepting and defining custom behavior for fundamental operations",
-                "A design pattern for lazy loading",
-                "A wrapper for localStorage"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does Reflect API do?",
-            "answers": [
-                "Creates mirror images",
-                "Provides methods for interceptable JavaScript operations, often used with Proxies",
-                "Checks object types",
-                "Calculates geometry"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is tail call optimization?",
-            "answers": [
-                "Minimizing string lengths",
-                "An engine feature where recursive function calls do not add a new frame to the call stack",
-                "Compressing JS files",
-                "Removing trailing spaces"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is a SharedArrayBuffer?",
-            "answers": [
-                "An array accessible by multiple iframes",
-                "A memory area that can be shared between the main thread and Web Workers",
-                "A polyfill for arrays",
-                "A global array variable"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "How does the 'typeof' operator behave with a Proxy object?",
-            "answers": [
-                "Returns 'proxy'",
-                "Returns 'object'",
-                "Returns the typeof the target object being proxied",
-                "Throws an error"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 5,
-            "q": "What is a microtask?",
-            "answers": [
-                "A very short function",
-                "A task scheduled to run immediately after the currently executing script and before rendering (e.g. Promises)",
-                "A setTimeout callback",
-                "A CSS animation"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does the 'yield*' expression do?",
-            "answers": [
-                "Multiplies the yielded value",
-                "Delegates to another generator or iterable object",
-                "Ends the generator",
-                "Yields all properties of an object"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the Temporal Dead Zone (TDZ)?",
-            "answers": [
-                "When the browser freezes",
-                "The period between entering scope and the actual declaration of a let/const variable where it cannot be accessed",
-                "A deprecated JS feature",
-                "Time spent waiting for a fetch request"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does structuredClone() do?",
-            "answers": [
-                "Creates a shallow copy",
-                "Creates a deep clone of a given value using the structured clone algorithm",
-                "Clones DOM nodes",
-                "Copies an object's prototype"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "How does dynamic import() work?",
-            "answers": [
-                "It imports CSS files",
-                "It loads a module asynchronously and returns a Promise resolving to the module namespace object",
-                "It automatically imports all modules in a folder",
-                "It is used for importing images"
-            ],
-            "correct": 1
-        }
-    ],
-    "php": [
-        {
-            "level": 1,
-            "q": "How does a PHP block of code start?",
-            "answers": [
-                "<script>",
-                "<?php",
-                "<php>",
-                "<%"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you declare a variable in PHP?",
-            "answers": [
-                "var name;",
-                "$name;",
-                "let name;",
-                "dim name;"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you output text in PHP?",
-            "answers": [
-                "print(\"text\")",
-                "echo \"text\";",
-                "write(\"text\")",
-                "All are correct"
-            ],
-            "correct": 3
-        },
-        {
-            "level": 1,
-            "q": "Which symbol is used for single-line comments in PHP?",
-            "answers": [
-                "//",
-                "<!--",
-                "/*",
-                "##"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "What is the correct way to end a PHP statement?",
-            "answers": [
-                ".",
-                "</php>",
-                ";",
-                ":"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 1,
-            "q": "How do you create an array in PHP?",
-            "answers": [
-                "$arr = array();",
-                "$arr = ();",
-                "$arr = {};",
-                "$arr = []()"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "What is the concatenation operator in PHP?",
-            "answers": [
-                "+",
-                ".",
-                "&",
-                "-"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you write an IF statement in PHP?",
-            "answers": [
-                "if $i == 5 then",
-                "if ($i == 5)",
-                "if i = 5",
-                "if (i == 5) then"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 1,
-            "q": "How do you get the length of a string in PHP?",
-            "answers": [
-                "strlen($str)",
-                "$str->length",
-                "length($str)",
-                "count($str)"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 1,
-            "q": "Which superglobal array holds form data sent via POST?",
-            "answers": [
-                "$_GET",
-                "$_REQUEST",
-                "$_POST",
-                "$_FORM"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What is the difference between echo and print in PHP?",
-            "answers": [
-                "None",
-                "echo has no return value, print does",
-                "print is faster",
-                "echo only accepts strings"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What does the isset() function do?",
-            "answers": [
-                "Sets a variable",
-                "Checks if a variable is set and is not NULL",
-                "Deletes a variable",
-                "Returns the variable type"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "How do you create an associative array?",
-            "answers": [
-                "$arr = array(\"key\" => \"value\");",
-                "$arr = [key: value];",
-                "$arr = {\"key\": \"value\"};",
-                "$arr = array(key, value);"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 2,
-            "q": "What does the count() function do?",
-            "answers": [
-                "Counts words in a string",
-                "Returns the number of elements in an array",
-                "Counts active sessions",
-                "Calculates string length"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "How do you start a PHP session?",
-            "answers": [
-                "session.start();",
-                "start_session();",
-                "session_start();",
-                "init_session();"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 2,
-            "q": "What is the correct way to include a file?",
-            "answers": [
-                "include 'file.php';",
-                "import 'file.php';",
-                "require_file('file.php');",
-                "load 'file.php';"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 2,
-            "q": "Which function is used to redirect the browser to another page?",
-            "answers": [
-                "redirect('url');",
-                "header('Location: url');",
-                "location('url');",
-                "navigate('url');"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What does the $_SESSION superglobal do?",
-            "answers": [
-                "Stores variables for the current script",
-                "Stores session variables available across multiple pages",
-                "Stores cookies",
-                "Stores server data"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "How do you define a constant in PHP?",
-            "answers": [
-                "const $NAME = 1;",
-                "define('NAME', 1);",
-                "constant NAME = 1;",
-                "let NAME = 1;"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 2,
-            "q": "What does the empty() function check?",
-            "answers": [
-                "If an array is empty",
-                "If a variable is empty (evaluates to false)",
-                "If a string has no characters",
-                "All of the above"
-            ],
-            "correct": 3
-        },
-        {
-            "level": 3,
-            "q": "What are PHP namespaces?",
-            "answers": [
-                "Spaces for storing files",
-                "Code organization to prevent name collisions",
-                "Alternative to classes",
-                "Configuration files"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the difference between include and require?",
-            "answers": [
-                "None",
-                "require stops the script on error, include does not",
-                "include stops the script on error, require does not",
-                "require is faster"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What are PHP traits?",
-            "answers": [
-                "Data types",
-                "A mechanism for code reuse in single inheritance languages",
-                "Server configuration",
-                "Testing frameworks"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the '=>' operator called in PHP?",
-            "answers": [
-                "Greater than or equal",
-                "Assignment operator",
-                "Double arrow operator (used in associative arrays)",
-                "Object operator"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 3,
-            "q": "How does the '===' operator differ from '==' in PHP?",
-            "answers": [
-                "'===' checks only type",
-                "'===' checks both value and type (strict comparison)",
-                "There is no difference",
-                "'===' is used for objects only"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the purpose of the '__construct()' method?",
-            "answers": [
-                "Destroys an object",
-                "Called automatically when a new object is created (constructor)",
-                "Compiles the class",
-                "Used to clone objects"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What does 'password_hash()' do?",
-            "answers": [
-                "Decrypts a password",
-                "Creates a secure password hash",
-                "Compares two passwords",
-                "Generates a random password"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What is the scope resolution operator in PHP?",
-            "answers": [
-                "->",
-                ".",
-                "::",
-                "\\"
-            ],
-            "correct": 2
-        },
-        {
-            "level": 3,
-            "q": "How do you access a property of an object in PHP?",
-            "answers": [
-                "$object.property",
-                "$object->property",
-                "$object::property",
-                "$object[property]"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 3,
-            "q": "What does 'var_dump()' do?",
-            "answers": [
-                "Deletes a variable",
-                "Dumps information about a variable including type and value",
-                "Exports variable to database",
-                "Returns the variable type as string"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is PDO in PHP?",
-            "answers": [
-                "A templating system",
-                "PHP Data Objects, an abstraction layer for database access",
-                "A WordPress plugin",
-                "A formatting tool"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does a generator do in PHP?",
-            "answers": [
-                "Creates an array",
-                "A function containing 'yield' that returns an iterable sequence lazily",
-                "Generates random numbers",
-                "Compiles PHP to bytecode"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is a closure in PHP?",
-            "answers": [
-                "Closing a file",
-                "An anonymous function that can capture variables from its surrounding scope",
-                "Closing a database connection",
-                "Ending a loop"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the spl_autoload_register() function do?",
-            "answers": [
-                "Registers a user session",
-                "Registers a function to be called when an undefined class is instantiated",
-                "Loads CSS files",
-                "Registers a database connection"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is dependency injection?",
-            "answers": [
-                "Injecting SQL code",
-                "A design pattern where an object receives its dependencies from outside rather than creating them itself",
-                "A method for encrypting data",
-                "Loading external scripts"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the 'match' expression (introduced in PHP 8) do?",
-            "answers": [
-                "Regex matching",
-                "A safer and expression-based alternative to 'switch'",
-                "Matches array keys",
-                "Compares passwords"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What are type hints/declarations in PHP?",
-            "answers": [
-                "Comments for developers",
-                "Specifying the expected data type of an argument or return value",
-                "Suggestions by the IDE",
-                "Converting variables"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does the 'static' keyword do inside a function?",
-            "answers": [
-                "Makes the function global",
-                "Preserves the variable's value between function calls",
-                "Prevents the function from running",
-                "Makes the function private"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What is the purpose of the '__call()' magic method?",
-            "answers": [
-                "To call a function",
-                "Triggered when invoking inaccessible or non-existing methods in an object context",
-                "To dial a phone number API",
-                "To execute a shell command"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 4,
-            "q": "What does 'json_encode()' do?",
-            "answers": [
-                "Parses JSON",
-                "Returns the JSON representation of a value",
-                "Encrypts JSON",
-                "Validates JSON"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What are PHP Fibers (PHP 8.1)?",
-            "answers": [
-                "Threads for parallel processing",
-                "Lightweight concurrency mechanism for cooperative multitasking with a suspendable stack",
-                "A logging system",
-                "A micro-services framework"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does the #[Attribute] syntax do in PHP 8?",
-            "answers": [
-                "Sets an HTML attribute",
-                "Provides structured, machine-readable metadata natively in the language",
-                "Clears the output buffer",
-                "Optimizes performance"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is a WeakMap in PHP?",
-            "answers": [
-                "A map that loses data randomly",
-                "A map that accepts objects as keys and doesn't prevent them from being garbage collected",
-                "A slow array",
-                "A map restricted to strings"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is OPCache?",
-            "answers": [
-                "A caching plugin for WordPress",
-                "A PHP extension that improves performance by storing precompiled script bytecode in shared memory",
-                "A database caching tool",
-                "A browser cache"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does the JIT compiler (introduced in PHP 8) do?",
-            "answers": [
-                "Compiles PHP into machine code just-in-time to improve performance",
-                "Compiles PHP to Java",
-                "Minifies PHP files",
-                "Translates PHP to JavaScript"
-            ],
-            "correct": 0
-        },
-        {
-            "level": 5,
-            "q": "What is constructor property promotion (PHP 8)?",
-            "answers": [
-                "Promoting a class to global scope",
-                "A shorthand syntax for defining and initializing object properties directly in the constructor parameters",
-                "A marketing tool",
-                "Upgrading a variable's type"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does the 'fn' keyword signify (PHP 7.4+)?",
-            "answers": [
-                "A standard function",
-                "An arrow function (short closure) that automatically captures variables from the parent scope by value",
-                "A final function",
-                "A fake function"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What are intersection types (PHP 8.1)?",
-            "answers": [
-                "Types that cross files",
-                "A type declaration requiring a value to satisfy multiple type constraints simultaneously (e.g., TypeA&TypeB)",
-                "Union types",
-                "A geometric calculation"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What is the purpose of the 'ffi' (Foreign Function Interface) extension?",
-            "answers": [
-                "Calling front-end functions",
-                "Calling C functions and using C data types directly from pure PHP",
-                "Formatting file inputs",
-                "Fetching remote APIs"
-            ],
-            "correct": 1
-        },
-        {
-            "level": 5,
-            "q": "What does the nullsafe operator (?->) do?",
-            "answers": [
-                "Deletes null variables",
-                "Short-circuits method/property access if the left side evaluates to null, avoiding fatal errors",
-                "Checks if a variable is safe",
-                "Converts null to 0"
-            ],
-            "correct": 1
-        }
-    ]
-};
-
-  /* Usernames that already exist (offline demo only; online the server checks) */
-  var RESERVED_USERNAMES = [
-    "admin", "codle", "codemaster", "user", "test", "root", "system",
-    "moderator", "developer", "python", "javascript", "webdev", "hacker",
-    "john", "jane", "alex", "programmer", "null", "undefined"
-  ];
-  /* Terms that may not appear anywhere in a username (matched as a substring) */
-  var BLOCKED_USERNAME_TERMS = ["nigger"];
-
-  /* Verification code of the offline demo */
-  var VERIFICATION_CODE = "111111"; // Hardcoded per user request
   var QUIZ_LENGTH = 10;
   var EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  var USERNAME_RE = /^[A-Za-z0-9_]{3,20}$/;
+  var PROVIDER_NAMES = { google: "Google", github: "GitHub" };
 
   var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function $(id) { return document.getElementById(id); }
 
-  /* Online = the API answered. A logged-in visitor goes straight to the app. */
-  var online = false;
   var api = window.CodleApi;
-  if (api) {
-    api.ready.then(function (s) {
-      online = s.online;
-      if (s.online && s.user) window.location.replace("index.html");
+  var params = new URLSearchParams(location.search);
+
+  /* A logged-in visitor goes straight to the app. */
+  api.ready.then(function (s) {
+    if (s.user) { window.location.replace("index.html"); return; }
+    loadCourses();
+    loadChallenge();
+    initOAuth();
+  });
+
+  /* ===============================================================
+     0. BOT CHECK — proof of work on a signed challenge + honeypot.
+     Nothing to click: the browser finds a number n such that
+     sha256(challenge|subject|n) starts with `bits` zero bits.
+  ================================================================*/
+
+  var challenge = null; // { token, bits, at }
+  var CHALLENGE_MIN_AGE = 3500; // ms; the server refuses challenges younger than 3 s
+
+  function loadChallenge() {
+    return api.get("auth/challenge").then(function (res) {
+      challenge = { token: res.challenge, bits: res.bits, at: Date.now() };
+      return challenge;
     });
+  }
+
+  /* SHA-256, small and synchronous. The fixed start of the message is hashed once
+     (midstate); each try then only hashes the last block or two. */
+  var K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+    0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+    0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+    0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+    0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  var IV = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+  var W = new Int32Array(64);
+
+  /** Runs the compression function over the 64-byte block of m at off, updating st in place. */
+  function compress(st, m, off) {
+    for (var i = 0; i < 16; i++) W[i] = (m[off + i * 4] << 24) | (m[off + i * 4 + 1] << 16) | (m[off + i * 4 + 2] << 8) | m[off + i * 4 + 3];
+    for (i = 16; i < 64; i++) {
+      var a15 = W[i - 15], a2 = W[i - 2];
+      var s0 = ((a15 >>> 7) | (a15 << 25)) ^ ((a15 >>> 18) | (a15 << 14)) ^ (a15 >>> 3);
+      var s1 = ((a2 >>> 17) | (a2 << 15)) ^ ((a2 >>> 19) | (a2 << 13)) ^ (a2 >>> 10);
+      W[i] = (W[i - 16] + s0 + W[i - 7] + s1) | 0;
+    }
+    var a = st[0], b = st[1], c = st[2], d = st[3], e = st[4], f = st[5], g = st[6], h = st[7];
+    for (i = 0; i < 64; i++) {
+      var S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+      var t1 = (h + S1 + ((e & f) ^ (~e & g)) + K[i] + W[i]) | 0;
+      var S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+      var t2 = (S0 + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+      h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+    }
+    st[0] = (st[0] + a) | 0; st[1] = (st[1] + b) | 0; st[2] = (st[2] + c) | 0; st[3] = (st[3] + d) | 0;
+    st[4] = (st[4] + e) | 0; st[5] = (st[5] + f) | 0; st[6] = (st[6] + g) | 0; st[7] = (st[7] + h) | 0;
+  }
+
+  /** A hasher for prefix + decimal n: firstWord(n) is the first 32 bits of sha256(prefix + n). */
+  function prefixHasher(prefix) {
+    var bytes = new TextEncoder().encode(prefix);
+    var full = bytes.length - (bytes.length % 64);
+    var mid = IV.slice();
+    for (var off = 0; off < full; off += 64) compress(mid, bytes, off);
+    var tail = bytes.subarray(full);
+    var buf = new Uint8Array(128);
+    var st = new Int32Array(8);
+    return function firstWord(n) {
+      var digits = String(n);
+      var len = tail.length + digits.length;
+      var blocks = len + 9 > 64 ? 2 : 1;
+      buf.fill(0, 0, blocks * 64);
+      buf.set(tail);
+      for (var i = 0; i < digits.length; i++) buf[tail.length + i] = digits.charCodeAt(i);
+      buf[len] = 0x80;
+      var bitLen = (bytes.length + digits.length) * 8;
+      var end = blocks * 64;
+      buf[end - 4] = bitLen >>> 24; buf[end - 3] = bitLen >>> 16; buf[end - 2] = bitLen >>> 8; buf[end - 1] = bitLen;
+      for (i = 0; i < 8; i++) st[i] = mid[i];
+      compress(st, buf, 0);
+      if (blocks === 2) compress(st, buf, 64);
+      return st[0];
+    };
+  }
+
+  /** Resolves with the fields the API wants next to a protected request ({challenge, nonce, website}). */
+  function proveHuman(subject) {
+    var ready = challenge && Date.now() - challenge.at < 90 * 60 * 1000 ? Promise.resolve(challenge) : loadChallenge();
+    return ready.then(function (ch) {
+      var wait = Math.max(0, CHALLENGE_MIN_AGE - (Date.now() - ch.at));
+      return new Promise(function (resolve) {
+        var firstWord = prefixHasher(ch.token + "|" + subject + "|");
+        var shift = 32 - ch.bits;
+        var n = 0;
+        // Work in ~30 ms slices and yield through a MessageChannel (not throttled like
+        // setTimeout in background tabs), so the page stays responsive.
+        var channel = new MessageChannel();
+        channel.port1.onmessage = slice;
+        function slice() {
+          var until = Date.now() + 30;
+          while (Date.now() < until) {
+            for (var end = n + 500; n < end; n++) {
+              if ((firstWord(n) >>> shift) === 0) {
+                channel.port1.onmessage = null;
+                setTimeout(function () { resolve({ challenge: ch.token, nonce: n, website: honeypot() }); }, wait);
+                return;
+              }
+            }
+          }
+          channel.port2.postMessage(0);
+        }
+        slice();
+      });
+    });
+  }
+
+  function honeypot() {
+    var el = $("reg-website");
+    return el ? el.value : "";
+  }
+
+  /** POST with the bot check; on an expired or refused challenge it fetches a new one and tries once more. */
+  function postHuman(path, body, subject) {
+    function attempt(retry) {
+      return proveHuman(subject).then(function (proof) {
+        return api.post(path, Object.assign({}, body, proof));
+      }).catch(function (err) {
+        if (retry && err && (err.code === "challenge_expired" || err.code === "bad_challenge" || err.code === "bot_suspected")) {
+          challenge = null;
+          return attempt(false);
+        }
+        throw err;
+      });
+    }
+    return attempt(true);
   }
 
   /** Shows an API error under a field; falls back to a generic message. */
   function apiMessage(err, fallback) {
     if (err && err.code === "offline") return "No connection to the server. Try again.";
+    if (err && err.code === "too_many_attempts") return err.message;
     return (err && err.message) || fallback || "Something went wrong. Try again.";
   }
 
@@ -2346,8 +259,8 @@
       var pass = $("login-password").value;
       var valid = true;
 
-      if (!EMAIL_RE.test(email)) {
-        setGroupState("login-email-group", "login-email-error", "invalid", "Please enter a valid e-mail");
+      if (email.indexOf("@") >= 0 ? !EMAIL_RE.test(email) : !USERNAME_RE.test(email)) {
+        setGroupState("login-email-group", "login-email-error", "invalid", "Enter your e-mail or username");
         valid = false;
       } else {
         setGroupState("login-email-group", "login-email-error", "valid");
@@ -2363,12 +276,6 @@
       if (!valid) return;
       var btn = $("login-submit");
       setLoading(btn, true);
-      if (!online) {
-        setTimeout(function () {
-          window.location.href = "index.html"; // offline demo: no accounts
-        }, 1500);
-        return;
-      }
       api.post("auth/login", { login: email, password: pass }).then(function () {
         window.location.href = "index.html";
       }, function (err) {
@@ -2392,7 +299,7 @@
   bindVisibilityToggle("login-toggle-vis", "login-password");
   bindVisibilityToggle("reg-toggle-vis", "reg-password");
 
-  /* Password reset (online only): e-mail → code → new password, then logged in */
+  /* Password reset: e-mail → code → new password, then logged in */
 
   var forgotLink = $("forgot-link");
   var resetForm = $("reset-form");
@@ -2405,17 +312,15 @@
     $("login-title").textContent = show ? "Reset password" : "Welcome back";
     $("login-subtitle").textContent = show ? "We'll e-mail you a code to set a new password" : "Log into your account";
     if (show) {
-      $("reset-email").value = $("login-email").value.trim();
+      var typed = $("login-email").value.trim();
+      $("reset-email").value = typed.indexOf("@") >= 0 ? typed : "";
       $("reset-email").focus();
     }
   }
 
   if (forgotLink) {
     forgotLink.addEventListener("click", function () {
-      if (online) { showReset(true); return; }
-      var email = $("login-email");
-      setGroupState("login-email-group", "login-email-error", "invalid", "Password reset isn't available in this demo yet");
-      if (email) email.focus();
+      showReset(true);
     });
   }
 
@@ -2430,18 +335,18 @@
       }
       var btn = $("reset-send");
       btn.disabled = true;
-      api.post("auth/password/code", { email: email }).then(function (res) {
+      btn.textContent = "Sending…";
+      postHuman("auth/password/code", { email: email }, email.toLowerCase()).then(function () {
         setGroupState("reset-email-group", "reset-email-error", "valid");
         btn.textContent = "Sent ✓";
         var status = $("reset-status");
         status.className = "verify-status success";
-        status.textContent = res.devCode
-          ? "Dev mode: e-mail is off, your code is " + res.devCode + "."
-          : "If an account uses this e-mail, a code is on its way.";
+        status.textContent = "If an account uses this e-mail, a code is on its way. Check your spam folder too.";
         $("reset-code").focus();
         setTimeout(function () { btn.disabled = false; btn.textContent = "Resend"; }, 60000);
       }, function (err) {
         btn.disabled = false;
+        btn.textContent = "Send code";
         setGroupState("reset-email-group", "reset-email-error", "invalid", apiMessage(err));
       });
     });
@@ -2476,6 +381,8 @@
   var STEP_NAMES = { 1: "Language", 2: "Quiz", 3: "Email", 4: "Account" };
   // Where the header back button goes from each panel
   var BACK_TARGET = { "step-2": 1, "step-2-results": 1, "step-3": "2-results", "step-4": 3 };
+  // Set after a first sign-in with Google / GitHub: { token, provider, providerName, email, username }
+  var oauth = null;
   var selectedLang = null;
   var quizState = {};
   var emailVerified = false;
@@ -2502,10 +409,16 @@
 
     var header = $("wizard-progress");
     if (header) {
-      header.dataset.progress = numericStep;
+      // With Google / GitHub there is no e-mail step: Account is step 3 of 3.
+      var shown = oauth && numericStep === 4 ? 3 : numericStep;
+      var total = oauth ? 3 : 4;
+      header.dataset.progress = shown;
       header.classList.toggle("done", step === "success");
-      header.querySelector(".reg-progress").setAttribute("aria-valuenow", numericStep);
-      $("reg-step-label").textContent = "Step " + numericStep + " of 4 · " + (resultsShown ? "Results" : STEP_NAMES[numericStep]);
+      header.classList.toggle("no-email", !!oauth);
+      var bar = header.querySelector(".reg-progress");
+      bar.setAttribute("aria-valuenow", shown);
+      bar.setAttribute("aria-valuemax", total);
+      $("reg-step-label").textContent = "Step " + shown + " of " + total + " · " + (resultsShown ? "Results" : STEP_NAMES[numericStep]);
       $("reg-back").hidden = !BACK_TARGET[targetId];
     }
 
@@ -2542,40 +455,60 @@
   }
 
   langCards.forEach(function (card) {
-    card.addEventListener("click", function () {
-      langCards.forEach(function (c) {
-        c.classList.remove("selected");
-        c.setAttribute("aria-checked", "false");
-      });
-      card.classList.add("selected");
-      card.setAttribute("aria-checked", "true");
-      selectedLang = card.dataset.lang;
-      btnStartQuiz.disabled = false;
-      applyBrand(selectedLang);
-    });
+    card.addEventListener("click", function () { selectLang(card); });
   });
+
+  function selectLang(card) {
+    langCards.forEach(function (c) {
+      c.classList.remove("selected");
+      c.setAttribute("aria-checked", "false");
+    });
+    card.classList.add("selected");
+    card.setAttribute("aria-checked", "true");
+    selectedLang = card.dataset.lang;
+    btnStartQuiz.disabled = false;
+    applyBrand(selectedLang);
+  }
+
+  /** Hides languages that have no published course yet. */
+  function loadCourses() {
+    api.get("auth/courses").then(function (res) {
+      var open = (res.courses || []).map(function (c) { return c.slug; });
+      langCards.forEach(function (card) {
+        card.hidden = open.indexOf(card.dataset.lang) < 0;
+        if (card.hidden && card.classList.contains("selected")) {
+          card.classList.remove("selected");
+          selectedLang = null;
+          btnStartQuiz.disabled = true;
+        }
+      });
+    }, function () { /* keep every card; the server refuses an unpublished one */ });
+  }
 
   if (btnStartQuiz) {
     btnStartQuiz.addEventListener("click", function () {
       if (!selectedLang) return;
-      if (!online) {
-        initQuiz(selectedLang, QUESTIONS[selectedLang]);
-        goToStep(2);
-        return;
-      }
-      // Online the questions come from the database; their ids go back with the answers.
+      // The questions come from the database; their ids go back with the answers.
       var lang = selectedLang;
-      btnStartQuiz.disabled = true;
+      var err = $("start-quiz-error");
+      err.textContent = "";
+      setLoading(btnStartQuiz, true);
       api.get("placement/questions?course=" + encodeURIComponent(lang)).then(function (res) {
-        btnStartQuiz.disabled = false;
-        initQuiz(lang, res.questions.length ? res.questions : QUESTIONS[lang]);
+        setLoading(btnStartQuiz, false);
+        if (!res.questions.length) { skipQuiz(lang); return; }
+        initQuiz(lang, res.questions);
         goToStep(2);
-      }, function () {
-        btnStartQuiz.disabled = false;
-        initQuiz(lang, QUESTIONS[lang]);
-        goToStep(2);
+      }, function (e) {
+        setLoading(btnStartQuiz, false);
+        err.textContent = apiMessage(e, "Couldn't load the quiz. Try again.");
       });
     });
+  }
+
+  /** A course without placement questions: everyone starts at the first lesson. */
+  function skipQuiz(lang) {
+    quizState = { lang: lang, questions: [], answers: [], correct: 0, wrong: 0, seconds: 0 };
+    goToStep(oauth ? 4 : 3);
   }
 
   /* ===== STEP 2: Adaptive quiz engine =====
@@ -2770,6 +703,12 @@
     $("results-title").textContent = (pct >= 80 ? "Great job!" : pct >= 50 ? "Well done!" : "Good start!") +
       " You answered " + quizState.correct + " of " + total + " correctly.";
 
+    // What the result does: a level L start skips the first L − 1 units.
+    var level = Math.max(1, highest);
+    $("results-effect").innerHTML = level > 1
+      ? "You'll start at <strong>Unit " + level + "</strong>. Units 1–" + (level - 1) + " are marked as skipped. They stay open, so you can go back for their XP any time."
+      : "You'll start with the very first lesson. Every lesson you finish earns XP.";
+
     // Fill the level meter after the panel is visible so the change animates.
     var meter = $("level-meter");
     meter.dataset.level = 0;
@@ -2777,7 +716,8 @@
   }
 
   var btnToEmail = $("btn-to-email");
-  if (btnToEmail) btnToEmail.addEventListener("click", function () { goToStep(3); });
+  // With Google / GitHub the e-mail is already verified: straight to the account.
+  if (btnToEmail) btnToEmail.addEventListener("click", function () { goToStep(oauth ? 4 : 3); });
 
   /* ===== STEP 3: Email verification ===== */
 
@@ -2835,25 +775,27 @@
     startResendTimer();
   }
 
-  /** Sends a code and resolves true when it went out (offline demo: always, code 111111). */
+  /** Sends a code and resolves true when it went out. */
   function sendCode() {
     var email = regEmail.value.trim();
-    if (!online) {
-      console.log("Verification code (simulation):", VERIFICATION_CODE);
-      markSent();
-      return Promise.resolve(true);
-    }
     btnSendCode.disabled = true;
-    return api.post("auth/register/code", { email: email }).then(function (res) {
+    btnSendCode.textContent = "Sending…";
+    return postHuman("auth/register/code", { email: email }, email.toLowerCase()).then(function () {
       markSent();
-      // Local XAMPP sends no e-mail (mail mode "dev"): the API hands the code back instead.
-      $("verify-hint").innerHTML = res.devCode
-        ? 'Dev mode: e-mail is off, your code is <strong>' + res.devCode + "</strong>"
-        : 'Sent to <strong id="verify-email-display"></strong>';
-      if (!res.devCode) $("verify-email-display").textContent = email;
+      $("verify-email-display").textContent = email;
       return true;
     }, function (err) {
       btnSendCode.disabled = false;
+      btnSendCode.textContent = "Send code";
+      if (err.code === "email_taken") {
+        setGroupState("reg-email-group", "reg-email-error", "invalid", "");
+        $("reg-email-error").innerHTML = 'An account with this e-mail already exists. <button type="button" class="link-inline" id="email-taken-login">Log in instead</button>';
+        $("email-taken-login").addEventListener("click", function () {
+          $("login-email").value = email;
+          showAuthView(true);
+        });
+        return false;
+      }
       setGroupState("reg-email-group", "reg-email-error", "invalid", apiMessage(err));
       return false;
     });
@@ -2866,7 +808,6 @@
       sendCode().then(function (sent) {
         if (!sent) return;
         verifySection.style.display = "block";
-        if ($("verify-email-display")) $("verify-email-display").textContent = email;
         setTimeout(function () { codeDigits[0].focus(); }, 300);
       });
     });
@@ -2945,10 +886,6 @@
       }, 1200);
     }
 
-    if (!online) {
-      if (code === VERIFICATION_CODE) accept(); else reject();
-      return;
-    }
     codeDigits.forEach(function (d) { d.disabled = true; });
     api.post("auth/register/verify", { email: regEmail.value.trim(), code: code }).then(function (res) {
       verifiedToken = res.verifiedToken;
@@ -3026,7 +963,7 @@
         return;
       }
 
-      // Availability check, debounced (offline demo: a fixed list)
+      // Availability check, debounced
       setGroupState("reg-username-group", "reg-username-error", null);
       setUsernameStatus('<div class="spinner-sm"></div>');
 
@@ -3047,20 +984,13 @@
       }
 
       usernameTimer = setTimeout(function () {
-        if (online) {
-          api.get("auth/username?u=" + encodeURIComponent(val)).then(function (res) {
-            show(res.available ? null : res.reason);
-          }, function () {
-            setUsernameStatus("");
-            setGroupState("reg-username-group", "reg-username-error", "invalid", "Couldn't check the username. Try again.");
-          });
-          return;
-        }
-        var lower = val.toLowerCase();
-        var blocked = BLOCKED_USERNAME_TERMS.some(function (t) { return lower.indexOf(t) !== -1; });
-        var taken = RESERVED_USERNAMES.indexOf(lower) !== -1;
-        show(blocked ? "not_allowed" : taken ? "taken" : null);
-      }, online ? 400 : 800);
+        api.get("auth/username?u=" + encodeURIComponent(val)).then(function (res) {
+          show(res.available ? null : res.reason);
+        }, function () {
+          setUsernameStatus("");
+          setGroupState("reg-username-group", "reg-username-error", "invalid", "Couldn't check the username. Try again.");
+        });
+      }, 400);
     });
   }
 
@@ -3131,24 +1061,37 @@
       setLoading(btn, true);
       var username = regUsername.value.trim();
 
-      function done() {
+      function done(res) {
         $("success-username").textContent = username;
+        var start = res && res.placement && res.placement.startUnit;
+        $("success-start").textContent = start && res.placement.skippedUnits
+          ? "You start at Unit " + start.position + " · " + start.title + "."
+          : "You start with the first lesson.";
         goToStep("success");
         animateSuccess();
       }
-      if (!online) {
-        setTimeout(done, 2000);
-        return;
-      }
-      api.post("auth/register", {
-        verifiedToken: verifiedToken,
+      var body = {
         username: username,
         password: regPassword.value,
         course: selectedLang,
         timezone: (Intl.DateTimeFormat().resolvedOptions().timeZone || ""),
         placement: { answers: placementAnswers(), seconds: quizState.seconds || 0 }
-      }).then(done, function (err) {
+      };
+      var sent;
+      if (oauth) {
+        body.oauthToken = oauth.token;
+        sent = postHuman("auth/register", body, oauth.token);
+      } else {
+        body.verifiedToken = verifiedToken;
+        sent = api.post("auth/register", body);
+      }
+      sent.then(done, function (err) {
         setLoading(btn, false);
+        if (err.code === "oauth_expired" || err.code === "already_registered") {
+          showAuthView(true);
+          setGroupState("login-email-group", "login-email-error", "invalid", apiMessage(err));
+          return;
+        }
         if (err.code === "email_not_verified" || err.code === "email_taken") {
           resetVerification();
           goToStep(3);
@@ -3171,6 +1114,74 @@
       return { questionId: q.id, answerId: q.answerIds && a < q.answerIds.length ? q.answerIds[a] : null };
     }).filter(function (x) { return x.questionId; });
   }
+
+  /* ===============================================================
+     4. GOOGLE / GITHUB
+     The buttons go to the API, which sends the browser to the provider
+     and back. A known account is logged in right away; a first sign-in
+     lands here with ?oauth=<token> to finish the wizard without the
+     e-mail step.
+  ================================================================*/
+
+  function oauthStart(provider) {
+    var url = "api/auth/oauth/" + provider + "/start";
+    if (selectedLang) url += "?course=" + encodeURIComponent(selectedLang);
+    window.location.href = url;
+  }
+  document.querySelectorAll("[data-oauth]").forEach(function (btn) {
+    btn.addEventListener("click", function () { oauthStart(btn.dataset.oauth); });
+  });
+
+  var OAUTH_ERRORS = {
+    cancelled: "Sign-in with {p} was cancelled.",
+    state: "The sign-in with {p} took too long or was opened in another tab. Try again.",
+    failed: "{p} didn't let us sign you in. Try again.",
+    no_email: "Your {p} account has no verified e-mail address. Add one there, or register with your e-mail here.",
+    linked_elsewhere: "That {p} account already belongs to another Codle account.",
+    not_configured: "Signing in with {p} isn't available yet. Register with your e-mail instead."
+  };
+
+  function initOAuth() {
+    // Links such as register.html#login (home page) open the login form.
+    if (location.hash === "#login" && !params.get("oauth")) showAuthView(true);
+    var error = params.get("oauth_error");
+    var provider = PROVIDER_NAMES[params.get("provider")] || "the provider";
+    if (error) {
+      history.replaceState(null, "", location.pathname);
+      showAuthView(true);
+      setGroupState("login-email-group", "login-email-error", "invalid", (OAUTH_ERRORS[error] || OAUTH_ERRORS.failed).replace("{p}", provider));
+      return;
+    }
+    var token = params.get("oauth");
+    if (!token) return;
+    api.get("auth/oauth/pending?token=" + encodeURIComponent(token)).then(function (res) {
+      oauth = { token: token, provider: res.provider, providerName: res.providerName, email: res.email, username: res.username };
+      var banner = $("oauth-banner");
+      $("oauth-banner-text").innerHTML = "Signed in with <strong></strong> as <strong></strong>. Pick a language and take the quiz to finish your account.";
+      var strong = banner.querySelectorAll("strong");
+      strong[0].textContent = res.providerName;
+      strong[1].textContent = res.email;
+      banner.hidden = false;
+      $("register-social").hidden = true;
+      $("auth-toggle").hidden = true;
+      if (res.username) {
+        regUsername.value = res.username;
+        regUsername.dispatchEvent(new Event("input"));
+      }
+      var course = params.get("course");
+      var card = course && document.querySelector('.lang-card[data-lang="' + course.replace(/[^a-z0-9_-]/g, "") + '"]');
+      if (card && !card.hidden) selectLang(card);
+      goToStep(1);
+    }, function (err) {
+      history.replaceState(null, "", location.pathname);
+      showAuthView(true);
+      setGroupState("login-email-group", "login-email-error", "invalid", apiMessage(err));
+    });
+  }
+
+  $("oauth-cancel").addEventListener("click", function () {
+    window.location.replace(location.pathname);
+  });
 
   function animateSuccess() {
     setTimeout(function () {

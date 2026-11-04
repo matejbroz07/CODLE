@@ -8,7 +8,7 @@
  * Each guess is sent to api/wordle/guess and only the colours come back, so
  * the word is unknown to the browser until the game is over. Stats and XP live
  * in the database.
- * Offline demo: the word is the same for everyone on a given day (seeded order
+ * Fallback when the server cannot be reached: the word is the same for everyone on a given day (seeded order
  * over js/wordle-words.js, indexed by days since launch), progress and
  * lifetime stats live in localStorage.
  */

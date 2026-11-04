@@ -1,12 +1,12 @@
 # Databáze Codle
 
-Návrh databáze pro MariaDB 10.4+ (verze v XAMPP) a MySQL 8.0+.
+Databáze pro MariaDB 10.4+ a MySQL 8.0+.
 
 | Soubor | Obsah |
 |---|---|
 | `schema.sql` | Vytvoří databázi `codle`, všechny tabulky a pohledy. |
-| `seed.sql` | Vývojová data: kurzy HTML, CSS a JavaScript po šesti jednotkách (stejná osnova jako `js/curriculum.js`), 9 odznaků, 159 slov pro Wordle s rozpisem na 365 dní, 64 historických karet a 23 historek. Neobsahuje osobní údaje. |
-| `seed-placement.sql` | 200 otázek rozřazovacího kvízu (HTML, CSS, JavaScript, PHP, 10 na každou obtížnost). Stejná banka jako offline záloha v `js/register.js`. |
+| `seed.sql` | Obsah: kurzy HTML, CSS a JavaScript po šesti jednotkách, 9 odznaků, 159 slov pro Wordle s rozpisem na 365 dní, 64 historických karet a 23 historek. Neobsahuje osobní údaje. |
+| `seed-placement.sql` | 200 otázek rozřazovacího kvízu (HTML, CSS, JavaScript, PHP, 10 na každou obtížnost). |
 | `seed-quests.sql` | Úlohy do editoru pro všech 79 běžných lekcí HTML, CSS a JavaScriptu. Generuje se z `content/quests/` (viz `content/README.md`). |
 | `seed-quiz.sql` | 156 otázek kvízů jednotek a závěrečných zkoušek (8 na kvíz, 12 na zkoušku). Generuje se z `content/quiz/`. |
 | `content/` | Zdrojové soubory úloh a otázek a generátor `build.php`, ze kterého `seed-quests.sql` a `seed-quiz.sql` vznikají. Postup v `content/README.md`. |
@@ -14,20 +14,24 @@ Návrh databáze pro MariaDB 10.4+ (verze v XAMPP) a MySQL 8.0+.
 | `migrations/002_profile.sql` | Záložka Profile, pro databázi vytvořenou před 26. 10. 2026: bio, profilová fotka, viditelnost profilu a data změn v `users`, tabulka `username_history`. `schema.sql` je už obsahuje. |
 | `migrations/003_courses.sql` | Kurzy HTML, CSS a JavaScript po šesti jednotkách a odstranění Pythonu, pro databázi naplněnou před 27. 10. 2026. `seed.sql` je už obsahuje. Spouští se jen jednou. |
 | `migrations/003_mascot.sql` | Záložka Curly v profilu, pro databázi vytvořenou před 2. 11. 2026: sloupec `mascot` v `user_settings` (vzhled a chování maskota jako JSON). `schema.sql` ho už obsahuje. Bez migrace API funguje dál, vzhled se jen neukládá k účtu. |
+| `install.php` | Instalace na server: naimportuje `schema.sql` a všechny seedy do databáze z `api/config.php` (bez ohledu na její jméno). S `--sql` místo toho vypíše jeden SQL soubor pro phpMyAdmin. |
+| `migrations/005_placement.sql` | Rozřazovací kvíz s dopadem, pro databázi vytvořenou před 4. 11. 2026: stav `skipped` v `lesson_progress`. `schema.sql` ho už obsahuje. |
 | `migrations/004_theme.sql` | Záložka Theme v profilu, pro databázi vytvořenou před 3. 11. 2026: sloupce `app_theme` a `app_theme_custom` v `user_settings` (zvolené téma a vlastní mix tématu Codle jako JSON). `schema.sql` je už obsahuje. Bez migrace API funguje dál, téma se jen neukládá k účtu. |
 
 ## Import
 
-V phpMyAdmin (XAMPP) otevřete záložku **Import** a nahrajte v tomto pořadí `schema.sql`, `seed.sql`, `seed-placement.sql`, `seed-quests.sql`, `seed-quiz.sql`.
-
-Z terminálu:
+Na serveru (databáze musí existovat a být prázdná, přihlášení se bere z `api/config.php`):
 
 ```bash
-/Applications/XAMPP/xamppfiles/bin/mysql -u root < database/schema.sql
-/Applications/XAMPP/xamppfiles/bin/mysql -u root < database/seed.sql
-/Applications/XAMPP/xamppfiles/bin/mysql -u root < database/seed-placement.sql
-/Applications/XAMPP/xamppfiles/bin/mysql -u root < database/seed-quests.sql
-/Applications/XAMPP/xamppfiles/bin/mysql -u root < database/seed-quiz.sql
+php database/install.php
+```
+
+Bez SSH: `php database/install.php --sql > codle-install.sql` a soubor nahrajte v phpMyAdmin → Import.
+
+Ručně v pořadí `schema.sql`, `seed.sql`, `seed-placement.sql`, `seed-quests.sql`, `seed-quiz.sql` (tyto soubory počítají s databází `codle`):
+
+```bash
+mysql -u <uživatel> -p < database/schema.sql
 ```
 
 `schema.sql` počítá s prázdnou databází. Pokud `codle` už existuje, import skončí chybou a nic nepřepíše. Existující databázi doplníte migracemi ze složky `migrations/` (postup v `api/README.md`). `seed-placement.sql` při opakovaném importu přidá otázky podruhé; `seed-quests.sql` a `seed-quiz.sql` úlohy a otázky svých lekcí nahradí, takže se dají importovat opakovaně.
@@ -51,5 +55,5 @@ Obsah (kurzy, lekce, úlohy v editoru) a plán Wordle se spravují v `admin/` (p
 - IP adresy se neukládají.
 - Smazáním uživatele se kaskádově smažou všechna jeho data (GDPR). Soubor profilové fotky maže API.
 - Profilové fotky leží v `uploads/avatars/` (mimo git), v databázi je jen název souboru.
-- Rozpis Wordle v `seed.sql` používá stejné pořadí slov jako offline demo v prohlížeči, takže se dny shodují. S API zná odpověď jen server.
+- Odpověď Wordle zná jen server, prohlížeč dostává jen barvy písmen.
 - Počítadla v `users` (`xp_total`, `streak_*`) jsou jen zrychlení. Zdrojem pravdy jsou `xp_events` a `daily_activity`.

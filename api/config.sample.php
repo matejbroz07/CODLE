@@ -28,12 +28,31 @@ return [
     // Date of Wordle puzzle #1 (must match LAUNCH in js/practice.js and admin/config.php).
     'wordle_launch' => '2026-10-13',
 
-    // How verification codes reach the learner:
-    //   'dev'  — no e-mail; the API returns the code and the page shows it (local XAMPP only)
-    //   'mail' — PHP mail() with the sender below (needs a working mail setup on the server)
+    // Public address of the app with the trailing slash, e.g. 'https://codle.example.com/'.
+    // Used for the Google / GitHub redirect URIs and links in e-mails. Leave empty to
+    // derive it from the request (fine when the app is not behind a proxy).
+    'app_url' => '',
+    'app_name' => 'Codle',
+    // true when a proxy / load balancer in front of PHP terminates HTTPS and sets X-Forwarded-Proto.
+    'behind_proxy' => false,
+
+    // Outgoing e-mail (verification codes, password reset, notices) goes through Resend.
+    // 'from' must use a domain verified in the Resend dashboard.
     'mail' => [
-        'mode' => 'dev',
-        'from' => 'Codle <no-reply@example.com>',
+        'resend_key' => '',                               // API key from https://resend.com/api-keys
+        'from'       => 'Codle <no-reply@codle.eu>',
+        'reply_to'   => null,
+        'max_per_hour' => 300,                            // site-wide limit on code e-mails (anti-abuse)
+    ],
+
+    // "Continue with Google / GitHub". Register the redirect URI
+    //   <app_url>api/auth/oauth/google/callback  and  <app_url>api/auth/oauth/github/callback
+    // in the Google Cloud console (OAuth client, web application) and in GitHub → Settings →
+    // Developer settings → OAuth Apps. With a provider's keys empty its button only shows
+    // a "not available yet" message.
+    'oauth' => [
+        'google' => ['client_id' => '', 'client_secret' => ''],
+        'github' => ['client_id' => '', 'client_secret' => ''],
     ],
 
     // Login session lifetime in days.

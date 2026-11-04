@@ -6,16 +6,15 @@
  * tab size, word wrap, line numbers, theme); those preferences are shared
  * by every lesson, while code and progress are saved per lesson.
  *
- * editor.html?lesson=ID with the API (js/api.js) loads that lesson's quest
- * from the database, autosaves the code to the server and completes the
- * lesson (XP) once every objective passes. Without a lesson id or without the
- * API the sample quest below runs, saved in localStorage only.
+ * editor.html?lesson=ID loads that lesson's quest from the API (js/api.js),
+ * autosaves the code to the server and completes the lesson (XP) once every
+ * objective passes. Without a lesson id the page goes back to the path.
  *
  * Objective checks run inside the sandboxed preview iframe and report back
  * with postMessage, so the preview never needs same-origin access to this page.
  */
 
-/** Builds the editor. `lesson` is the API's GET lessons/{id} answer, or null for the sample quest. */
+/** Builds the editor. `lesson` is the API's GET lessons/{id} answer. */
 function codleEditor(lesson) {
   "use strict";
 
@@ -37,128 +36,12 @@ function codleEditor(lesson) {
   document.querySelectorAll("[data-logo]").forEach(function (el) { el.innerHTML = LOGOS[el.dataset.logo]; });
 
   /* ===============================================================
-     2. QUEST — from the lesson (online) or the sample below
-     An objective's check is a function (sample) or the body of
-     function (doc) { … } as a string (database, quest_objectives.check_js).
+     2. QUEST — from the lesson. An objective's check is the body of
+     function (doc) { … } as a string (quest_objectives.check_js).
   ================================================================*/
 
   var api = window.CodleApi;
   var remote = !!lesson;
-
-  var SAMPLE_QUEST = {
-    id: "u1-l3-profile-card",
-    crumb: "Unit 1 · Lesson 3",
-    title: "Build a profile card",
-    xp: 20,
-    descHtml:
-      "<p>Every developer needs a place to say hi. The output already shows a card with a placeholder name, a role and a button.</p>" +
-      "<p>Make it yours: put in your name, soften the corners, and make the <b>Follow</b> button react when someone clicks it.</p>",
-    objectives: [
-      {
-        lang: "html",
-        text: "Replace <code>Your name</code> in the <code>&lt;h1&gt;</code> with your own name.",
-        hint: "Open the <b>HTML</b> tab and change the text between <code>&lt;h1&gt;</code> and <code>&lt;/h1&gt;</code>.",
-        check: function (doc) {
-          var h = doc.querySelector(".card h1") || doc.querySelector("h1");
-          var t = h ? h.textContent.trim() : "";
-          return t.length > 1 && t.toLowerCase() !== "your name";
-        }
-      },
-      {
-        lang: "css",
-        text: "Give <code>.card</code> a <code>border-radius</code> of at least <code>12px</code>.",
-        hint: "In the <b>CSS</b> tab, add this line inside the <code>.card</code> rule:<pre>border-radius: 16px;</pre>",
-        check: function (doc) {
-          var c = doc.querySelector(".card");
-          return !!c && parseFloat(getComputedStyle(c).borderTopLeftRadius) >= 12;
-        }
-      },
-      {
-        lang: "js",
-        text: "When the button is clicked, change its text to <code>Following</code>.",
-        hint: "Inside the click handler in the <b>JS</b> tab, set the button's text:<pre>button.textContent = \"Following\";</pre>",
-        check: function (doc) {
-          var b = doc.getElementById("follow");
-          if (!b) return false;
-          b.click();
-          return /following/i.test(b.textContent);
-        }
-      }
-    ],
-    starter: {
-      html: [
-        '<div class="card">',
-        '  <div class="avatar">?</div>',
-        '  <h1>Your name</h1>',
-        '  <p class="role">Junior developer</p>',
-        '  <button id="follow">Follow</button>',
-        '</div>',
-        ''
-      ].join("\n"),
-      css: [
-        'body {',
-        '  margin: 0;',
-        '  min-height: 100vh;',
-        '  display: grid;',
-        '  place-items: center;',
-        '  background: #f2f4f8;',
-        '  font-family: system-ui, sans-serif;',
-        '}',
-        '',
-        '.card {',
-        '  width: 240px;',
-        '  padding: 28px 24px;',
-        '  text-align: center;',
-        '  background: #ffffff;',
-        '  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);',
-        '  /* Objective 2: round the corners here */',
-        '}',
-        '',
-        '.avatar {',
-        '  width: 72px;',
-        '  height: 72px;',
-        '  margin: 0 auto 12px;',
-        '  border-radius: 50%;',
-        '  display: grid;',
-        '  place-items: center;',
-        '  background: #0a84ff;',
-        '  color: #ffffff;',
-        '  font-size: 28px;',
-        '  font-weight: 700;',
-        '}',
-        '',
-        'h1 {',
-        '  margin: 0;',
-        '  font-size: 22px;',
-        '}',
-        '',
-        '.role {',
-        '  margin: 4px 0 18px;',
-        '  color: #6b7280;',
-        '}',
-        '',
-        'button {',
-        '  padding: 10px 22px;',
-        '  border: none;',
-        '  border-radius: 999px;',
-        '  background: #0a84ff;',
-        '  color: #ffffff;',
-        '  font-weight: 600;',
-        '  cursor: pointer;',
-        '}',
-        ''
-      ].join("\n"),
-      js: [
-        'const button = document.getElementById("follow");',
-        '',
-        'button.addEventListener("click", () => {',
-        '  // Objective 3: change the button text here',
-        '  console.log("Button clicked!");',
-        '});',
-        ''
-      ].join("\n")
-    }
-  };
 
   var QUEST = remote ? {
     id: lesson.quest.id,
@@ -168,12 +51,12 @@ function codleEditor(lesson) {
     descHtml: lesson.quest.descHtml,
     objectives: lesson.quest.objectives,
     starter: lesson.quest.starter
-  } : SAMPLE_QUEST;
+  } : null;
 
   /* ===============================================================
      3. STATE + STORAGE
-     Online the server keeps the code (quest_saves) and the workspace
-     (user_settings); offline both live in localStorage.
+     The server keeps the code (quest_saves) and the workspace
+     (user_settings).
   ================================================================*/
 
   var LESSON_KEY = "codle.editor." + QUEST.id;
@@ -1091,7 +974,7 @@ function codleEditor(lesson) {
     addLog(e.data.type, e.data.args);
     if (e.data.type === "error" && mascot) {
       mascot.mood("surprised", 1500);
-      mascot.tip("Your JavaScript threw an error. Open the console under the preview to see what went wrong.", { key: "ed-error:" + (lesson ? lesson.lesson.id : "demo"), mood: "surprised" });
+      mascot.tip("Your JavaScript threw an error. Open the console under the preview to see what went wrong.", { key: "ed-error:" + lesson.lesson.id, mood: "surprised" });
     }
   });
 
@@ -1241,7 +1124,7 @@ function codleEditor(lesson) {
       if (document.hidden || done.indexOf(false) < 0) return;
       if (Date.now() - lastEdit < 90000 || input !== document.activeElement && Date.now() - lastEdit < 180000) return;
       lastEdit = Date.now();
-      mascot.tip("Stuck? Click me and I'll point you to the next step.", { key: "ed-idle:" + (lesson ? lesson.lesson.id : "demo"), mood: "think" });
+      mascot.tip("Stuck? Click me and I'll point you to the next step.", { key: "ed-idle:" + lesson.lesson.id, mood: "think" });
     }, 15000);
 
     setTimeout(function () {
@@ -1621,12 +1504,12 @@ function codleEditor(lesson) {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { moveFileIndicator(); fitWrap(); });
 }
 
-/* Loader: a lesson from the API when the URL names one, otherwise the sample quest. */
+/* Loader: the lesson the URL names, from the API. Without one, back to the path. */
 (function () {
   "use strict";
   var match = /[?&]lesson=(\d+)/.exec(location.search);
   var api = window.CodleApi;
-  if (!match || !api) { codleEditor(null); return; }
+  if (!match || !api) { window.location.replace("index.html"); return; }
 
   function giveUp(message) {
     var el = document.getElementById("ed-toast");
@@ -1636,7 +1519,6 @@ function codleEditor(lesson) {
   }
 
   api.ready.then(function (s) {
-    if (!s.online) { codleEditor(null); return; } // static demo: sample quest
     if (!s.user) { window.location.replace("register.html"); return; }
     api.get("lessons/" + match[1]).then(codleEditor, function (err) {
       giveUp(err.code === "lesson_locked" ? "This lesson is still locked." :

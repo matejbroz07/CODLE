@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Codle — Learn HTML, CSS and JavaScript</title>
+  <meta name="description" content="Codle is a free platform for learning HTML, CSS and JavaScript with short lessons, a live code editor, quizzes and daily coding games.">
+  <meta property="og:title" content="Codle — Learn HTML, CSS and JavaScript">
+  <meta property="og:description" content="Free interactive lessons, a live code editor, quizzes and daily coding games.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://app.codle.eu/">
+  <meta property="og:image" content="https://app.codle.eu/assets/logo.png">
+  <link rel="canonical" href="https://app.codle.eu/">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#08090c">
+  <script src="js/perf.js"></script>
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/themes.css">
+  <link rel="stylesheet" href="css/home.css">
+</head>
+<body>
+<div class="bg" aria-hidden="true"></div>
+
+<div class="home">
+  <header class="home-top">
+    <a class="home-brand" href="./" aria-label="Codle home">
+      <img src="assets/logo.png" alt="" width="171" height="96">
+    </a>
+    <nav class="home-nav" aria-label="Account">
+      <a class="home-link" href="register.html#login" data-guest>Log in</a>
+      <a class="home-btn small" href="register.html" data-guest>Sign up free</a>
+      <a class="home-btn small" href="index.html" data-member hidden>Continue learning</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="home-hero">
+      <h1>Codle</h1>
+      <p class="home-tagline">Learn HTML, CSS and JavaScript, one small step a day.</p>
+      <p class="home-lead">Codle is a free learning platform for beginners. You learn web development through short lessons, write real code in a live editor right in your browser, and keep your motivation up with XP, daily streaks and coding games.</p>
+      <div class="home-cta">
+        <a class="home-btn" href="register.html" data-guest>Start learning for free</a>
+        <a class="home-btn ghost" href="register.html#login" data-guest>I already have an account</a>
+        <a class="home-btn" href="index.html" data-member hidden>Continue learning</a>
+      </div>
+    </section>
+
+    <section class="home-section" aria-labelledby="what-title">
+      <h2 id="what-title">What you can do on Codle</h2>
+      <div class="home-grid">
+        <article class="home-card liquid-glass">
+          <h3>Follow a learning path</h3>
+          <p>Courses in HTML, CSS and JavaScript, split into units and short lessons. Each lesson builds on the one before it.</p>
+        </article>
+        <article class="home-card liquid-glass">
+          <h3>Write real code</h3>
+          <p>Every task opens in a code editor with a live preview. Codle checks your code step by step and tells you what is still missing.</p>
+        </article>
+        <article class="home-card liquid-glass">
+          <h3>Start at your level</h3>
+          <p>A short placement quiz when you sign up finds out what you already know, so you can skip the units you have mastered.</p>
+        </article>
+        <article class="home-card liquid-glass">
+          <h3>Test yourself</h3>
+          <p>Unit quizzes and final exams show whether the knowledge stuck before you move on.</p>
+        </article>
+        <article class="home-card liquid-glass">
+          <h3>Play daily games</h3>
+          <p>Guess the coding word of the day, sort programming milestones by age and read a short story from the history of computing.</p>
+        </article>
+        <article class="home-card liquid-glass">
+          <h3>Stay motivated</h3>
+          <p>Earn XP, keep your daily streak, collect badges and see how you rank on the weekly leaderboard.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="home-section" aria-labelledby="how-title">
+      <h2 id="how-title">How it works</h2>
+      <ol class="home-steps">
+        <li><b>Pick a language.</b> Choose HTML, CSS or JavaScript.</li>
+        <li><b>Take the placement quiz.</b> Ten questions that adapt to your answers.</li>
+        <li><b>Create your account.</b> Sign up with your e-mail, or with Google or GitHub.</li>
+        <li><b>Learn every day.</b> Your progress is saved, so you can continue on any device.</li>
+      </ol>
+    </section>
+
+    <section class="home-section home-signin liquid-glass" aria-labelledby="signin-title">
+      <h2 id="signin-title">Signing in with Google or GitHub</h2>
+      <p>You can sign up and log in with your Google or GitHub account instead of confirming your e-mail with a code. Codle uses that sign-in only to identify you. It receives your account ID, your verified e-mail address and your name, which is used to suggest a username. Codle does not read your e-mails, files, repositories or anything else, and it never posts on your behalf.</p>
+      <p>Details are in our <a href="privacy.html">Privacy Policy</a>.</p>
+    </section>
+  </main>
+
+  <footer class="home-foot">
+    <p><b>Codle</b> · Free interactive coding lessons · <a href="mailto:info@codle.eu">info@codle.eu</a></p>
+    <p><a href="terms.html">Terms of Service</a> · <a href="privacy.html">Privacy Policy</a></p>
+  </footer>
+</div>
+
+<script>
+  /* Logged-in visitors get "Continue learning" instead of the sign-up buttons. The page itself is public. */
+  (function () {
+    fetch("api/session", { credentials: "same-origin", headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d || !d.user) return;
+        document.querySelectorAll("[data-guest]").forEach(function (el) { el.hidden = true; });
+        document.querySelectorAll("[data-member]").forEach(function (el) { el.hidden = false; });
+      })
+      .catch(function () { /* the page works without the API */ });
+  })();
+</script>
+</body>
+</html>

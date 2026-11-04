@@ -645,3 +645,39 @@ html { scroll-behavior: smooth; }
 /* Password reset swaps the login form for its own; these keep the swapped-out parts hidden */
 #reset-form[hidden], .auth-divider[hidden], .social-buttons[hidden] { display: none; }
 #reset-back { margin: 14px auto 0; display: block; }
+
+/* ===== Production additions: Google / GitHub sign-up, bot trap, quiz effect ===== */
+
+/* Honeypot: off-screen for people, still a normal field for form-filling bots */
+.hp-field { position: absolute; left: -10000px; top: auto; width: 1px; height: 1px; overflow: hidden; }
+
+.oauth-banner {
+  margin: 0 0 20px; padding: 14px 16px; border-radius: 14px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  text-align: center; font-size: 14px; line-height: 1.5; color: var(--ink);
+}
+.oauth-banner[hidden] { display: none; }
+.oauth-banner p { margin: 0 0 6px; }
+.oauth-banner strong { color: var(--ink-strong); font-weight: 600; }
+.oauth-banner .forgot-link { margin: 0 auto; }
+
+#register-social { margin-top: 8px; }
+#register-social[hidden], .auth-toggle[hidden] { display: none; }
+.reg-center { text-align: center; }
+#start-quiz-error:empty { display: none; }
+
+.reg-effect { margin: 4px 0 20px; font-size: 14px; line-height: 1.5; color: var(--ink-dim); text-align: center; }
+.reg-effect strong { color: var(--ink-strong); font-weight: 600; }
+
+/* Google / GitHub accounts have no e-mail step: three segments */
+.reg-header.no-email .reg-progress { grid-template-columns: repeat(3, 1fr); }
+.reg-header.no-email .reg-progress span:nth-child(4) { display: none; }
+
+.link-inline { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.lang-card[hidden] { display: none; }
+
+/* Links to the Terms of Service and Privacy Policy */
+.legal-note { margin-top: 14px; opacity: 1; }
+.legal-note a { color: var(--ink-dim); text-decoration: underline; }
+.legal-note a:hover { color: var(--ink-strong); }

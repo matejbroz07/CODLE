@@ -11,7 +11,7 @@ php database/content/build.php --json   # navíc content.json pro ověřovač ko
 |---|---|
 | `quests/<kurz>-<jednotka>.php` | Úlohy do editoru, jeden soubor na jednotku (`html-1.php` … `javascript-6.php`). Pole `slug lekce => úloha`. |
 | `quiz/<kurz>.php` | Otázky kvízů jednotek a závěrečné zkoušky kurzu. Pole `slug lekce => otázky`. |
-| `build.php` | Generátor. Lekce hledá podle slugu kurzu, pořadí jednotky a slugu lekce (stejné jako `js/curriculum.js` a `seed.sql`). |
+| `build.php` | Generátor. Lekce hledá podle slugu kurzu, pořadí jednotky a slugu lekce (stejné jako `seed.sql`). |
 | `verify/` | Ověřovač kontrol: pustí každou úlohu v prohlížeči se startovním kódem (nesmí projít) a s řešením (musí projít). |
 
 ## Úloha

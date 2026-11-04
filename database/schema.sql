@@ -330,7 +330,7 @@ CREATE TABLE placement_answers (
 CREATE TABLE lesson_progress (
   user_id       BIGINT UNSIGNED  NOT NULL,
   lesson_id     INT UNSIGNED     NOT NULL,
-  status        ENUM('in_progress','completed') NOT NULL DEFAULT 'in_progress',
+  status        ENUM('in_progress','completed','skipped') NOT NULL DEFAULT 'in_progress',  -- skipped = placed past it by the registration quiz; still open
   progress_pct  TINYINT UNSIGNED NOT NULL DEFAULT 0,         -- ring around the current milestone
   best_score    TINYINT UNSIGNED NULL,                       -- quizzes/exams, 0–100
   attempts      SMALLINT UNSIGNED NOT NULL DEFAULT 0,

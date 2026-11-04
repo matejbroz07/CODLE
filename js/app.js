@@ -6,11 +6,9 @@
  * and reveal animation, background tinting on scroll, SPA view switching,
  * navbar indicators, the phone course sheet and the liquid-glass pointer effects.
  *
- * With the API (js/api.js) CodleData comes from the server: the path is built
- * from the database, lessons open in the editor, and the Leaderboard and
- * Profile tabs are filled in. Without it the static demo is shown (path from
- * js/curriculum.js, progress from js/data.js), and a visitor who is not logged
- * in goes to register.html.
+ * CodleData comes from the API (js/api.js): the path is built from the
+ * database, lessons open in the editor, and the Leaderboard and Profile tabs
+ * are filled in. A visitor who is not logged in goes to register.html.
  */
 
 (function () {
@@ -113,7 +111,7 @@
 
   function setMilestoneState(milestone, state) {
     var circle = milestone.querySelector(".milestone-circle");
-    milestone.classList.remove("completed", "current", "locked");
+    milestone.classList.remove("completed", "current", "locked", "skipped");
     milestone.classList.add(state);
 
     var isLocked = state === "locked";
@@ -150,32 +148,25 @@
 
   function hydrateCourse(data) {
     var courseId = data.activeCourse || "html";
-    var progress = data.progress[courseId] || { currentUnit: 1, currentMilestone: 1, currentMilestoneProgress: 0 };
+    var progress = (data.progress && data.progress[courseId]) || { currentMilestoneProgress: 0 };
     var chapters = activeCourseView().querySelectorAll(".chapter-group");
     var currentUnitTitle = "";
+    var STATES = ["completed", "skipped", "current", "locked"];
 
-    chapters.forEach(function (chapter, i) {
-      var unitIndex = i + 1;
+    // The states come from the API (renderPath); this adds the check, ring and Continue button.
+    chapters.forEach(function (chapter) {
       var milestones = chapter.querySelectorAll(".milestone");
-      var unitLocked = unitIndex > progress.currentUnit;
-      chapter.classList.toggle("chapter-locked", unitLocked);
-
-      milestones.forEach(function (milestone, j) {
-        var msIndex = j + 1;
-        var state;
-        if (unitLocked) {
-          state = "locked";
-        } else if (unitIndex < progress.currentUnit || msIndex < progress.currentMilestone) {
-          state = "completed";
-        } else if (unitIndex === progress.currentUnit && msIndex === progress.currentMilestone) {
-          state = "current";
+      var allLocked = milestones.length > 0;
+      milestones.forEach(function (milestone) {
+        var state = STATES.filter(function (st) { return milestone.classList.contains(st); })[0] || "locked";
+        if (state !== "locked") allLocked = false;
+        if (state === "current") {
           var heading = chapter.querySelector(".path-section-header h3");
           if (heading) currentUnitTitle = heading.textContent;
-        } else {
-          state = "locked";
         }
         setMilestoneState(milestone, state);
       });
+      chapter.classList.toggle("chapter-locked", allLocked);
     });
 
     // Course label under the dropdown mirrors the unit that holds the current lesson.
@@ -204,38 +195,10 @@
     hydrateCourse(data);
   }
 
-  /**
-   * Static demo: the same path object the API returns, built from js/curriculum.js
-   * and the demo learner's position in js/data.js.
-   */
-  function demoPath(courseId) {
-    var cur = window.CodleCurriculum || {};
-    var course = cur[courseId] || cur[Object.keys(cur)[0]];
-    if (!course) return null;
-    var progress = (window.CodleData && window.CodleData.progress[courseId]) || { currentUnit: 1, currentMilestone: 1, currentMilestoneProgress: 0 };
-    var id = 0;
-    return {
-      course: { slug: courseId, name: course.name },
-      units: course.units.map(function (u, i) {
-        var unitIndex = i + 1;
-        var lessons = u.lessons.map(function (l, j) {
-          var msIndex = j + 1;
-          var state = unitIndex < progress.currentUnit || (unitIndex === progress.currentUnit && msIndex < progress.currentMilestone) ? "completed"
-            : unitIndex === progress.currentUnit && msIndex === progress.currentMilestone ? "current" : "locked";
-          return { id: ++id, slug: l[0], title: l[1], kind: l[2] || "lesson", xp: l[3] || 20, state: state,
-                   progress: state === "current" ? progress.currentMilestoneProgress : 0, playable: state !== "locked" };
-        });
-        var done = lessons.filter(function (l) { return l.state === "completed"; }).length;
-        return { position: unitIndex, title: u.title, total: lessons.length, completed: done, lessons: lessons };
-      })
-    };
-  }
-
   /* ===============================================================
-     1a. ONLINE — path, sidebar and tabs from the API
+     1a. PATH, SIDEBAR AND TABS FROM THE API
   ================================================================*/
 
-  var online = false;
   var api = window.CodleApi;
 
   function esc(s) {
@@ -338,11 +301,13 @@
       html += '<div class="chapter-group"><div class="path-nodes">' +
         '<div class="path-node path-unit-head" data-pos="center" data-is-waypoint><div class="path-section-header liquid-glass">' +
         "<h3>Unit " + u.position + " · " + esc(u.title) + "</h3>" +
-        "<p>" + (u.total ? u.completed + " / " + u.total + '<span class="unit-count-label"> lessons complete</span>' : "No lessons yet") + "</p></div></div>";
+        "<p>" + (u.total ? u.completed + " / " + u.total + '<span class="unit-count-label"> lessons complete</span>' +
+          (u.skipped ? '<span class="unit-count-label"> · ' + u.skipped + " skipped</span>" : "") : "No lessons yet") + "</p></div></div>";
       u.lessons.forEach(function (l) {
         var tip = "";
         if (l.state !== "locked") {
-          var sub = l.state === "current" && l.progress ? l.progress + "% complete" : "+" + l.xp + " XP";
+          var sub = l.state === "current" && l.progress ? l.progress + "% complete"
+            : l.state === "skipped" ? "Skipped by your quiz · +" + l.xp + " XP" : "+" + l.xp + " XP";
           tip = '<div class="milestone-tooltip liquid-glass"><div class="tip-title">' + esc(l.title) + '</div><div class="tip-sub">' + sub + "</div></div>";
         }
         html += '<div class="path-node" data-pos="' + POSITIONS[n++ % POSITIONS.length] + '" data-is-waypoint>' +
@@ -449,7 +414,6 @@
 
   /** Called by the practice games after they earned XP. */
   function refreshUser() {
-    if (!online) return;
     api.get("session").then(function (res) { applyUser(res.user); });
     api.get("leaderboard").then(function (lb) { renderLeaderboardCard(lb); renderLeaderboardView(lb); });
   }
@@ -464,12 +428,10 @@
     toastTimer = setTimeout(function () { el.classList.remove("show"); }, ms || 1800);
   }
 
-  /** Opens a lesson in the editor. Offline, every open lesson shows the sample quest. */
   /** Quizzes and exams open in quiz.html, everything else in the editor. */
   function lessonPage(kind) { return kind === "quiz" || kind === "exam" ? "quiz.html" : "editor.html"; }
 
   function openLesson(ms) {
-    if (!online) { window.location.href = lessonPage(ms.dataset.kind); return; } // static demo: sample quest / sample quiz
     if (!ms.dataset.playable) {
       if (mascot) mascot.say("This lesson isn't ready yet. Keep going on the current one and I'll let you know.", { mood: "sad" });
       else toast("This lesson isn't ready yet");
@@ -532,7 +494,7 @@
     refreshUser: refreshUser,
     applyUser: applyUser,
     toast: toast,
-    isOnline: function () { return online; },
+    isOnline: function () { return true; },
     showView: function (viewId) { activateView(viewId); }
   };
 
@@ -803,26 +765,14 @@
     courseSelector.addEventListener("change", function (e) {
       var courseId = e.target.value;
       e.target.blur();
-      if (online) {
-        // Enrolls if needed and makes it the course shown next time too.
-        api.post("me/course", { course: courseId }).then(function (data) {
-          data.leaderboard = window.CodleData.leaderboard;
-          applyAppData(data);
-        }, function (err) {
-          toast(err.message);
-          e.target.value = window.CodleData.activeCourse;
-        });
-        return;
-      }
-      if (window.CodleData) window.CodleData.activeCourse = courseId;
-      renderPath(demoPath(courseId));
-
-      var container = $("path-container");
-      if (container) delete container.dataset.animated;
-      stopAutoScroll();
-      hydrateApp();
-      drawAndAnimate();
-      updateUnitAccent();
+      // Enrolls if needed and makes it the course shown next time too.
+      api.post("me/course", { course: courseId }).then(function (data) {
+        data.leaderboard = window.CodleData.leaderboard;
+        applyAppData(data);
+      }, function (err) {
+        toast(err.message);
+        e.target.value = window.CodleData.activeCourse;
+      });
     });
   }
 
@@ -835,16 +785,8 @@
   function courseRows() {
     var data = window.CodleData || {};
     var activeLabel = ($("ui-course-label") || {}).textContent || "";
-    if (online && data.courses) {
-      return data.courses.map(function (c) {
-        return { slug: c.slug, name: c.name, sub: c.slug === data.activeCourse ? activeLabel : c.enrolled ? "Enrolled" : "Not started yet" };
-      });
-    }
-    var cur = window.CodleCurriculum || {};
-    return Object.keys(cur).map(function (slug) {
-      var p = data.progress && data.progress[slug];
-      var unit = p && cur[slug].units[p.currentUnit - 1];
-      return { slug: slug, name: cur[slug].name, sub: unit ? "Unit " + p.currentUnit + " — " + unit.title : "Not started yet" };
+    return (data.courses || []).map(function (c) {
+      return { slug: c.slug, name: c.name, sub: c.slug === data.activeCourse ? activeLabel : c.enrolled ? "Enrolled" : "Not started yet" };
     });
   }
 
@@ -1099,19 +1041,8 @@
   }
 
   var pageLoaded = new Promise(function (resolve) { window.addEventListener("load", resolve); });
-  var session = api ? api.ready : Promise.resolve({ online: false });
-
-  session.then(function (s) {
-    if (!s.online) { // static demo
-      pageLoaded.then(function () {
-        var demo = window.CodleData;
-        if (demo) renderPath(demoPath(demo.activeCourse));
-        start();
-      });
-      return;
-    }
+  api.ready.then(function (s) {
     if (!s.user) { window.location.replace("register.html"); return; }
-    online = true;
     Promise.all([api.get("app"), pageLoaded]).then(function (res) {
       var data = res[0];
       window.CodleData = data;
@@ -1121,6 +1052,7 @@
       renderLeaderboardCard(data.leaderboard);
       renderProfileView(data.user);
       start();
+      oauthNotice();
     }, function (err) {
       if (err.status === 401) { window.location.replace("register.html"); return; }
       toast("Couldn't load your progress: " + err.message, 4000);
@@ -1128,6 +1060,21 @@
     });
     api.get("leaderboard").then(renderLeaderboardView);
   });
+
+  /** After "Connect Google / GitHub" in the profile the API sends the learner back here. */
+  function oauthNotice() {
+    var q = new URLSearchParams(location.search);
+    var names = { google: "Google", github: "GitHub" };
+    var name = names[q.get("linked") || q.get("provider")] || "The account";
+    var msg = q.get("linked") ? name + " is connected. You can log in with it now."
+      : q.get("oauth_error") === "linked_elsewhere" ? "That " + name + " account already belongs to another Codle account."
+      : q.get("oauth_error") === "not_configured" ? "Signing in with " + name + " isn't available yet."
+      : q.get("oauth_error") ? "Connecting " + name + " didn't work. Try again." : "";
+    if (!msg) return;
+    history.replaceState(null, "", location.pathname + location.hash);
+    if (mascot) mascot.say(msg, { mood: q.get("linked") ? "happy" : "sad" });
+    else toast(msg, 4000);
+  }
 
   var resizeTimer;
   window.addEventListener("resize", function () {

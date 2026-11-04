@@ -53,10 +53,23 @@ function route_username_check(): array
    Registration: step 3 (e-mail code) → step 4 (account)
 --------------------------------------------------------------- */
 
+/** Published courses, for the language step of the wizard. */
+function route_public_courses(): array
+{
+    return ['courses' => q('SELECT slug, name FROM courses WHERE is_published = 1 ORDER BY sort_order, id')->fetchAll()];
+}
+
+/** A signed challenge for the bot check (see require_human() in lib/auth.php). */
+function route_challenge(): array
+{
+    return issue_challenge();
+}
+
 function route_register_code(): array
 {
     $email = normalize_email(in_str('email', 254));
     if (!valid_email($email)) fail(422, 'invalid_email', 'Please enter a valid e-mail.');
+    require_human($email);
     if (q_val('SELECT 1 FROM users WHERE email = ?', [$email])) {
         fail(409, 'email_taken', 'An account with this e-mail already exists. Log in instead.');
     }
@@ -74,7 +87,19 @@ function route_register_verify(): array
 
 function route_register(): array
 {
-    $email = verified_email(in_str('verifiedToken', 500));
+    // Either an e-mail verified by code (step 3) or an identity from Google / GitHub.
+    $oauthToken = in_str('oauthToken', 1000);
+    $oauth = null;
+    if ($oauthToken !== '') {
+        $oauth = oauth_pending($oauthToken);
+        require_human($oauthToken);
+        $email = $oauth['email'];
+        if (q_val('SELECT 1 FROM oauth_accounts WHERE provider = ? AND provider_user_id = ?', [$oauth['provider'], $oauth['id']])) {
+            fail(409, 'already_registered', 'This ' . OAUTH_PROVIDERS[$oauth['provider']]['name'] . ' account is already registered. Log in instead.');
+        }
+    } else {
+        $email = verified_email(in_str('verifiedToken', 500));
+    }
     $username = in_str('username', 20);
     $password = in_raw('password', 200);
 
@@ -85,19 +110,22 @@ function route_register(): array
     if (q_val('SELECT 1 FROM users WHERE email = ?', [$email])) fail(409, 'email_taken', 'An account with this e-mail already exists.');
 
     $course = find_course_by_slug(in_str('course', 32));
-    if (!$course) fail(422, 'invalid_course', 'Pick a language.');
+    if (!$course || !$course['is_published']) fail(422, 'invalid_course', 'Pick a language.');
     $tz = safe_timezone(in_str('timezone', 64));
     $answers = body()['placement']['answers'] ?? [];
     if (!is_array($answers) || count($answers) > 20) fail(422, 'invalid_placement');
 
-    $result = tx(function () use ($email, $username, $password, $course, $tz, $answers) {
+    $result = tx(function () use ($email, $username, $password, $course, $tz, $answers, $oauth) {
         q('INSERT INTO users (username, email, password_hash, email_verified_at, timezone) VALUES (?, ?, ?, NOW(), ?)',
             [$username, $email, password_hash($password, PASSWORD_DEFAULT), $tz]);
         $userId = (int) db()->lastInsertId();
         q('INSERT INTO user_settings (user_id) VALUES (?)', [$userId]);
+        if ($oauth) link_oauth($userId, $oauth['provider'], $oauth['id']);
         $user = fresh_user($userId);
         $placement = save_placement($user, $course, $answers, (int) (body()['placement']['seconds'] ?? 0));
-        activate_course($user, $course, $placement['level']);
+        $placement['skippedUnits'] = activate_course($user, $course, $placement['level']);
+        $placement['startUnit'] = q_row('SELECT position, title FROM units WHERE course_id = ? AND position = ?',
+            [$course['id'], $placement['skippedUnits'] + 1]);
         return ['user' => $user, 'placement' => $placement];
     });
 
@@ -149,6 +177,7 @@ function route_password_code(): array
 {
     $email = normalize_email(in_str('email', 254));
     if (!valid_email($email)) fail(422, 'invalid_email', 'Please enter a valid e-mail.');
+    require_human($email);
     throttle('send_code', $email, 5, 3600);
     $user = q_row('SELECT id FROM users WHERE email = ?', [$email]);
     // The answer is the same whether the account exists or not.
@@ -178,7 +207,8 @@ function route_password_reset(): array
 
 function route_placement_questions(): array
 {
-    $course = find_course_by_slug(query_str('course')) ?? fail(404, 'unknown_course');
+    $course = find_course_by_slug(query_str('course'));
+    if (!$course || !$course['is_published']) fail(404, 'unknown_course', 'This course is not available yet.');
     $rows = q("SELECT q.id, q.difficulty, q.prompt, q.code_snippet, a.id AS answer_id, a.answer_text, a.is_correct
                FROM questions q JOIN question_answers a ON a.question_id = q.id
                WHERE q.course_id = ? AND q.purpose = 'placement' AND q.is_active = 1

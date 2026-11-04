@@ -2,17 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <script>
-    // Shown at whatever address was missing, so relative links need the app root as their base.
-    // On Apache 404.php has already put one in; on GitHub Pages the root is the repository folder.
-    (function () {
-      if (document.querySelector("base") || location.protocol === "file:" || /\/404\.html$/.test(location.pathname)) return;
-      var project = /\.github\.io$/.test(location.hostname) && location.pathname.match(/^\/[^/]+\//);
-      var base = document.createElement("base");
-      base.href = project ? project[0] : "/";
-      document.head.appendChild(base);
-    })();
-  </script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Codle — Page not found</title>
   <meta name="robots" content="noindex">

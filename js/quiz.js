@@ -4,13 +4,12 @@
  * Unit quizzes and final exams: one multiple-choice question at a time with
  * the right answer shown after every pick, then the score.
  *
- * quiz.html?lesson=ID with the API (js/api.js) loads the questions of that
- * lesson, sends the answers to the server, which grades them, and completes
- * the lesson (XP) from the pass mark up. Without a lesson id or without the
- * API a short sample quiz runs, graded in the browser and worth nothing.
+ * quiz.html?lesson=ID loads the questions of that lesson from the API
+ * (js/api.js), sends the answers to the server, which grades them, and
+ * completes the lesson (XP) from the pass mark up.
  */
 
-/** Builds the quiz. `data` is the API's GET lessons/{id}/quiz answer, `remote` whether it came from the server. */
+/** Builds the quiz. `data` is the API's GET lessons/{id}/quiz answer. */
 function codleQuiz(data, remote) {
   "use strict";
 
@@ -185,12 +184,6 @@ function codleQuiz(data, remote) {
     var btn = $("qz-next");
     btn.disabled = true;
     btn.classList.add("loading");
-    if (!remote) {
-      var total = questions.length, score = Math.round(100 * correctCount / total);
-      renderResult({ score: score, correct: correctCount, total: total, passed: score >= quiz.passPercent, passPercent: quiz.passPercent,
-                     firstCompletion: false, reward: null, badges: [], next: null });
-      return;
-    }
     api.post("lessons/" + lesson.id + "/quiz", { answers: answers }).then(renderResult, function (err) {
       btn.disabled = false;
       btn.classList.remove("loading");
@@ -205,9 +198,7 @@ function codleQuiz(data, remote) {
     $("qz-result-title").textContent = res.passed ? (res.score === 100 ? "Perfect!" : "Passed!") : "Not yet";
     var sub = res.correct + " of " + res.total + " correct.";
     if (res.passed) {
-      sub += remote
-        ? (res.firstCompletion ? " The lesson is complete." : " You had already passed this one, so no new XP.")
-        : " This was the sample quiz: sign in to earn XP.";
+      sub += res.firstCompletion ? " The lesson is complete." : " You had already passed this one, so no new XP.";
       if (res.badges && res.badges.length) sub += " New badge: " + res.badges.join(", ") + "!";
     } else {
       sub += " You need " + res.passPercent + "% to pass. Have another go, the answers come in a different order each time.";
@@ -226,7 +217,6 @@ function codleQuiz(data, remote) {
       } else {
         actions.push('<a class="qz-btn primary" href="index.html">Back to the path</a>');
       }
-      if (!remote) actions.push('<button class="qz-btn" type="button" id="qz-retry">Try again</button>');
     } else {
       actions.push('<button class="qz-btn primary" type="button" id="qz-retry">Try again</button>');
       actions.push('<a class="qz-btn" href="index.html">Back to the path</a>');
@@ -268,33 +258,13 @@ function codleQuiz(data, remote) {
   renderIntro();
 }
 
-/* Loader: a lesson from the API when the URL names one, otherwise the sample quiz. */
+/* Loader: the quiz the URL names, from the API. Without one, back to the path. */
 (function () {
   "use strict";
   var match = /[?&]lesson=(\d+)/.exec(location.search);
   var api = window.CodleApi;
 
-  var SAMPLE = {
-    lesson: { id: 0, title: "Unit 1 Quiz", kind: "quiz", crumb: "Unit 1 · Quiz", unitTitle: "First Page", course: { slug: "html", name: "HTML" }, xp: 50, completed: false },
-    quiz: {
-      passPercent: 70, bestScore: null, attempts: 0,
-      questions: [
-        { id: 1, prompt: "What does HTML stand for?", code: null, correct: 1,
-          answers: [{ id: 1, text: "High Transfer Machine Language" }, { id: 2, text: "Hyper Text Markup Language" }, { id: 3, text: "Home Tool Markup Language" }, { id: 4, text: "Hyperlink Text Mode Language" }] },
-        { id: 2, prompt: "Which tag makes the main heading of a page?", code: null, correct: 6,
-          answers: [{ id: 5, text: "<header>" }, { id: 6, text: "<h1>" }, { id: 7, text: "<title>" }, { id: 8, text: "<heading>" }] },
-        { id: 3, prompt: "What is wrong with this code?", code: "<h1>Welcome<h1>", correct: 10,
-          answers: [{ id: 9, text: "Nothing, it is fine" }, { id: 10, text: "The closing tag is missing the slash" }, { id: 11, text: "Headings cannot contain text" }, { id: 12, text: "h1 must be lowercase" }] },
-        { id: 4, prompt: "Which of these is a comment?", code: null, correct: 15,
-          answers: [{ id: 13, text: "// A note" }, { id: 14, text: "/* A note */" }, { id: 15, text: "<!-- A note -->" }, { id: 16, text: "# A note" }] },
-        { id: 5, prompt: "Which tag wraps a paragraph of text?", code: null, correct: 19,
-          answers: [{ id: 17, text: "<text>" }, { id: 18, text: "<para>" }, { id: 19, text: "<p>" }, { id: 20, text: "<pg>" }] }
-      ]
-    },
-    next: null
-  };
-
-  if (!match || !api) { codleQuiz(SAMPLE, false); return; }
+  if (!match || !api) { window.location.replace("index.html"); return; }
 
   function giveUp(message) {
     var el = document.getElementById("qz-toast");
@@ -304,7 +274,6 @@ function codleQuiz(data, remote) {
   }
 
   api.ready.then(function (s) {
-    if (!s.online) { codleQuiz(SAMPLE, false); return; } // static demo
     if (!s.user) { window.location.replace("register.html"); return; }
     api.get("lessons/" + match[1] + "/quiz").then(function (data) { codleQuiz(data, true); }, function (err) {
       giveUp(err.code === "lesson_locked" ? "This quiz is still locked." :

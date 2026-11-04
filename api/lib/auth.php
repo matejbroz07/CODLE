@@ -11,6 +11,9 @@ const SESSION_COOKIE = 'codle_session';
 const CODE_TTL_MINUTES = 15;
 const CODE_MAX_ATTEMPTS = 5;
 const VERIFIED_TOKEN_TTL = 3600;          // registration step 3 → step 4
+const CHALLENGE_TTL = 2 * 3600;           // a page may sit open this long before it registers
+const CHALLENGE_MIN_AGE = 3;              // seconds: nobody fills the wizard faster than this
+const POW_BITS = 16;                      // leading zero bits the browser has to find (≈65k hashes, well under a second)
 
 const RESERVED_USERNAMES = [
     'admin', 'administrator', 'codle', 'root', 'system', 'moderator', 'support',
@@ -25,7 +28,9 @@ const BLOCKED_USERNAME_TERMS = ['nigger'];
 
 function is_https(): bool
 {
-    return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') return true;
+    // Behind a proxy that terminates TLS (most hosting): trust it only when configured.
+    return !empty(config()['behind_proxy']) && strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https';
 }
 
 function set_session_cookie(string $token, int $expires): void
@@ -187,12 +192,12 @@ function code_hash(string $email, string $purpose, string $code): string
     return keyed_hash("code|$purpose|$email|$code");
 }
 
-/**
- * Creates a 6-digit code for $email, sends it and returns what the API may tell
- * the client (in dev mode that includes the code itself).
- */
+/** Creates a 6-digit code for $email, e-mails it and returns what the API may tell the client. */
 function issue_code(string $email, string $purpose, ?int $userId = null): array
 {
+    // Site-wide ceiling, so a flood of fresh addresses cannot burn the mail quota.
+    $cap = (int) (config()['mail']['max_per_hour'] ?? 300);
+    if ($cap > 0) throttle('send_code_all', 'all', $cap, 3600);
     $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     // A new code replaces every older unused one.
     q('UPDATE email_verifications SET consumed_at = NOW() WHERE email = ? AND purpose = ? AND consumed_at IS NULL', [$email, $purpose]);
@@ -200,28 +205,14 @@ function issue_code(string $email, string $purpose, ?int $userId = null): array
         [$email, $userId, $purpose, code_hash($email, $purpose, $code)]);
     if (random_int(1, 20) === 1) q('DELETE FROM email_verifications WHERE expires_at < NOW() - INTERVAL 1 DAY');
 
-    $mode = config()['mail']['mode'] ?? 'dev';
-    if ($mode === 'mail') {
-        send_code_mail($email, $purpose, $code);
-        return ['sent' => true, 'expiresInMinutes' => CODE_TTL_MINUTES];
-    }
-    return ['sent' => true, 'expiresInMinutes' => CODE_TTL_MINUTES, 'devCode' => $code];
+    send_code_mail($email, $purpose, $code);
+    return ['sent' => true, 'expiresInMinutes' => CODE_TTL_MINUTES];
 }
 
 function send_code_mail(string $email, string $purpose, string $code): void
 {
-    $subject = match ($purpose) {
-        'password_reset' => 'Your Codle password reset code',
-        'email_change'   => 'Confirm your new Codle e-mail',
-        default          => 'Your Codle verification code',
-    };
-    $text = "Your code is: $code\n\nIt is valid for " . CODE_TTL_MINUTES . " minutes. If you did not ask for it, ignore this e-mail.\n\nCodle";
-    $from = (string) (config()['mail']['from'] ?? 'Codle <no-reply@example.com>');
-    $headers = "From: $from\r\nContent-Type: text/plain; charset=utf-8\r\n";
-    if (!@mail($email, $subject, $text, $headers)) {
-        error_log('Codle API: mail() failed for a ' . $purpose . ' code');
-        fail(502, 'mail_failed', 'The e-mail could not be sent. Try again later.');
-    }
+    [$subject, $text, $html] = code_mail($purpose, $code, CODE_TTL_MINUTES);
+    send_mail($email, $subject, $text, $html);
 }
 
 /** Checks a code; consumes it on success. Fails with a client error otherwise. */
@@ -262,4 +253,70 @@ function verified_email(string $token): string
     $data = json_decode((string) base64_decode(strtr($parts[0], '-_', '+/')), true);
     if (!is_array($data) || ($data['x'] ?? 0) < time()) fail(403, 'email_not_verified', 'The verification has expired. Verify your e-mail again.');
     return (string) $data['e'];
+}
+
+/* ---------------------------------------------------------------
+   Signed tokens (base64url payload + HMAC), shared by the flows below
+--------------------------------------------------------------- */
+
+function sign_payload(string $kind, array $data): string
+{
+    $payload = rtrim(strtr(base64_encode(json_encode($data, JSON_UNESCAPED_UNICODE)), '+/', '-_'), '=');
+    return $payload . '.' . keyed_hash($kind . '|' . $payload);
+}
+
+/** The payload of a token signed with sign_payload($kind), or null when forged or malformed. */
+function read_payload(string $kind, string $token): ?array
+{
+    $parts = explode('.', $token);
+    if (count($parts) !== 2 || !preg_match('/^[A-Za-z0-9_-]+$/', $parts[0])) return null;
+    if (!hash_equals(keyed_hash($kind . '|' . $parts[0]), $parts[1])) return null;
+    $data = json_decode((string) base64_decode(strtr($parts[0], '-_', '+/')), true);
+    return is_array($data) ? $data : null;
+}
+
+/* ---------------------------------------------------------------
+   Bot check: a signed challenge the browser must "work" on (proof of work)
+   plus a honeypot field. Nothing to click, nothing to read, well under a second.
+--------------------------------------------------------------- */
+
+function issue_challenge(): array
+{
+    return ['challenge' => sign_payload('challenge', ['t' => time(), 'n' => bin2hex(random_bytes(8))]), 'bits' => POW_BITS];
+}
+
+/**
+ * Verifies the bot check sent with a form: the honeypot must be empty, the
+ * challenge must be ours and old enough, and sha256(challenge|subject|nonce)
+ * must start with POW_BITS zero bits. $subject ties the work to one e-mail
+ * (or OAuth token), so one solution cannot be reused for another address.
+ */
+function require_human(string $subject): void
+{
+    $b = body();
+    // Honeypot: a real browser leaves this invisible field empty.
+    if (!empty($b['website'])) fail(422, 'bot_suspected', 'Something went wrong. Reload the page and try again.');
+
+    $token = is_string($b['challenge'] ?? null) ? $b['challenge'] : '';
+    $nonce = $b['nonce'] ?? null;
+    $data = read_payload('challenge', $token);
+    if (!$data || !is_int($data['t'] ?? null)) fail(422, 'bad_challenge', 'Reload the page and try again.');
+    $age = time() - $data['t'];
+    if ($age > CHALLENGE_TTL) fail(422, 'challenge_expired', 'This page sat open too long. Reload it and try again.');
+    if ($age < CHALLENGE_MIN_AGE) fail(422, 'bot_suspected', 'Something went wrong. Reload the page and try again.');
+    if (!is_int($nonce) && !(is_string($nonce) && preg_match('/^\d{1,12}$/', $nonce))) fail(422, 'bad_challenge', 'Reload the page and try again.');
+    if (!pow_ok(hash('sha256', $token . '|' . $subject . '|' . $nonce, true))) {
+        fail(422, 'bot_suspected', 'Something went wrong. Reload the page and try again.');
+    }
+}
+
+function pow_ok(string $binaryHash): bool
+{
+    $bits = POW_BITS;
+    for ($i = 0; $bits > 0; $i++, $bits -= 8) {
+        $byte = ord($binaryHash[$i]);
+        if ($bits >= 8) { if ($byte !== 0) return false; }
+        elseif ($byte >> (8 - $bits) !== 0) return false;
+    }
+    return true;
 }
